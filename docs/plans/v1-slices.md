@@ -1,0 +1,403 @@
+# V1 delivery slices
+
+Status: Phase 0 baseline. Application scaffolding begins only after repository-owner approval of the complete change set.
+
+Last reviewed: 2026-09-23
+
+This plan turns the architecture roadmap into review-sized vertical increments. It is subordinate to the [architecture plan](architecture-and-delivery.md), [v1 scope](v1-scope.md), [module charters](../modules/README.md), and [repository workflow](../conventions/repository.md).
+
+## Delivery rule
+
+A **slice** is a capability and acceptance unit. An **increment** is the normal pull-request unit. A slice may contain several increments; combining increments into an oversized pull request is not the default. Each increment leaves the repository buildable, tested, and internally consistent, and every commit still requires explicit approval of its exact change set.
+
+If an increment becomes difficult to review in one sitting, split it at a vertical, independently verifiable outcome. Do not split by creating speculative layers, empty abstractions, temporary architecture, or knowingly broken intermediate states.
+
+## Reference outcome and invariants
+
+The primary journey starts with a Sales Clerk and requires a distinct Sales Approver, with Organization Administrator, Sales Manager, Inventory Manager, and Purchasing Agent setup roles around it. The first valuable workflow is:
+
+> An authenticated member creates or enters an Organization, prepares stocked goods, submits a Sales Order, has a different authorized member approve it, and can observe each line become reserved or create a Replenishment Requirement. Cancelling the order durably releases successful reservations. Every decision is tenant-isolated, authorized, idempotent where delivery can repeat, and auditable.
+
+The workflow deliberately proves partial success across lines, a long-running process, compensation, a third business module, event-sourced Inventory state, and a late consumer. It does not attempt complete ERP behavior.
+
+Cross-slice invariants:
+
+1. The URL Organization slug selects context but never grants access; current membership is checked on every request or message-created actor context.
+2. No module reads or writes another module's schema.
+3. Immediate collaboration uses Contracts interfaces; durable commands use receiver-owned contracts; integration events use producer-owned contracts.
+4. One order line is either fully reserved or short. Different lines may have different outcomes.
+5. The submitter cannot approve the order. Approval permission and Sales-owned authority are rechecked at commit time.
+6. Every broker handler is at-least-once safe through delivery inbox, stable business-operation identity, and domain invariants.
+7. Stock Position events and its inline current projection commit atomically; replay produces no external effect.
+8. Raw domain/event-store data is not a product audit or activity timeline.
+9. Infrastructure appears only in the first increment that exercises it.
+
+## CI lanes established by the increments
+
+| Lane | Contents | Default frequency |
+| --- | --- | --- |
+| Fast | Restore, format verification, analyzers, build, domain/application tests, architecture tests | Every pull request |
+| PostgreSQL | Migration, module contract, persistence, concurrency, transaction, and Testcontainers tests | Every pull request once introduced |
+| Topology | `DistributedApplicationTestingBuilder`, Keycloak/Redis/Mailpit/RabbitMQ resource graph, critical HTTP/message path | Pull request when affected; required before merge to protected branch |
+| Broker failure | Process termination, redelivery, duplicate, poison/error queue, relay lease recovery | Required for messaging changes; full matrix scheduled and before release |
+| Browser | Critical BFF login and reference workflow | Required for frontend/auth changes; before release |
+| Azure compatibility | Entra, Service Bus Standard, managed identity/secrets, deployed smoke/restore/rollback | Protected environment before Azure promotion |
+
+The first increment creates the canonical repository commands for these lanes. A test is not complete until a CI lane runs it.
+
+## Slice 1 — Repository and executable skeleton
+
+### Increment 1.1 — Build policy and module boundaries
+
+**Outcome:** a clean checkout restores and builds the intended project graph, and executable architecture tests reject forbidden references.
+
+**Work:**
+
+- Pin the selected .NET SDK and centrally manage build/package policy with `global.json`, `Directory.Build.props`, and `Directory.Packages.props`.
+- Create the root `.slnx`, Host, conventional C# AppHost, ServiceDefaults, Migrator, four `{Module}.Contracts`/`{Module}` pairs, and focused test projects.
+- Add root `.editorconfig`, nullable/analyzer/warnings-as-errors policy, deterministic formatting, CI, Conventional Commit checking, and fast local Lefthook commands that do not run container suites.
+- Add ArchUnitNET tests for the exact rules in the architecture plan, including Contracts package restrictions and host composition rules.
+- Add scoped `AGENTS.md`/human README files only where a new significant source/test subtree now needs durable instructions.
+
+**Excludes:** business entities, generic repositories, mediator, result framework, shared domain base library, event bus, database schema, and frontend tooling.
+
+**Acceptance:** Fast lane passes on a clean checkout; deliberately introduced forbidden project references make architecture tests fail; all projects are reachable from the solution without circular references.
+
+### Increment 1.2 — Local runtime, PostgreSQL, and finite migrations
+
+**Outcome:** Aspire starts one host and PostgreSQL, runs the finite Migrator to completion, and exposes health and OpenTelemetry without business behavior in the host.
+
+**Work:**
+
+- Compose PostgreSQL, Migrator, Host, and Aspire dashboard through the AppHost.
+- Give each module its own EF Core DbContext registration, explicit schema mapping, migrations assembly/history table, and initial schema migration.
+- Acquire the documented PostgreSQL advisory lock in the Migrator, apply module migrations in declared order, fail nonzero, and make Host wait for completion.
+- Add ServiceDefaults, JSON `ILogger` output, OTel/OTLP wiring, liveness/readiness, and graceful shutdown.
+- Prove local configuration uses Aspire parameters/user secrets rather than committed credentials.
+
+**Excludes:** Keycloak, Redis, Mailpit, RabbitMQ, Azurite, product-data caching, and business tables invented merely to exercise EF.
+
+**Acceptance:** PostgreSQL and Topology lanes prove empty-database migration, idempotent rerun, advisory-lock exclusion, migration failure blocking Host startup, schema/history isolation, health, telemetry, and repeated start/stop without orphaned application processes.
+
+## Slice 2 — Identity and Organization access
+
+### Increment 2.1 — BFF identity session and JIT User link
+
+**Outcome:** a person signs in through local Keycloak, receives a secure server-side session, and is linked to one product User by immutable issuer/subject.
+
+**Work:**
+
+- Add Keycloak and Redis to Aspire with reproducible realm/client configuration and development secrets outside source.
+- Implement the BFF authorization-code flow, secure cookie, focused Redis `ITicketStore`, logout/revocation, and Data Protection configuration appropriate to local single-host development.
+- Persist Access User and External Identity through an explicit JIT use case; keep tokens and provider types at the host adapter.
+- Provide a minimal authenticated identity endpoint sufficient for tests, not a frontend application.
+
+**Acceptance:** PostgreSQL and Topology lanes prove first login/link, repeat login, immutable issuer/subject, email-change tolerance, invalid issuer/audience rejection, Redis failure closed, lost ticket causing logout, and no token/secret telemetry. Most auth tests use local test identities; a focused topology test uses real Keycloak.
+
+### Increment 2.2 — Organization bootstrap and bookmarkable routing
+
+**Outcome:** an authenticated User creates an Organization, becomes its first Organization Administrator, and enters it through `/o/{organizationSlug}`.
+
+**Work:**
+
+- Implement Organization creation, slug normalization/reservation, initial Membership/role assignment, audit, and operation-specific errors in one Access transaction.
+- Implement Organization chooser behavior: zero memberships shows onboarding, one redirects directly, multiple lists choices; no authoritative last-Organization session state.
+- Resolve the route slug and current Membership into explicit request-scoped Organization/actor context.
+- Establish explicit `OrganizationId`, query filters/scoped queries, write validation, and tenant-aware unique indexes for Access data.
+
+**Acceptance:** PostgreSQL and host tests prove slug races, atomic first-admin creation, bookmarkability, one/many membership navigation, suspended/nonmember denial, forged/cross-tenant identifiers, and missing/mismatched `OrganizationId` rejection.
+
+### Increment 2.3 — Invitation and email delivery
+
+**Outcome:** an Organization Administrator creates a single-use invitation and the matching authenticated person accepts it without Access provisioning an IdP account.
+
+**Work:**
+
+- Add Invitation lifecycle and minimal role selection.
+- Commit Invitation, audit, and Access-owned email-outbox row together.
+- Add Mailpit and a native hosted sender; tolerate ambiguous duplicate email delivery while making invitation acceptance idempotent.
+- Support both OpenRegistration and DirectoryGated provider admission without provider administration APIs.
+
+**Acceptance:** PostgreSQL/Topology tests prove expiry, single use, recipient mismatch, resend behavior, ambiguous send, JIT identity link, open-registration acceptance, and a directory-gated login rejection leaving the product invitation pending.
+
+### Increment 2.4 — Membership administration and product roles
+
+**Outcome:** an Organization Administrator lists members, assigns system roles, suspends/reactivates/removes memberships, and cannot remove the last active administrator.
+
+**Work:**
+
+- Implement the accepted role catalog and stable module permission tokens as reviewed code.
+- Persist role assignments by stable textual role ID; do not synchronize role-definition rows at startup.
+- Re-check current membership on use so suspension/revocation takes effect without distributed authorization caching.
+- Add Access audit for accepted changes and security-significant denials.
+
+**Acceptance:** application/PostgreSQL tests prove last-administrator races, immediate suspension effect, role replacement, organization isolation, Organization Administrator not implying business permissions, and concurrent changes under optimistic/database constraints.
+
+## Slice 3 — Inventory and the constrained event store
+
+### Increment 3.1 — Stock Item and Stocking Location
+
+**Outcome:** an authorized Inventory Manager maintains the minimum reference data required by Sales and Stock Positions.
+
+**Work:**
+
+- Implement state-stored Stock Item and Stocking Location vertical slices, stable customer-provided SKU/location codes, immutable v1 base unit, active state, audit, and tenant-scoped indexes.
+- Add one batched Inventory Contracts query that resolves Stock Item references for Sales without exposing persistence types.
+
+**Acceptance:** domain/PostgreSQL/contract tests prove normalization, duplicate races, tenant isolation, inactive-item behavior, immutable base unit after use, batched lookup semantics, permission enforcement, and audit.
+
+### Increment 3.2 — Stock Position append and inline current state
+
+**Outcome:** an Inventory Manager records stock receipt against one Stock Position and reads the atomically updated current state.
+
+**Work:**
+
+- Implement the minimum EF Core-backed event stream/metadata tables inside `InventoryDbContext` with stable event alias/schema version, JSONB payload, event/stream IDs, stream version, recorded time, tenant, and global sequence.
+- Implement the Stock Position state/decider wrapper, deterministic evolution, uncommitted events, expected-version append, and inline current projection.
+- Add receipt behavior sufficient to establish positive on-hand stock. Corrections remain in Increment 3.4.
+
+**Acceptance:** domain/PostgreSQL tests prove deterministic hydration, optimistic conflict, unique event IDs, atomic stream/projection rollback, constrained decimals, no cross-tenant stream access, and no assembly-qualified type name as canonical discriminator.
+
+### Increment 3.3 — Temporal reads and event evolution fixtures
+
+**Outcome:** an authorized user can inspect Stock Position state at latest, stream version, or recorded instant without exposing raw persistence as the product interface.
+
+**Work:**
+
+- Define timestamp inclusivity/order semantics and implement latest/version/as-of hydration through the same evolution function.
+- Persist compatibility fixtures for every accepted Stock Position event name/version.
+- Demonstrate one explicit old-version transformation only if a real schema change is needed; otherwise keep the extension point absent.
+- Add a curated Stock Position history representation distinct from raw JSON and security audit.
+
+**Acceptance:** fixed-clock and database integration tests prove boundary timestamps, same-timestamp sequence ordering, historical determinism, fixture compatibility after namespace refactors, and replay without domain/integration event dispatch.
+
+### Increment 3.4 — Correction and projection rebuild proof
+
+**Outcome:** bad stock is corrected by an immutable event, and the current projection can be rebuilt and verified without mutating history or emitting external effects.
+
+**Work:**
+
+- Append a reasoned correction event; never update/delete historical events as the normal correction path.
+- Implement one Inventory-specific rebuild operation into shadow state with checkpoint, cancellation/resume, verification, and deliberate swap.
+- Keep this concrete; do not introduce a generic async-projection/upcaster framework.
+
+**Acceptance:** PostgreSQL tests inject a projection failure and cancellation, resume without double effects, compare rebuilt/current state, reject corrupt/unknown events clearly, and prove the rebuild emits no messages or audit duplicates.
+
+## Slice 4 — Sales order and approval
+
+### Increment 4.1 — Customer and draft Sales Order
+
+**Outcome:** a Sales Clerk creates the minimum Customer and a draft order whose lines contain validated immutable Inventory snapshots.
+
+**Work:**
+
+- Implement minimal Customer creation and draft Sales Order creation by vertical slice.
+- Batch-resolve Stock Item references through Inventory.Contracts and store stable identity, SKU, description, base unit, quantity, unit price, and one order currency.
+- Assign a short Organization-scoped order number with gaps allowed.
+
+**Acceptance:** domain/application/PostgreSQL/contract tests prove positive quantity, monetary rules, inactive/foreign/missing item rejection, one batched lookup, immutable snapshots, number-race handling, tenant isolation, permissions, and audit.
+
+### Increment 4.2 — Submit, approval authority, and activity
+
+**Outcome:** a Sales Clerk submits a valid order and a different authorized member approves it within current Sales-owned authority.
+
+**Work:**
+
+- Add Sales-managed per-Membership Approval Authority plus submit/approve transitions and operation-specific failures.
+- Evaluate authority-management permission, current Membership, amount/currency, order state, and separation of duties in the owning handler transaction.
+- Add curated order activity plus separate audit entries for accepted and denied decisions.
+- Create initial Order Fulfilment Process state on approval, but do not add RabbitMQ until the next slice.
+
+**Acceptance:** tests prove authority assignment isolation, unauthorized authority changes, invalid state transitions, same-person denial, changed/suspended membership, limit/currency failure, concurrent approvals, audit of denials without leaking sensitive payloads, and atomic approved-order/process creation.
+
+## Slice 5 — Durable fulfilment
+
+### Increment 5.1 — Inventory durable reservation endpoint
+
+**Outcome:** Inventory consumes an at-least-once `ReserveStock` command and durably publishes exactly one semantic reservation outcome for a business operation.
+
+**Work:**
+
+- Add RabbitMQ to Aspire and the isolated Inventory `AddRebusService` endpoint, stable input/error queue, bounded workers/prefetch/retries, and explicit subscriptions.
+- Add Inventory-owned receiver command and outcome-event contracts without Rebus types.
+- Implement Inventory-local inbox/outbox rows and hosted relay with leasing/recovery; commit inbox, event append, inline projection, audit, and outcome outbox atomically.
+- Use a test publisher/subscriber at the broker seam; do not create fake production modules.
+
+**Acceptance:** PostgreSQL/Topology/Broker tests prove full-line reserve/shortage, duplicate message ID, repeated business-operation ID under a new message ID, conflicting operation reuse, concurrent reservation, handler crash before/after commit, relay crash after publish, redelivery, and Inventory-only poison/error routing.
+
+### Increment 5.2 — Sales Order Fulfilment Process round trip
+
+**Outcome:** approving an order durably sends one reservation command per line and Sales records independent reservation/shortage outcomes until the process reaches its correct aggregate status.
+
+**Work:**
+
+- Add isolated Sales endpoint, Sales-local inbox/outbox, relay, concrete process state, per-line operation IDs, attempts/deadlines, and Inventory outcome handlers.
+- Have approval atomically create process state and outbox commands; do not publish from an in-memory post-commit handler.
+- Keep process transitions explicit in Sales application code and persist them with inbox, audit/activity, deadlines, and outgoing messages.
+- Compare the two real inbox/outbox implementations; extract only identical EF/Rebus mechanics in a dedicated behavior-preserving change if the deletion test justifies it.
+
+**Acceptance:** multi-line tests prove all-reserved, mixed reserved/shortage, out-of-order/duplicate/concurrent outcomes, restart, stale/foreign tenant messages, no hidden host workflow, and correct process/activity state.
+
+### Increment 5.3 — Purchasing Stock Item snapshot plus tail
+
+**Outcome:** Purchasing begins consuming Stock Item references after Inventory already contains data and reaches a complete, reconcilable local projection without private-stream replay.
+
+**Work:**
+
+- Add the isolated Purchasing endpoint.
+- Introduce Inventory's versioned Stock Item snapshot export with a consistent high watermark and `StockItemReferenceChanged` integration event.
+- Bootstrap the Purchasing-owned reference projection, buffer/apply tail events after the watermark, checkpoint progress, restart idempotently, and reconcile against Inventory.
+- Exercise a test-only separate-worker cutover against the same stable module queue: stop the monolith endpoint before the worker takes ownership. Do not ship a second production deployable in v1.
+- Document which synchronous dependencies would still need redesign before actual Inventory or Purchasing extraction.
+
+**Acceptance:** PostgreSQL/Broker tests start from pre-existing Inventory data, mutate concurrently with snapshot, crash/restart at each phase, prove no gap or duplicate semantic effect, detect deliberate drift, and cut over the endpoint without double-applying a business operation.
+
+### Increment 5.4 — Purchasing Replenishment Requirement
+
+**Outcome:** a shortage causes one Purchasing-owned Replenishment Requirement using its current Stock Item reference, and Sales records creation.
+
+**Work:**
+
+- Add the Purchasing-owned `CreateReplenishmentRequirement` command.
+- Have the Sales process send the command after a shortage; validate its Stock Item against the Purchasing projection, then atomically create the requirement/inbox/audit/outbox and publish the created event.
+- Add minimal authorized requirement query/list behavior.
+
+**Acceptance:** PostgreSQL/Topology/Broker tests prove duplicate/conflicting shortage operation behavior, missing/stale/foreign Stock Item reference handling, tenant/base-unit validation, Purchasing-only error routing, created-event redelivery, Sales process update, and no auto-created Purchase Order.
+
+### Increment 5.5 — Cancellation and Reservation Release compensation
+
+**Outcome:** cancelling an eligible order durably and idempotently releases every successful reservation and exposes compensation progress.
+
+**Work:**
+
+- Make cancellation update Sales order/process/activity/audit and enqueue stable release commands atomically.
+- Implement Inventory release idempotency and release-outcome event; handle outcomes in Sales.
+- Define the visible states for cancellation requested, compensation pending, compensated, and operator attention after exhausted technical retry.
+
+**Acceptance:** tests cover cancellation before/while/after reservation outcomes, duplicate cancellation/release, release of already released reservation, late success racing cancellation, process death at each commit boundary, and eventual compensated state without negative/resurrected stock.
+
+### Increment 5.6 — Durability and operator proof closure
+
+**Outcome:** the complete workflow has repeatable failure evidence and enough operational surface to diagnose stuck work without a generic operations framework.
+
+**Work:**
+
+- Complete the broker failure matrix across all three module endpoints and two application replicas.
+- Add narrowly scoped health/metrics/logs for relay age/depth, inbox duplicates, process age, retry/error queue, and projection failures.
+- Add documented recovery procedures for retrying/reconciling a process and inspecting named error queues; destructive replay requires explicit operator action and idempotency proof.
+
+**Acceptance:** Broker/Topology tests prove module failure isolation, replica competing-consumer behavior, graceful shutdown, stale lease recovery, bounded poison behavior, and reconciliation after ambiguous outcomes. Telemetry contains identifiers but no tokens or full event payloads.
+
+## Slice 6 — Minimal frontend journey
+
+### Increment 6.1 — Vite/BFF shell and Organization navigation
+
+**Outcome:** the browser signs in through the BFF, chooses or creates an Organization, and retains bookmarkable Organization routes without holding tokens.
+
+**Work:**
+
+- Select the smallest suitable frontend framework at this increment, record the choice, and add Vite with directly pinned pnpm, lockfile, Prettier, commitlint, and Lefthook integration.
+- Add only the BFF shell, login/logout, Organization chooser/onboarding, canonical routes, accessible error handling, and no client-side token storage.
+- Add one Playwright smoke path because real browser behavior now exists.
+
+**Acceptance:** Browser/Topology tests prove login, one/many Organization navigation, direct bookmark reload, unauthorized slug denial, logout, cookie attributes, and absence of browser tokens.
+
+### Increment 6.2 — Critical wholesale workflow UI
+
+**Outcome:** users can exercise the reference workflow through minimal screens rather than a comprehensive ERP frontend.
+
+**Work:**
+
+- Add the smallest screens for Stock Item/Location/receipt setup, Customer/order creation, submit/approve under separate users, fulfilment status, shortage requirement, cancellation, and curated activity.
+- Keep administration UI limited to invitation/role steps required to establish the two-user scenario.
+- Apply BFF aggregation only where a concrete screen otherwise requires awkward chatty calls; business workflows remain in modules.
+
+**Acceptance:** one Browser smoke journey covers setup through approved order and reservation/shortage observation; a second focused path covers cancellation/release. HTTP/application tests retain most behavioral coverage.
+
+## Slice 7 — Packaging and Azure private pilot
+
+### Increment 7.1 — OCI image and environment contract
+
+**Outcome:** the application image and separately runnable finite migration artifact/job use versioned non-root OCI packaging and only documented environment inputs.
+
+**Work:**
+
+- Publish the application image and separately runnable migration artifact/job, generate dependency inventory/SBOM, tie versions to the source revision, and define graceful shutdown/probes/resources.
+- Run the same image locally against externalized PostgreSQL/Redis/RabbitMQ/Keycloak-style configuration without Kubernetes manifests.
+- Document secrets, Data Protection, broker, telemetry, database, and identity environment contracts.
+
+**Acceptance:** clean-image smoke applies migrations, starts healthy, completes one workflow, shuts down gracefully, rejects missing required configuration, and emits expected telemetry as a non-root process.
+
+### Increment 7.2 — Cheapest feasible Azure private pilot
+
+**Outcome:** a restricted private pilot deploys the one application to Azure Container Apps with managed dependencies and explicit spend ceilings.
+
+**Work:**
+
+- Provision/deploy Container Apps Consumption, a finite migration job, PostgreSQL Flexible Server pilot SKU, Service Bus Standard, Azure Managed Redis pilot SKU, ACR Basic, Key Vault, Entra External ID, Blob-backed Data Protection keys where required, and bounded Azure Monitor/Application Insights.
+- Use managed identity where supported and keep Key Vault out of local development.
+- Set application/edge rate limits, body/concurrency limits, maximum replicas, database/broker worker limits, telemetry sampling/daily cap, budgets/anomaly alerts, and a documented kill switch.
+- Keep the pilot restricted; gateway/WAF/private-origin production topology remains a later threat-model decision.
+
+**Acceptance:** Azure compatibility tests prove login/logout, migration-before-start, one durable workflow, Service Bus command/fan-out/error behavior, secret access without embedded credentials, and scale ceilings. Recreate the current pricing estimate before deployment.
+
+### Increment 7.3 — Recovery and release evidence
+
+**Outcome:** the pilot can be restored, rolled back, and diagnosed rather than merely deployed successfully once.
+
+**Work:**
+
+- Perform PostgreSQL point-in-time/backup restore into a clean target, application rollback with compatible migrations/messages/events, and broker/process reconciliation.
+- Record RPO/RTO observations, single-point-of-failure limitations, runbooks, dashboard queries, cost, and the explicit promotion gate for HA/public production.
+- Run the real Service Bus Standard and Entra compatibility suites in their protected CI environment.
+
+**Acceptance:** deployment smoke passes after restore and rollback; the prior release can run against the retained schema/contracts; cost and security limitations are visible and no AKS/Flux claim is made.
+
+## Slice 8 — Reference-to-product handoff
+
+### Increment 8.1 — Copy/rename rehearsal
+
+**Outcome:** the reference implementation can produce a second repository without depending on a reusable foundry runtime.
+
+**Work:**
+
+- Write and execute a documented copy/rename or agent-assisted checklist against a concrete second repository selected at that time.
+- Replace example product/module/domain names as required, remove reference-only behavior, retain validated structural conventions, and scan for old namespaces/schema names/event aliases/queue names.
+- Build, test, start, migrate, and deploy the second repository through the same path.
+- Create a generator only if this rehearsal demonstrates repeated error-prone mechanics that documentation and agent assistance cannot handle reliably.
+
+**Acceptance:** the second repository passes its own CI, starts locally, and deploys without a runtime dependency on `modulith-foundry`. Persisted identifiers that must remain compatible are deliberately mapped rather than blindly renamed.
+
+## Infrastructure introduction order
+
+| Resource/tool | First increment | Reason |
+| --- | --- | --- |
+| PostgreSQL | 1.2 | Module persistence and migration proof |
+| Keycloak + Redis | 2.1 | Real BFF identity/session behavior |
+| Mailpit | 2.3 | Actual invitation email effect |
+| RabbitMQ + Rebus | 5.1 | Actual durable reservation command and outcome |
+| pnpm + Vite | 6.1 | First browser interface |
+| Azure managed services | 7.2 | First Azure pilot |
+| Azurite | Deferred | No accepted attachment operation; local Data Protection does not justify an always-on Blob emulator |
+| k3s/AKS/Flux | Deferred | No v1 operational driver after Container Apps pilot selection |
+
+## Explicit decision points during implementation
+
+These do not reopen Phase 0 by default:
+
+- The exact C# type/method names and folder layout are chosen inside the owning increment while preserving the chartered interface.
+- Extract shared inbox/outbox mechanics only after Sales and Inventory implementations demonstrate the same code and tests.
+- Choose the frontend framework in Increment 6.1 against the tiny accepted UI; Vite and pnpm are already fixed.
+- Choose the Azure infrastructure-definition mechanism before Increment 7.2 and review its license/lifecycle then; the target topology is already fixed.
+- If implementation evidence makes an accepted design awkward or unsafe, stop, update the relevant plan/ADR/tests, and obtain approval for the revised change set before proceeding.
+
+## Phase 0 exit checklist
+
+- [x] Prior-attempt failures have explicit countermeasures and proof locations.
+- [x] Product purpose, first workflow, invariants, and four module charters are written.
+- [x] Transaction, event sourcing, audit, messaging, identity, authorization, tenancy, testing, and deployment directions are decided or explicitly deferred.
+- [x] Dependency versions/licenses have primary-source evidence and an implementation-time recheck rule.
+- [x] V1 work is ordered into review-sized, independently verifiable increments.
+- Repository-owner approval is an external gate recorded in review and commit history, not a mutable checkbox in this file.
+
+Application scaffolding begins only after that approval is recorded.

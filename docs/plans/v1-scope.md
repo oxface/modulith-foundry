@@ -1,6 +1,6 @@
 # V1 Scope and Deferred Register
 
-Status: Proposed after architecture YAGNI sweep; individual open items still require review.
+Status: Accepted architecture baseline; implementation follows the separately approved v1 delivery plan.
 
 Last reviewed: 2026-09-23
 

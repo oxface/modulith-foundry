@@ -1,6 +1,6 @@
 # Modulith Foundry: Architecture and Delivery Plan
 
-Status: Draft for review; implementation is intentionally blocked on the gates in this document.
+Status: Phase 0 baseline. Implementation begins only after repository-owner approval of the complete Phase 0 change set.
 
 Last reviewed: 2026-09-23
 
@@ -16,6 +16,9 @@ Companion evidence:
 - [Identity-provider invitation and JIT flow](../research/2026-09-23-identity-provider-invitation-and-jit-flow.md) verifies the portable boundary between product-owned invitations and Keycloak/Entra self-service identity creation.
 - [OIDC onboarding modes and a later OpenFGA mapping](../research/2026-09-23-oidc-onboarding-modes-and-openfga-mapping.md) shows how the same product flow supports open and directory-gated identity providers and how static system roles could later map to an OpenFGA model.
 - [V1 scope and deferred register](./v1-scope.md) applies YAGNI across every discussed capability and records the trigger for anything intentionally moved out of v1.
+- [Earlier attempts](./earlier-attempts.md) maps the reported dead ends to explicit countermeasures and proof slices.
+- [Module charters](../modules/README.md) record ownership, interfaces, invariants, authorization, and exclusions for the four business modules.
+- [V1 delivery slices](./v1-slices.md) turns this roadmap into review-sized vertical increments with acceptance evidence.
 
 ## 1. Purpose
 
@@ -51,9 +54,8 @@ YAGNI applies to implementation, not to architectural memory: record plausible l
 ### Repository
 
 - **Decided:** The repository is Apache-2.0 licensed.
-- The `main` branch contains one initial commit, a title-only README, the license, and a general `.gitignore`.
-- There is no solution, application code, documentation convention, CI, or repository-local agent guidance yet.
-- The worktree was clean at inspection time.
+- The `main` branch contains the initial repository plus the approved architecture/research baseline and repository-local agent guidance.
+- There is no solution, application code, package manifest, AppHost, or CI yet.
 
 ### Development VM
 
@@ -61,7 +63,7 @@ YAGNI applies to implementation, not to architectural memory: record plausible l
 | --- | --- | --- |
 | OS | Ubuntu 26.04 LTS, Linux x64 | Supported local Linux target |
 | Compute | 8 CPUs, 23 GiB RAM, 84 GiB free disk | Adequate for the proposed local containers |
-| .NET | SDK/runtime 10.0.12; `dotnet-ef` 10.0.12 | Pin the repository to .NET 10 after dependency review |
+| .NET | SDK 10.0.112; runtime and `dotnet-ef` 10.0.12 | Pin the repository to the accepted .NET 10 SDK feature band in Increment 1.1 |
 | Aspire | CLI 13.5.4 stable | Suitable local orchestrator; no AppHost has been created |
 | Containers | Rootless Podman 5.7.0, cgroups v2 | Use Aspire's detected Podman runtime |
 | Node | Node 24.21.0, npm 12.0.2 | Available if the test frontend requires it |
@@ -134,16 +136,11 @@ Use DDD terminology where the domain earns it and organize implementation by ver
 
 ## 5. Product discovery and module map
 
-### Gate G0 — Product definition — **Open; blocks scaffolding**
+### Gate G0 — Product definition — **Decided; closes with Phase 0 approval**
 
-Before naming projects, provide:
+The reference product is a multi-tenant wholesale-operations ERP. Its first valuable workflow takes an authenticated Organization member from stocked-goods setup through Sales Order submission, independent approval, durable per-line reservation or shortage-driven replenishment, and cancellation compensation.
 
-1. The example/real product's one-sentence purpose.
-2. Its primary actor and the first valuable end-to-end workflow.
-3. The business outcome and invariants of that workflow.
-4. At least three candidate business capabilities and who owns each decision/data set.
-5. Which steps have external effects, human waits, or deadlines.
-6. Audit/regulatory expectations: evidence, retention, redaction, and access.
+The [module charters](../modules/README.md), [domain glossary](../domain/CONTEXT.md), and [delivery slices](./v1-slices.md) define the actors, owned decisions/data, invariants, external effects, human waits, deadlines, audit baseline, and explicit exclusions. Detailed ERP completeness and unknown compliance policy are not scaffolding gates; they retain adoption triggers in the deferred register.
 
 Do not create placeholder `Orders`, `Customers`, and `Payments` modules merely to satisfy a module count. A bad context split is harder to remove than a missing abstraction.
 
@@ -154,7 +151,7 @@ Do not create placeholder `Orders`, `Customers`, and `Payments` modules merely t
 - **Inventory** owns minimal Stock Item definitions, stocking locations, stock positions, reservations, releases, and stock movements. A Stock Item has a stable identity, customer-provided SKU, description, base unit, and active status; richer catalog behavior does not justify a separate module in v1.
 - **Purchasing** owns replenishment requirements, suppliers, and purchase orders.
 
-Attachment bytes use shared Blob infrastructure, while business ownership, authorization, metadata, and audit remain with the module whose record carries the attachment. Do not create generic Files or Orchestration business modules initially. Detailed charters and the first-workflow invariants remain part of G0.
+Attachment bytes use shared Blob infrastructure, while business ownership, authorization, metadata, and audit remain with the module whose record carries the attachment. Do not create generic Files or Orchestration business modules initially. The accepted responsibilities and first-workflow invariants are in the [module charters](../modules/README.md) and [v1 delivery slices](./v1-slices.md).
 
 Sales validates Stock Items through `Inventory.Contracts` and keeps the immutable SKU/description/unit snapshot required to understand each order line. Purchasing references the stable Stock Item identity while owning supplier-specific sourcing data. Neither module reads Inventory tables, and no shared product table is introduced. Reconsider a Catalog module only when a real capability such as non-stocked products, variants, merchandising, product hierarchy, or independently owned rich product content appears.
 
@@ -182,8 +179,8 @@ Each module implementation remains one project organized primarily by vertical f
 ### Dependency rules — **Decided**
 
 1. A module implementation references its own Contracts project and may reference another module's Contracts project.
-2. A Contracts project references no module implementation, host, EF Core, ASP.NET Core, Rebus, or vendor-specific persistence package.
-3. Contracts contain capability interfaces, request/response records, stable IDs/value types, documented errors, and published integration-event schemas only.
+2. A Contracts project references no module implementation, host, EF Core, ASP.NET Core, Rebus, or vendor-specific persistence package. It may reference another Contracts project only for stable owner-defined identifiers/value types genuinely present in its interface; Contracts dependency cycles and transitive DTO graphs are forbidden.
+3. Contracts contain capability interfaces, request/response records, stable IDs/value types, documented errors, receiver-owned durable integration-command schemas, and producer-owned integration-event schemas only. Contracts contain no Rebus types or attributes.
 4. Domain events, aggregates, handlers, endpoint implementations, EF mappings, migrations, and message handlers remain in the implementation project and are internal by default.
 5. The host references all module implementations for registration and route mapping, but no module DbContext or repository is resolved or used by host code.
 6. Endpoint code lives with its vertical slice inside the module. The host calls one composition extension per module to register and map it.
@@ -192,6 +189,7 @@ Each module implementation remains one project organized primarily by vertical f
 Architecture tests should detect:
 
 - forbidden project/assembly references;
+- cyclic or unjustified Contracts-to-Contracts references;
 - public EF/ASP.NET/Rebus types in Contracts;
 - public domain and persistence types from implementation assemblies;
 - host types depending on module feature namespaces;
@@ -446,7 +444,7 @@ OpenFGA is **Deferred**. Revisit it only when the product has an actual relation
 - Access writes invitation, audit, and email-outbox state in one transaction. A native hosted worker sends through the configured email adapter; duplicate delivery after an ambiguous external send is tolerated because invitation acceptance is single-use and idempotent. Do not introduce a general notification framework or Rebus email pipeline for this one use case.
 - Machine-to-machine clients, multi-identity account linking, support impersonation, custom roles, and privileged-access management remain deferred until an actual scenario requires them.
 
-### Tenant routes and public identifiers — **Decided, mapping mechanism open**
+### Tenant routes and public identifiers — **Decided**
 
 - Put the organization in canonical bookmarkable routes, initially `/o/{organizationSlug}/...`. Resolve the slug, re-check current membership and permission, and only then construct the immutable request-scoped tenant context. The slug selects an organization; it never authorizes access.
 - Do not keep an authoritative active or last-used organization in the BFF session. The root route redirects directly when the user currently belongs to exactly one organization and otherwise shows the organization chooser.
@@ -528,11 +526,11 @@ When frontend work begins, use Vite with a directly pinned pnpm 12 release and c
 
 ## 13. Deployment path
 
-### Gate G3 — Deployment target — **Open**
+### Gate G3 — First deployment target — **Decided for private pilot**
 
-Choose the first real target and constraints: cloud/on-premises, managed PostgreSQL, ingress/TLS/DNS, secret store, image registry, backups/restore objectives, observability backend, cost ceiling, environments, and operator.
+The first Azure deployment is a deliberately non-HA, restricted private pilot on Azure Container Apps Consumption with PostgreSQL Flexible Server, Service Bus Standard, Azure Managed Redis, ACR Basic, Key Vault, Entra External ID, and bounded Azure Monitor/Application Insights. It uses the cheapest feasible SKUs verified at deployment time, explicit replica/worker/telemetry caps, backup/restore and rollback drills, and no claim of public production readiness. Public gateway/WAF/private-origin topology, HA/SLO/RPO/RTO promotion, AKS, and GitOps remain later gates.
 
-### Initial deployable unit — **Proposed**
+### Initial deployable unit — **Decided**
 
 - One non-root OCI image for the application process.
 - One separately runnable migration artifact/job that applies every module's reviewed migrations in a declared order and fails before application rollout on error.
@@ -541,78 +539,68 @@ Choose the first real target and constraints: cloud/on-premises, managed Postgre
 - Health/readiness endpoints and graceful shutdown for HTTP requests, workers, and message leases.
 - Image version tied to source revision; generate dependency inventory/SBOM in CI.
 
-### Kubernetes and Flux — **Deferred proposal**
+### Kubernetes and Flux — **Deferred**
 
-Do not write manifests yet. If G3 selects Kubernetes and the team will operate it, first deploy the image manually to a disposable namespace, document probes/resources/migrations/rollback, then encode those proven operations as Helm/Kustomize resources and add Flux reconciliation. GitOps must represent a working deployment, not serve as the experiment that discovers it.
+Do not write manifests yet. If a post-pilot decision selects Kubernetes and the team will operate it, first deploy the image manually to a disposable namespace, document probes/resources/migrations/rollback, then encode those proven operations as Helm/Kustomize resources and add Flux reconciliation. GitOps must represent a working deployment, not serve as the experiment that discovers it.
 
 ## 14. Phased delivery and acceptance gates
 
 ### Phase 0 — Discovery and decisions
 
-- Capture prior-attempt failures and explicit countermeasures.
-- Complete G0 product definition and module charters.
+- Capture [prior-attempt failures and explicit countermeasures](./earlier-attempts.md).
+- Complete G0 product definition and [module charters](../modules/README.md).
 - Review dependency versions/licenses and pinning policy.
 - Finish the narrowed Inventory event-sourcing design, organization lifecycle, first workflow invariants, and first Azure deployment target enough to avoid dead ends.
 - Record accepted decisions as short ADRs; retain this plan as the roadmap.
+- Turn the roadmap into the review-sized [v1 delivery slices](./v1-slices.md).
 
-**Exit:** module map, first workflow, consistency classification, and accepted technology matrix are reviewable. Only then scaffold.
+**Exit:** the repository owner approves the complete Phase 0 documentation change set. Only then scaffold Increment 1.1.
 
 ### Phase 1 — Walking skeleton
 
-- Create solution, build policy, test projects, and host.
-- Add the four concrete module pairs and architecture tests.
-- Wire Aspire with PostgreSQL, Keycloak, Redis for BFF tickets, and Mailpit only when invitation email is implemented; omit RabbitMQ and Azurite until their slices begin.
-- Implement one thin vertical slice in one module through HTTP to its own schema.
-- Add CI build/unit/architecture/PostgreSQL integration tests.
+- Deliver Slice 1: build policy, project graph, architecture tests, CI lanes, Host, AppHost, ServiceDefaults, PostgreSQL, and the finite Migrator.
+- Establish schema/migration isolation, health, telemetry, and repeatable local lifecycle without inventing business data.
 
-**Exit:** `aspire start` reaches healthy state and the slice works through authenticated HTTP with telemetry.
+**Exit:** a clean checkout builds, architecture rules are executable, and `aspire start` reaches healthy state only after successful isolated module migrations.
 
-### Phase 2 — First cross-module workflow
+### Phase 2 — Identity and Organization access
 
-- Implement the first valuable workflow through module contracts.
-- Classify it as local, shared-atomic, or durable/separate-commit.
-- If shared-atomic, complete the exact rollback spike/tests in section 7 before adoption.
-- Add audit records for accepted and denied outcomes.
+- Deliver Slice 2: Keycloak BFF login, Redis tickets, JIT User link, Organization bootstrap/routing, invitations through Mailpit, memberships, and system roles.
+- Prove tenant context, access revocation, last-administrator protection, and security-significant audit.
 
-**Exit:** success and injected-failure paths prove the selected consistency guarantee.
+**Exit:** two real users can enter one Organization with distinct business roles, and current membership controls every request.
 
-### Phase 3 — Event-sourcing decision/spike
+### Phase 3 — Inventory and Sales domain proof
 
-- If G1 justifies it, implement one aggregate plus inline projection using the minimum store design.
-- Prove concurrency, replay, evolution, projection atomicity, rebuild, and audit separation.
-- Compare complexity and product value against a state-stored implementation.
+- Deliver Slices 3 and 4: state-stored reference data, one event-sourced Stock Position family, temporal reads/rebuild, Customer/draft order, and approval policy.
+- Prove optimistic append, deterministic hydration, inline projection atomicity, audit separation, one batched in-process Inventory query, and explicit Sales transaction ownership.
 
-**Exit:** adopt, narrow, or reject self-built event sourcing in an ADR. Do not expand it by inertia.
+**Exit:** the Stock Position proof either confirms ADR 0016 or supersedes/narrows it before durable messaging builds on the model; an approved order has initial fulfilment process state but no broker work yet.
 
-### Phase 4 — Durable workflow and external effect
+### Phase 4 — Durable fulfilment and extraction seams
 
-- Introduce Rebus/outbox/inbox only for a concrete separate-commit workflow.
-- Integrate email through Mailpit as the first harmless external effect if the domain needs it.
-- Prove restart, duplicate, retry, poison-message, and compensation behavior.
+- Deliver Slice 5: module-isolated Rebus endpoints, concrete inbox/outbox/process state, reservation outcomes, snapshot-plus-tail bootstrap, Purchasing requirement, cancellation compensation, and operator/failure evidence.
+- Extract shared EF/Rebus mechanics only if two implemented consumers demonstrate the same deep module.
 
-**Exit:** the workflow survives process termination and repeated delivery without corrupting outcomes.
+**Exit:** the workflow survives process termination, concurrent/duplicate/out-of-order delivery, poison messages, and compensation without corrupting outcomes; a late consumer and endpoint cutover are proven.
 
-### Phase 5 — Minimal frontend and identity journey
+### Phase 5 — Minimal frontend journey
 
-- Build only the screens required to exercise the reference workflow.
-- Use the decided BFF secure-cookie flow and server-side Redis ticket store.
-- Add browser smoke tests against Keycloak.
+- Deliver Slice 6: Vite/BFF Organization shell and only the screens required to exercise the reference workflow.
+- Keep most behavioral coverage below the browser and add focused Playwright smoke paths against Keycloak.
 
 **Exit:** a user can sign in, complete the workflow, observe its status, and sign out.
 
 ### Phase 6 — First real deployment
 
-- Implement the G3 platform path, migration job, secrets, TLS, telemetry, backup, and rollback.
-- Perform restore and rollback drills, not only a successful rollout.
+- Deliver Slice 7: OCI packaging, environment contract, Azure Container Apps private pilot, managed dependencies, spend/abuse ceilings, compatibility suites, restore, and rollback.
+- Do not add Kubernetes/Flux or claim public production readiness.
 
 **Exit:** a clean environment can be deployed from source and remains observable and recoverable.
 
 ### Phase 7 — Product extraction
 
-- Create the separate product repository by documented copy/rename or an agent-assisted checklist.
-- Replace example module names and domain code; retain only validated structural conventions.
-- Run automated searches for old names/namespaces/schema names and all tests.
-- Deploy the new product skeleton through the same path.
+- Deliver Slice 8 against a concrete second repository: execute the reviewed copy/rename or agent-assisted checklist, replace reference names/behavior, scan durable identifiers deliberately, run all tests, and deploy through the same path.
 
 **Exit:** a second repository builds, tests, starts locally, and deploys without changes to a reusable foundry framework.
 
@@ -620,18 +608,21 @@ Only after this second use should repeated, error-prone steps be considered for 
 
 ## 15. Technology-selection posture
 
-### Proposed reviewed baseline
+### Accepted implementation baseline
 
 Versions here are the researched stable baseline as of 2026-09-23, not floating constraints:
 
-| Technology | Proposed version | License | Decision note |
+| Technology | Baseline version | License | Decision note |
 | --- | --- | --- | --- |
 | .NET / ASP.NET Core / EF Core | 10.0.12; SDK 10.0.401 | MIT | Adopt .NET 10 LTS; support ends 2028-11-14 and requires current patches |
 | Aspire | 13.5.4 | MIT | Adopt for local orchestration/topology tests; only latest feature release is supported |
 | PostgreSQL | 18.6 | PostgreSQL License | Adopt current minor; major 18 supported to 2030-11-14 |
 | Npgsql / EF provider | 10.0.3 | PostgreSQL License | Adopt with EF Core 10; prove transaction behavior on this combination |
-| Keycloak | 26.7.4 | Apache-2.0 | Propose for reproducible local identity; production use remains G2; only latest minor is supported |
+| Keycloak | 26.7.4 | Apache-2.0 | Adopt for reproducible local identity; production uses Entra External ID; only the latest Keycloak minor is supported |
 | Mailpit | 1.31.2 | MIT | Local/test only; pin image version/digest |
+| Redis | 8.2.10 extended line | AGPLv3 selected from Redis 8's tri-license | Adopt locally for BFF tickets only; product-data caching remains deferred |
+| RabbitMQ | 4.3.6 | MPL-2.0 | Adopt for local acknowledgement/redelivery/fan-out failure tests; keep an active upgrade cadence |
+| Rebus core / ServiceProvider / RabbitMQ / Azure Service Bus | 8.9.4 / 10.7.2 / 10.1.1 / 10.7.1 | MIT | Adopt only when Slice 5 begins; recheck package compatibility then |
 | ArchUnitNET | 0.13.4 | Apache-2.0 | Adopt and pin; active and expressive, but pre-1.0 |
 | Testcontainers for .NET | 4.15.0 | MIT | Adopt for focused real-infrastructure integration tests |
 | OpenTelemetry .NET | 1.18.0 | Apache-2.0 | Adopt through Aspire Service Defaults |
@@ -640,11 +631,11 @@ Use central NuGet package management and exact container tags/digests after plan
 
 ### Conditional
 
-- Rebus 8.9.4 and its selected transport only for the named Order Fulfilment workflow. `Rebus.PostgreSql` outbox and Rebus sagas are excluded from the baseline.
-- Redis is used for BFF tickets. Product-data caching remains deferred; Redis 8 offers RSALv2, SSPLv1, or AGPLv3 and that license choice must remain explicit.
+- Rebus and its selected transport enter only for the named Order Fulfilment workflow. `Rebus.PostgreSql` outbox and Rebus sagas are excluded from the baseline.
+- Redis is used for BFF tickets under the selected AGPLv3 option. Product-data caching remains deferred.
 - Minimal frontend only after the backend workflow exists.
 - Vite is the frontend build/dev tool and pnpm is the package manager; Corepack is not required. Select the UI framework when the minimal frontend phase begins.
-- Kubernetes/Flux only after G3 selects that operating model.
+- Kubernetes/Flux only after a post-pilot operational driver selects that operating model.
 
 ### Explicitly excluded initially
 
@@ -659,7 +650,7 @@ The [companion research note](../research/2026-09-23-technology-baseline.md) is 
 
 | Risk | Countermeasure / decision trigger |
 | --- | --- |
-| Modules are invented before the domain is known | G0 blocks naming/scaffolding; write module charters around a real workflow |
+| Modules are invented before the domain is known | G0 module charters and the accepted reference workflow define ownership before scaffolding |
 | Contracts become DTO/repository dumping grounds | Deep capability interfaces, internal-by-default implementation, architecture tests |
 | Host becomes an application layer | Endpoint slices live in modules; host contains composition/policy wiring only |
 | Cross-module transaction becomes a global unit of work | Named-use-case gate, one-connection proof, failure injection, no transaction in Contracts |
@@ -667,29 +658,15 @@ The [companion research note](../research/2026-09-23-technology-baseline.md) is 
 | Event log is mistaken for security audit | Separate semantics and coverage for denied/operational actions |
 | “Reliable” messaging loses or duplicates effects | Transactional outbox, consumer inbox, idempotency, restart/duplicate tests |
 | Infrastructure is chosen from a wishlist | Add resources only when a workflow needs them |
-| Keycloak becomes an unplanned production platform | G2 makes local versus production identity explicit |
-| Kubernetes/GitOps obscures application progress | G3 and a working manual deployment precede manifests/Flux |
+| Keycloak becomes an unplanned production platform | Keycloak is local only; the Azure pilot conformance-tests Entra External ID |
+| Kubernetes/GitOps obscures application progress | The Container Apps pilot and a named operational driver precede Kubernetes/Flux |
 | Template abstractions leak example assumptions | Deploy concrete example first; extract by copy/rename; automate only proven repetition |
 | One database weakens isolation | Explicit schemas/mappings, migrations per module, reference and model tests; consider roles only if compatible with chosen transactions |
 
-## 17. Open questions for the first review
+## 17. Phase 0 closure and implementation gate
 
-1. What specific technical and organizational failures occurred in earlier attempts, and what evidence showed each failure?
-2. What is the product, primary actor, and first valuable end-to-end workflow?
-3. Which three or more business capabilities appear to own decisions/data in that workflow?
-4. Which single aggregate is the best event-sourcing candidate, and why is current-state persistence insufficient for it?
-5. What does “audit” need to prove, to whom, for how long, and under what privacy constraints?
-6. Which workflow, if any, truly requires a cross-module atomic transaction?
-7. Is Keycloak intended for production or only for local/testing parity?
-8. What is the first deployment environment and who will operate its database, identity, secrets, and telemetry?
-9. Does the separate product already have a repository/name, or is its creation part of phase 7?
+Phase 0 has produced the failure/countermeasure record, four module charters, domain glossary, accepted/deferred architecture decisions, primary-source technology evidence, deployment direction, v1 scope, and review-sized delivery plan. No further broad domain or architecture drilling is required before implementation.
 
-## 18. Immediate next review outcome
+Remaining unknowns are deliberately attached to later increments: exact source type/folder names, frontend framework selection, Azure infrastructure-definition mechanism, real-product repository/name, compliance-driven audit retention, and public-production gateway/HA requirements. None justifies speculative v1 code now.
 
-The next review should produce three artifacts, with no application scaffolding:
-
-1. a short “earlier attempts: failure -> countermeasure” table;
-2. the product workflow and at least three completed module charters;
-3. accepted/rejected/deferred marks on each **Proposed** item above, especially event sourcing, audit, messaging, identity, and deployment.
-
-After those are agreed, convert durable choices into ADRs and begin Phase 1.
+Repository-owner approval of the complete Phase 0 change set is the implementation gate. Once recorded, Increment 1.1 in [V1 delivery slices](./v1-slices.md) is the only authorized implementation scope; later increments remain planned, not implicitly authorized.

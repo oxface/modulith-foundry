@@ -1,0 +1,60 @@
+# Access module charter
+
+## Purpose
+
+Access establishes who a person is to the product, which organizations they may enter, and which product-defined roles they hold there. It supplies current actor and organization access to business modules without becoming the owner of their business policy.
+
+## Owned concepts and data
+
+- `Organization`, including its immutable canonical slug and exceptional slug aliases.
+- `User` and its links to immutable external `(issuer, subject)` identities.
+- `Membership`, `Invitation`, system-role assignments, and membership lifecycle state.
+- The reviewed system-role catalog and its coarse permission bundles.
+- Access-schema audit entries and the invitation-email outbox.
+
+The `access` PostgreSQL schema is authoritative. Keycloak and Entra authenticate principals but do not own these records.
+
+V1 performs no automatic deletion of Organizations, Users, Memberships, or accepted Invitations. Expired invitation payloads and operational email-outbox data may be purged under explicit jobs; audit retention/redaction remains a compliance-driven adoption decision.
+
+## Interface
+
+Commands exposed through Access capabilities:
+
+- create an Organization and its first Organization Administrator membership;
+- invite a person to an Organization with selected system roles;
+- accept one valid Invitation for the authenticated external identity;
+- change a Membership's system roles;
+- suspend, reactivate, or remove a Membership.
+
+Queries exposed through Access capabilities:
+
+- link or resolve an authenticated external identity to a User;
+- list the Organizations currently accessible to a User;
+- resolve a route slug and current Membership into an immutable actor/tenant context;
+- list an Organization's memberships, invitations, and assigned system roles.
+
+Expected business failures are explicit: slug unavailable, invitation invalid/expired/consumed, identity mismatch, membership absent/inactive, permission denied, and last-administrator protection. No interface exposes Access entities, its DbContext, provider claims, or queryables.
+
+## Integration and external effects
+
+Access publishes no broker integration event in v1 because no accepted consumer needs one. Invitation email is an Access-owned external effect: invitation state, audit, and an email-outbox record commit together; a native hosted worker sends it to Mailpit locally and the configured provider later.
+
+## Invariants
+
+- Every active Organization has at least one active Organization Administrator.
+- Organization slugs are normalized, globally unique, and immutable in normal workflows.
+- `(issuer, subject)` identifies at most one User; email is not durable identity.
+- An Invitation belongs to one Organization, is single-use and expiring, and can create at most one Membership.
+- Only a current Organization Administrator may manage invitations, memberships, or access roles.
+- Organization Administrator grants access administration only; it is not a Sales, Inventory, or Purchasing super-role.
+
+## Authorization
+
+V1 system roles are stable textual product definitions: `organization-administrator`, `sales-clerk`, `sales-manager`, `sales-approver`, `inventory-manager`, and `purchasing-agent`. Access persists assignments; each business module remains authoritative for the meaning and enforcement of its permissions and invariants.
+
+## Explicit exclusions
+
+- Creating or inviting identity-provider accounts through provider administration APIs.
+- Tenant-defined roles, direct grants, denies, inheritance, and OpenFGA.
+- Billing, subscription entitlement, Trial lifecycle, unrestricted-signup guarantees, custom domains, and Organization deletion.
+- Business-object authorization, approval arithmetic, support impersonation, or machine identities.
