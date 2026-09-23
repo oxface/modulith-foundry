@@ -14,7 +14,7 @@ This scope is a current implementation baseline, not a preservation mandate. Bef
 
 | Capability | Smallest justified implementation |
 | --- | --- |
-| Repository structure | One `.slnx`, central build/package policy, four module pairs, host, conventional C# Aspire AppHost project, finite Migrator project, focused shared infrastructure, tests, and durable documentation/agent guidance. |
+| Repository structure | One `.slnx`, central build/package policy, root `apps`/`modules`/`shared` areas, four module pairs, API, conventional C# Aspire AppHost project, finite Migrator project, focused shared infrastructure, tests, and durable documentation/agent guidance. |
 | Module boundaries | Access, Sales, Inventory, and Purchasing schemas/migrations/contracts with compiler and architecture-test enforcement. |
 | Organization management | Create an organization with a customer-proposed immutable slug; create the first administrator membership; list memberships; invite, accept, suspend/remove, and assign system roles; prevent removal of the last administrator. Support the same application flow with open-registration and directory-gated OIDC providers. No billing, custom domains, or organization deletion workflow. |
 | Authentication | Keycloak locally; BFF secure cookie with Redis-backed server-side ticket; immutable issuer/subject identity link. Entra External ID compatibility belongs to the Azure deployment phase. |
@@ -28,7 +28,7 @@ This scope is a current implementation baseline, not a preservation mandate. Bef
 | Files | Architecture decision and adapter seam are recorded. Add Azurite/Blob runtime wiring only if the accepted v1 workflow includes a real attachment operation. |
 | Email | Mailpit and a minimal sender only if organization invitation is email-based; no general notification framework. |
 | Observability | Aspire dashboard/OTel defaults plus traces and metrics for HTTP, PostgreSQL, outbox/inbox, message handling, process age, and projection failure. |
-| Tests | Domain/application tests, architecture tests, PostgreSQL/Testcontainers integration tests, RabbitMQ failure tests, HTTP host tests, and only the browser smoke needed to prove BFF login and the critical workflow. |
+| Tests | Domain/application tests, architecture tests, PostgreSQL/Testcontainers integration tests, RabbitMQ failure tests, HTTP API tests, and only the browser smoke needed to prove BFF login and the critical workflow. |
 | Deployment | One application image, migration job, cheapest feasible Azure private-pilot path, secrets/identity/storage appropriate to that environment, cost ceilings, smoke test, backup/restore, and rollback evidence. |
 | Extraction support | Consumer-owned ports, versioned integration contracts, snapshot-plus-tail guidance, compatibility fixtures, and a documented migration playbook. No service extraction is performed in v1. |
 

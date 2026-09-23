@@ -173,7 +173,7 @@ Do not make Redis the durable production Data Protection key store. Microsoft wa
 
 The suggested boundary is sound: the IdP authenticates; the product authorizes.
 
-Configure Keycloak so the access token supplies only identity/protocol claims needed by the host. Its default client scopes can map realm/client roles, so disable broad role scopes and omit product-role mappers rather than assuming Keycloak is identity-only by default ([Keycloak administration guide](https://www.keycloak.org/docs/latest/server_admin/)). Map an external principal to a product user by immutable issuer plus subject. Email is mutable and must not be the durable key.
+Configure Keycloak so the access token supplies only identity/protocol claims needed by the API. Its default client scopes can map realm/client roles, so disable broad role scopes and omit product-role mappers rather than assuming Keycloak is identity-only by default ([Keycloak administration guide](https://www.keycloak.org/docs/latest/server_admin/)). Map an external principal to a product user by immutable issuer plus subject. Email is mutable and must not be the durable key.
 
 Store tenant membership, business roles/permissions, delegation, approval limits, and authorization policy in product-owned module tables. A token establishes “who”; module application/domain policy decides “may do what to which tenant/resource now.” For Entra, Microsoft recommends immutable tenant/object identifiers for tenant-scoped data and validates audience, tenant, subject, and actor ([Microsoft identity claims validation](https://learn.microsoft.com/en-us/entra/identity-platform/claims-validation)).
 
@@ -196,7 +196,7 @@ Aspire testing starts the AppHost topology and resources as separate processes. 
 - **Domain unit tests:** pure aggregate/value-object/decider behavior.
 - **Application tests:** multiple application/domain classes with no network, filesystem, database, clock, or broker I/O; these are useful and should be named explicitly.
 - **Infrastructure integration tests:** Testcontainers for PostgreSQL, RabbitMQ, Redis where justified, and failure injection. These should substantially outnumber mocked unit tests around persistence/messaging behavior.
-- **Host integration tests:** `WebApplicationFactory` for routing, authentication/authorization plumbing, problem details, and selected infrastructure replacements.
+- **API integration tests:** `WebApplicationFactory` for routing, authentication/authorization plumbing, problem details, and selected infrastructure replacements.
 - **Aspire topology tests:** a small number of complete HTTP/broker workflows proving the real resource graph starts, becomes healthy, and collaborates correctly.
 - **Playwright:** defer until a real browser UI has login/navigation/user journeys worth protecting. HTTP tests are enough for the template's minimal exercise frontend/API boundary.
 

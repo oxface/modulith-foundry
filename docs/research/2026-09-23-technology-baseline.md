@@ -12,7 +12,7 @@ The recommendations assume one .NET process, one deployment, PostgreSQL schemas 
 
 ## Executive recommendation
 
-- Use .NET 10 LTS, ASP.NET Core 10, and EF Core 10 at the current `10.0.12` servicing level. Pin SDK `10.0.401` and centralize package versions.
+- Use .NET 10 LTS, ASP.NET Core 10, and EF Core 10 at the current `10.0.12` servicing level. Pin Ubuntu's maintained SDK `10.0.112` feature band and centralize package versions.
 - Use PostgreSQL `18.6` and Npgsql/EF provider `10.0.3`. Give every module its own schema, DbContext, migrations, and migrations-history table.
 - Use Aspire `13.5.4` for local topology, observability defaults, and whole-system tests. Treat its latest-only support policy as an upgrade obligation, not as application architecture.
 - Use ArchUnitNET `0.13.4` for architecture tests. It is active and substantially more capable than the older NetArchTest package, but its pre-1.0 status is a pin-and-test risk.
@@ -28,7 +28,7 @@ The recommendations assume one .NET process, one deployment, PostgreSQL schemas 
 | Component | Current stable baseline | License | Lifecycle signal | Recommendation |
 | --- | --- | --- | --- | --- |
 | .NET runtime / ASP.NET Core | 10.0.12 | MIT | .NET 10 LTS supported to 2028-11-14; current patches are required for support | Adopt |
-| .NET SDK | 10.0.401 | MIT | Serviced with .NET 10 | Pin in `global.json` after plan approval |
+| .NET SDK | 10.0.112 | MIT | Serviced 1xx compatibility band carrying runtime 10.0.12 | Pin in `global.json` with `latestPatch` |
 | EF Core | 10.0.12 | MIT | Shares the .NET 10 LTS generation | Adopt |
 | Aspire | 13.5.4 | MIT | Only the latest Aspire feature release is supported; 13.5 is current | Adopt for development/testing with an upgrade budget |
 | PostgreSQL | 18.6 | PostgreSQL License | Major 18 supported to 2030-11-14; project recommends the current minor | Adopt |
@@ -49,20 +49,22 @@ The recommendations assume one .NET process, one deployment, PostgreSQL schemas 
 
 ### Findings
 
-.NET `10.0.12` and SDK `10.0.401` were released on 2026-09-08. .NET 10 is the current LTS train and is supported through 2028-11-14. Microsoft's support policy applies the support train to .NET runtime, SDK, ASP.NET Core, and EF Core, and requires staying current on released servicing updates. The runtime, ASP.NET Core, and EF Core repositories use the MIT license.
+.NET `10.0.12` was released on 2026-09-08 with SDKs `10.0.112` and `10.0.401`; both carry the same 10.0.12 runtime. The hundreds digit identifies a quarterly SDK tooling feature band, not a runtime or target-framework generation. Ubuntu's distribution packages remain on the maintained 1xx compatibility band, while later bands primarily advance SDK components such as MSBuild, Roslyn, NuGet, templates, workloads, and CLI tooling. .NET 10 is the current LTS train and is supported through 2028-11-14. Microsoft's support policy applies the support train to .NET runtime, SDK, ASP.NET Core, and EF Core, and requires staying current on released servicing updates. The runtime, ASP.NET Core, and EF Core repositories use the MIT license.
 
 Primary sources:
 
 - [.NET 10.0.12 release notes](https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.12/10.0.12.md)
 - [.NET 10 downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - [.NET and .NET Core support policy](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core)
+- [.NET SDK, MSBuild, and Visual Studio versioning](https://learn.microsoft.com/en-us/dotnet/core/porting/versioning-sdk-msbuild-vs)
+- [.NET Linux distribution packaging guidance](https://github.com/dotnet/core/blob/main/linux.md)
 - [EF Core 10.0.12 package metadata](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore/10.0.12)
 - [EF Core 10 documentation](https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-10.0/whatsnew)
 - [.NET runtime MIT license](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT), [ASP.NET Core MIT license](https://github.com/dotnet/aspnetcore/blob/main/LICENSE.txt), and [EF Core MIT license](https://github.com/dotnet/efcore/blob/main/LICENSE.txt)
 
 ### Recommendation
 
-Target `net10.0`. After the plan is accepted, pin SDK `10.0.401` in `global.json` with a deliberate roll-forward policy and keep NuGet versions in central package management. A monthly dependency update should take current .NET servicing releases together rather than mixing runtime, ASP.NET Core, and EF patch levels without a reason.
+Target `net10.0`. Pin SDK `10.0.112` in `global.json` with `latestPatch` and keep NuGet versions in central package management. This keeps CLI, C# extension, and CI discovery on the Ubuntu-supported feature band without giving up current runtime servicing. Move to a later feature band only for a demonstrated SDK-tooling requirement and verify editor discovery as part of that change. A monthly dependency update should take current .NET servicing releases together rather than mixing runtime, ASP.NET Core, and EF patch levels without a reason.
 
 Do not add a general mediator, repository, or unit-of-work package merely because the platform supports one. ASP.NET Core endpoints and EF Core can remain implementation details inside each module's vertical slices.
 
@@ -85,7 +87,7 @@ Primary sources:
 
 ### Recommendation and risk
 
-Use Aspire to describe the local process/resource graph, start dependencies, provide dashboard telemetry, and support full-topology smoke tests. Do not let the AppHost become the business composition root: the application host still owns module registration, and the Aspire AppHost only orchestrates deployable processes and infrastructure.
+Use Aspire to describe the local process/resource graph, start dependencies, provide dashboard telemetry, and support full-topology smoke tests. Do not let the AppHost become the business composition root: the API still owns module registration, and the Aspire AppHost only orchestrates deployable processes and infrastructure.
 
 Pin `13.5.4`, run the full-system smoke test during Aspire updates, and expect upgrades more often than .NET LTS upgrades. Do not assume that choosing Aspire commits production deployment to Kubernetes, Azure, or any particular publisher.
 
@@ -206,7 +208,7 @@ Primary sources:
 
 ### Recommendation
 
-Configure the host with generic ASP.NET Core JWT bearer authentication using Keycloak authority and audience settings. Keep claim-to-application-principal mapping at the host/security edge, enforce default-deny authorization, and enforce business permissions again inside the owning module capability. Do not expose Keycloak-specific types in module contracts.
+Configure the API with generic ASP.NET Core JWT bearer authentication using Keycloak authority and audience settings. Keep claim-to-application-principal mapping at the API/security edge, enforce default-deny authorization, and enforce business permissions again inside the owning module capability. Do not expose Keycloak-specific types in module contracts.
 
 For deterministic local tests, version a development realm definition without production credentials. Keycloak is infrastructure, not a business module, and should not share application-owned tables. Decide its production database isolation and backup policy independently.
 
@@ -296,9 +298,9 @@ Primary sources:
 Choose ArchUnitNET and pin `0.13.4`. The initial rules should inspect compiled assemblies and prove that:
 
 - module implementations may depend on other modules only through their Contracts assemblies;
-- Contracts do not depend on implementation projects, the host, EF Core, Npgsql, ASP.NET Core, Rebus, or other infrastructure packages;
+- Contracts do not depend on implementation projects, applications, EF Core, Npgsql, ASP.NET Core, Rebus, or other infrastructure packages;
 - implementation persistence/domain types are internal unless a reviewed reason says otherwise;
-- the host composes implementations but contains no business workflow dependencies;
+- the API composes implementations but contains no business workflow dependencies;
 - cycles do not form among module contracts and implementations.
 
 Project references and compiler visibility remain the primary enforcement. Architecture tests add understandable policy failures and catch forbidden public API types that the project graph cannot express.
@@ -345,6 +347,26 @@ Do not create Kubernetes manifests or Flux resources until the hosting target, m
 Then choose Kubernetes/Flux only if the target environment and team operations justify their cost. If Kubernetes is selected, pin to a version supported by the provider rather than blindly following upstream latest.
 
 ## License review
+
+### Increment 1.1 implementation recheck
+
+The first executable increment rechecked every dependency it introduced against primary package or release metadata on 2026-09-23:
+
+| Dependency | Pinned version | License | Use |
+| --- | --- | --- | --- |
+| xUnit.net v3 MTP v2 | 4.0.1 | Apache-2.0 | Executable test projects on Microsoft Testing Platform; no separate VSTest adapter |
+| ArchUnitNET xUnit v3 extension | 0.13.4 | Apache-2.0 | Compiled dependency rules and xUnit assertions |
+| `@commitlint/cli` / conventional config | 21.2.3 / 21.2.3 | MIT | Conventional Commit validation in hooks and CI |
+| Lefthook | 2.1.14 | MIT | Fast local format, architecture-test, and commit-message hooks |
+| `actions/checkout` | 7.0.1 | MIT | CI checkout, pinned to the immutable release commit |
+| `actions/setup-dotnet` | 6.0.0 | MIT | Installs the SDK from `global.json`, pinned to the immutable release commit |
+| `actions/setup-node` | 7.0.0 | MIT | Installs Node 24.21.0 for repository-only checks, pinned to the immutable release commit |
+
+Primary sources: [xUnit.net MTP v2 4.0.1 package](https://www.nuget.org/packages/xunit.v3.mtp-v2/4.0.1), [xUnit.net Microsoft Testing Platform guidance](https://xunit.net/docs/getting-started/v3/microsoft-testing-platform), [ArchUnitNET 0.13.4 package](https://www.nuget.org/packages/TngTech.ArchUnitNET.xUnitV3/0.13.4), [commitlint CLI](https://www.npmjs.com/package/@commitlint/cli), [commitlint conventional config](https://www.npmjs.com/package/@commitlint/config-conventional), [Lefthook](https://www.npmjs.com/package/lefthook), [`actions/checkout` 7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1), [`actions/setup-dotnet` 6.0.0](https://github.com/actions/setup-dotnet/releases/tag/v6.0.0), and [`actions/setup-node` 7.0.0](https://github.com/actions/setup-node/releases/tag/v7.0.0).
+
+Microsoft Testing Platform is the repository-wide test execution platform; xUnit remains the test framework, and ArchUnitNET only supplies architecture assertions. MTP was selected for its executable test-project model, deterministic compile-time extension registration, and native .NET 10 CLI support, not for any dependency from ArchUnitNET or future AI evaluations.
+
+The Node packages are isolated under `tools/repository` with an npm lockfile because they are repository controls, not the product frontend. Vite, pnpm, Prettier, and the application JavaScript workspace remain deferred to Increment 6.1.
 
 The proposed default application dependencies use permissive MIT, Apache-2.0, or PostgreSQL licenses. Redis is the notable exception: Redis 8's RSALv2/SSPLv1/AGPLv3 choice needs an explicit project policy decision. Container images also contain transitive operating-system packages; image scanning and software-bill-of-material generation remain deployment concerns even when the top-level project license is permissive.
 

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ModulithFoundry.Modules.Purchasing.Contracts</AssemblyName>
+    <RootNamespace>ModulithFoundry.Modules.Purchasing.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

@@ -1,6 +1,6 @@
 # Modulith Foundry: Architecture and Delivery Plan
 
-Status: Phase 0 baseline. Implementation begins only after repository-owner approval of the complete Phase 0 change set.
+Status: Accepted architecture baseline.
 
 Last reviewed: 2026-09-23
 
@@ -54,8 +54,7 @@ YAGNI applies to implementation, not to architectural memory: record plausible l
 ### Repository
 
 - **Decided:** The repository is Apache-2.0 licensed.
-- The `main` branch contains the initial repository plus the approved architecture/research baseline and repository-local agent guidance.
-- There is no solution, application code, package manifest, AppHost, or CI yet.
+- The approved architecture/research baseline and repository-local agent guidance govern the review-sized implementation increments.
 
 ### Development VM
 
@@ -64,7 +63,7 @@ YAGNI applies to implementation, not to architectural memory: record plausible l
 | OS | Ubuntu 26.04 LTS, Linux x64 | Supported local Linux target |
 | Compute | 8 CPUs, 23 GiB RAM, 84 GiB free disk | Adequate for the proposed local containers |
 | .NET | SDK 10.0.112; runtime and `dotnet-ef` 10.0.12 | Pin the repository to the accepted .NET 10 SDK feature band in Increment 1.1 |
-| Aspire | CLI 13.5.4 stable | Suitable local orchestrator; no AppHost has been created |
+| Aspire | CLI 13.5.4 stable | Suitable local orchestrator for the conventional C# AppHost |
 | Containers | Rootless Podman 5.7.0, cgroups v2 | Use Aspire's detected Podman runtime |
 | Node | Node 24.21.0, npm 12.0.2 | Available if the test frontend requires it |
 | Missing CLIs | Docker, `psql`, `kubectl`, Flux, Java | Not blockers for planning; install only when a phase needs them |
@@ -107,15 +106,17 @@ Identifiers may cross a module seam as opaque values, but referential validity a
 Start with two production projects per module:
 
 ```text
-Modules/<Module>/<Module>.Contracts
-Modules/<Module>/<Module>
+modules/<Module>/<Module>.Contracts
+modules/<Module>/<Module>
 ```
 
-Other modules may reference only `<Module>.Contracts`. The host may reference module implementations solely to compose the process. Architecture tests enforce project references and forbidden exposed types.
+Other modules may reference only `<Module>.Contracts`. The API may reference module implementations solely to compose the process. Architecture tests enforce project references and forbidden exposed types.
 
-### AD-04 — Host responsibility — **Decided**
+The repository uses a monorepo-oriented top-level taxonomy: `apps` contains executable entry points, `modules` contains backend business capabilities, `shared` contains narrowly justified technical infrastructure, and `tests` contains .NET and system-level verification. The deferred frontend belongs in `apps/Web`; module-specific views begin as feature folders inside that application rather than packages beside the backend modules.
 
-The host is the composition root and HTTP entry point. It owns process-level routing, authentication wiring, shared infrastructure registration, and hosted-worker activation. Business workflows stay in their owning business module, not in the host.
+### AD-04 — API responsibility — **Decided**
+
+The API is the composition root and HTTP entry point. It owns process-level routing, authentication wiring, shared infrastructure registration, and hosted-worker activation. Business workflows stay in their owning business module, not in the API.
 
 ### AD-05 — In-process collaboration — **Decided**
 
@@ -179,11 +180,11 @@ Each module implementation remains one project organized primarily by vertical f
 ### Dependency rules — **Decided**
 
 1. A module implementation references its own Contracts project and may reference another module's Contracts project.
-2. A Contracts project references no module implementation, host, EF Core, ASP.NET Core, Rebus, or vendor-specific persistence package. It may reference another Contracts project only for stable owner-defined identifiers/value types genuinely present in its interface; Contracts dependency cycles and transitive DTO graphs are forbidden.
+2. A Contracts project references no module implementation, application, EF Core, ASP.NET Core, Rebus, or vendor-specific persistence package. It may reference another Contracts project only for stable owner-defined identifiers/value types genuinely present in its interface; Contracts dependency cycles and transitive DTO graphs are forbidden.
 3. Contracts contain capability interfaces, request/response records, stable IDs/value types, documented errors, receiver-owned durable integration-command schemas, and producer-owned integration-event schemas only. Contracts contain no Rebus types or attributes.
 4. Domain events, aggregates, handlers, endpoint implementations, EF mappings, migrations, and message handlers remain in the implementation project and are internal by default.
-5. The host references all module implementations for registration and route mapping, but no module DbContext or repository is resolved or used by host code.
-6. Endpoint code lives with its vertical slice inside the module. The host calls one composition extension per module to register and map it.
+5. The API references all module implementations for registration and route mapping, but no module DbContext or repository is resolved or used by API code.
+6. Endpoint code lives with its vertical slice inside the module. The API calls one composition extension per module to register and map it.
 7. A very small shared building-block project is allowed only after two modules need the same stable concept. It must not become a shared domain model.
 
 Architecture tests should detect:
@@ -192,7 +193,7 @@ Architecture tests should detect:
 - cyclic or unjustified Contracts-to-Contracts references;
 - public EF/ASP.NET/Rebus types in Contracts;
 - public domain and persistence types from implementation assemblies;
-- host types depending on module feature namespaces;
+- API types depending on module feature namespaces;
 - one module's EF model or migrations mentioning another module's schema;
 - contract DTOs returning `IQueryable`, entities, or infrastructure abstractions.
 
@@ -220,7 +221,7 @@ Do not introduce `IRepository<T>`. Aggregate-specific internal repositories are 
 
 Contract interfaces should be capability-shaped rather than handler-shaped. For example, prefer one cohesive `IReservationCapability` over exposing every internal command handler. Exact names must come from the product language.
 
-A CLR-public contract is not automatically a public HTTP API. Each capability and command is classified as user-facing, module-to-module, workflow-only, or administrative. The host maps only explicitly user-facing endpoints. Workflow-only operations receive a trusted application-created execution context, remain subject to tenant and business-invariant validation, and are audited without accepting a caller-selected system identity from HTTP input.
+A CLR-public contract is not automatically a public HTTP API. Each capability and command is classified as user-facing, module-to-module, workflow-only, or administrative. The API maps only explicitly user-facing endpoints. Workflow-only operations receive a trusted application-created execution context, remain subject to tenant and business-invariant validation, and are audited without accepting a caller-selected system identity from HTTP input.
 
 ### Error model — **Decided**
 
@@ -395,7 +396,7 @@ The fan-out topic/exchange is therefore separate broker routing infrastructure, 
 
 Do not split command and event queues in v1. Add a separate endpoint only when measured throughput, latency, scaling, poison-message isolation, or a materially different operational policy requires it. Splitting by message kind pre-emptively doubles endpoint registration, workers, error handling, monitoring, and cutover work without improving delivery semantics.
 
-Rebus module endpoints use independent `AddRebusService` providers rather than several keyed buses sharing the host provider: keyed buses do not isolate compatible handler resolution. Stable module queue names provide a useful extraction seam, but extraction still requires redesigning synchronous dependencies and bootstrapping/reconciling a new consumer's current state.
+Rebus module endpoints use independent `AddRebusService` providers rather than several keyed buses sharing the application provider: keyed buses do not isolate compatible handler resolution. Stable module queue names provide a useful extraction seam, but extraction still requires redesigning synchronous dependencies and bootstrapping/reconciling a new consumer's current state.
 
 **Decision:** use Rebus core 8.9.4 with its RabbitMQ transport locally and Azure Service Bus transport in Azure, subject to the mandatory failure/compatibility proofs. Do not use Rebus saga or PostgreSQL outbox persistence merely because Rebus is selected for transport. Rebus.PostgreSql 9.1.1 has an unresolved 2026 report concerning outbox transaction ordering/current .NET compatibility, so the baseline is a narrow application-owned EF outbox and inbox. Do not adopt the archived third-party `Rebus.Outbox` package as a workaround.
 
@@ -418,7 +419,7 @@ Build inbox/outbox mechanics concretely with the first real producer and consume
 ### Product authorization — **Decided**
 
 - The Access module owns organization membership and role assignments. V1 system roles and their permission bundles are a reviewed code catalog with stable textual identifiers; assignments persist those identifiers. There are no tenant-editable role definitions or startup-time role-row synchronization in v1.
-- Owning business modules define stable permission tokens and their meaning. The product-specific system-role catalog composes those permissions without moving their semantics into the host.
+- Owning business modules define stable permission tokens and their meaning. The product-specific system-role catalog composes those permissions without moving their semantics into the API.
 - Organization Administrator is a non-removable system-role definition for access administration, not a universal business superuser. Its assignments are removable except when removal or suspension would leave an active organization without an active administrator.
 - Start with ordinary role-to-permission grants. Do not add role inheritance, explicit denies, per-object grants, a policy DSL, or field-level permissions without a demonstrated scenario.
 - Application handlers are the authoritative enforcement point because the same use case may be invoked through HTTP, an in-process contract, or a durable workflow. ASP.NET Core policies are HTTP-boundary adapters and fast coarse checks, not the sole enforcement layer.
@@ -463,7 +464,7 @@ Authentication integration tests should use locally minted test tokens for most 
 
 The AppHost will orchestrate:
 
-- the one application host;
+- the API application;
 - one PostgreSQL server/database;
 - Keycloak;
 - Mailpit;
@@ -502,7 +503,7 @@ Implement one focused Redis-backed ASP.NET Core `ITicketStore` because the frame
 4. **Architecture tests:** enforce the rules in section 5.
 5. **Persistence/migration tests:** migrate an empty database per module, verify schema isolation/history tables, and exercise optimistic concurrency.
 6. **Consistency tests:** shared-transaction rollback, outbox atomicity, inbox idempotency, process retries/compensation, and event/projection atomicity.
-7. **Host integration tests:** HTTP routing, Problem Details, auth policies, health, and composition.
+7. **API integration tests:** HTTP routing, Problem Details, auth policies, health, and composition.
 8. **Browser smoke tests:** only the critical workflow through the minimal frontend and real local identity provider.
 9. **Deployment smoke tests:** migrations, startup/readiness, one business transaction, telemetry, and rollback procedure in the target environment.
 
@@ -558,7 +559,7 @@ Do not write manifests yet. If a post-pilot decision selects Kubernetes and the 
 
 ### Phase 1 — Walking skeleton
 
-- Deliver Slice 1: build policy, project graph, architecture tests, CI lanes, Host, AppHost, ServiceDefaults, PostgreSQL, and the finite Migrator.
+- Deliver Slice 1: build policy, project graph, architecture tests, CI lanes, API, AppHost, ServiceDefaults, PostgreSQL, and the finite Migrator.
 - Establish schema/migration isolation, health, telemetry, and repeatable local lifecycle without inventing business data.
 
 **Exit:** a clean checkout builds, architecture rules are executable, and `aspire start` reaches healthy state only after successful isolated module migrations.
@@ -614,7 +615,7 @@ Versions here are the researched stable baseline as of 2026-09-23, not floating 
 
 | Technology | Baseline version | License | Decision note |
 | --- | --- | --- | --- |
-| .NET / ASP.NET Core / EF Core | 10.0.12; SDK 10.0.401 | MIT | Adopt .NET 10 LTS; support ends 2028-11-14 and requires current patches |
+| .NET / ASP.NET Core / EF Core | 10.0.12; SDK 10.0.112 | MIT | Adopt .NET 10 LTS and Ubuntu's maintained 1xx SDK feature band; support ends 2028-11-14 and requires current patches |
 | Aspire | 13.5.4 | MIT | Adopt for local orchestration/topology tests; only latest feature release is supported |
 | PostgreSQL | 18.6 | PostgreSQL License | Adopt current minor; major 18 supported to 2030-11-14 |
 | Npgsql / EF provider | 10.0.3 | PostgreSQL License | Adopt with EF Core 10; prove transaction behavior on this combination |
@@ -627,7 +628,7 @@ Versions here are the researched stable baseline as of 2026-09-23, not floating 
 | Testcontainers for .NET | 4.15.0 | MIT | Adopt for focused real-infrastructure integration tests |
 | OpenTelemetry .NET | 1.18.0 | Apache-2.0 | Adopt through Aspire Service Defaults |
 
-Use central NuGet package management and exact container tags/digests after plan approval. The installed SDK is 10.0.112, so Phase 1 must install/use the selected 10.0.401 feature band or deliberately revise the pin before scaffolding.
+Use central NuGet package management and exact container tags/digests after plan approval. Pin SDK 10.0.112 with `latestPatch`: it carries the same 10.0.12 runtime as SDK 10.0.401 while remaining discoverable through Ubuntu's supported package channel and the development VM's editor tooling.
 
 ### Conditional
 
@@ -652,7 +653,7 @@ The [companion research note](../research/2026-09-23-technology-baseline.md) is 
 | --- | --- |
 | Modules are invented before the domain is known | G0 module charters and the accepted reference workflow define ownership before scaffolding |
 | Contracts become DTO/repository dumping grounds | Deep capability interfaces, internal-by-default implementation, architecture tests |
-| Host becomes an application layer | Endpoint slices live in modules; host contains composition/policy wiring only |
+| API becomes an application layer | Endpoint slices live in modules; API contains composition/policy wiring only |
 | Cross-module transaction becomes a global unit of work | Named-use-case gate, one-connection proof, failure injection, no transaction in Contracts |
 | Self-built event sourcing consumes the project | One aggregate spike; explicit adoption ADR; state storage remains default |
 | Event log is mistaken for security audit | Separate semantics and coverage for denied/operational actions |

@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "apps/AppHost/ModulithFoundry.AppHost.csproj"
+  }
+}

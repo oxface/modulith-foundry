@@ -1,6 +1,6 @@
 # V1 delivery slices
 
-Status: Phase 0 baseline. Application scaffolding begins only after repository-owner approval of the complete change set.
+Status: Accepted delivery baseline.
 
 Last reviewed: 2026-09-23
 
@@ -54,9 +54,9 @@ The first increment creates the canonical repository commands for these lanes. A
 **Work:**
 
 - Pin the selected .NET SDK and centrally manage build/package policy with `global.json`, `Directory.Build.props`, and `Directory.Packages.props`.
-- Create the root `.slnx`, Host, conventional C# AppHost, ServiceDefaults, Migrator, four `{Module}.Contracts`/`{Module}` pairs, and focused test projects.
+- Create the root `.slnx`, root `apps`/`modules`/`shared` areas, API, conventional C# AppHost, ServiceDefaults, Migrator, four `{Module}.Contracts`/`{Module}` pairs, and focused test projects.
 - Add root `.editorconfig`, nullable/analyzer/warnings-as-errors policy, deterministic formatting, CI, Conventional Commit checking, and fast local Lefthook commands that do not run container suites.
-- Add ArchUnitNET tests for the exact rules in the architecture plan, including Contracts package restrictions and host composition rules.
+- Add ArchUnitNET tests for the exact rules in the architecture plan, including Contracts package restrictions and API composition rules.
 - Add scoped `AGENTS.md`/human README files only where a new significant source/test subtree now needs durable instructions.
 
 **Excludes:** business entities, generic repositories, mediator, result framework, shared domain base library, event bus, database schema, and frontend tooling.
@@ -65,19 +65,19 @@ The first increment creates the canonical repository commands for these lanes. A
 
 ### Increment 1.2 — Local runtime, PostgreSQL, and finite migrations
 
-**Outcome:** Aspire starts one host and PostgreSQL, runs the finite Migrator to completion, and exposes health and OpenTelemetry without business behavior in the host.
+**Outcome:** Aspire starts the API and PostgreSQL, runs the finite Migrator to completion, and exposes health and OpenTelemetry without business behavior in the API.
 
 **Work:**
 
-- Compose PostgreSQL, Migrator, Host, and Aspire dashboard through the AppHost.
+- Compose PostgreSQL, Migrator, API, and Aspire dashboard through the AppHost.
 - Give each module its own EF Core DbContext registration, explicit schema mapping, migrations assembly/history table, and initial schema migration.
-- Acquire the documented PostgreSQL advisory lock in the Migrator, apply module migrations in declared order, fail nonzero, and make Host wait for completion.
+- Acquire the documented PostgreSQL advisory lock in the Migrator, apply module migrations in declared order, fail nonzero, and make the API wait for completion.
 - Add ServiceDefaults, JSON `ILogger` output, OTel/OTLP wiring, liveness/readiness, and graceful shutdown.
 - Prove local configuration uses Aspire parameters/user secrets rather than committed credentials.
 
 **Excludes:** Keycloak, Redis, Mailpit, RabbitMQ, Azurite, product-data caching, and business tables invented merely to exercise EF.
 
-**Acceptance:** PostgreSQL and Topology lanes prove empty-database migration, idempotent rerun, advisory-lock exclusion, migration failure blocking Host startup, schema/history isolation, health, telemetry, and repeated start/stop without orphaned application processes.
+**Acceptance:** PostgreSQL and Topology lanes prove empty-database migration, idempotent rerun, advisory-lock exclusion, migration failure blocking API startup, schema/history isolation, health, telemetry, and repeated start/stop without orphaned application processes.
 
 ## Slice 2 — Identity and Organization access
 
@@ -89,7 +89,7 @@ The first increment creates the canonical repository commands for these lanes. A
 
 - Add Keycloak and Redis to Aspire with reproducible realm/client configuration and development secrets outside source.
 - Implement the BFF authorization-code flow, secure cookie, focused Redis `ITicketStore`, logout/revocation, and Data Protection configuration appropriate to local single-host development.
-- Persist Access User and External Identity through an explicit JIT use case; keep tokens and provider types at the host adapter.
+- Persist Access User and External Identity through an explicit JIT use case; keep tokens and provider types at the API adapter.
 - Provide a minimal authenticated identity endpoint sufficient for tests, not a frontend application.
 
 **Acceptance:** PostgreSQL and Topology lanes prove first login/link, repeat login, immutable issuer/subject, email-change tolerance, invalid issuer/audience rejection, Redis failure closed, lost ticket causing logout, and no token/secret telemetry. Most auth tests use local test identities; a focused topology test uses real Keycloak.
@@ -105,7 +105,7 @@ The first increment creates the canonical repository commands for these lanes. A
 - Resolve the route slug and current Membership into explicit request-scoped Organization/actor context.
 - Establish explicit `OrganizationId`, query filters/scoped queries, write validation, and tenant-aware unique indexes for Access data.
 
-**Acceptance:** PostgreSQL and host tests prove slug races, atomic first-admin creation, bookmarkability, one/many membership navigation, suspended/nonmember denial, forged/cross-tenant identifiers, and missing/mismatched `OrganizationId` rejection.
+**Acceptance:** PostgreSQL and API tests prove slug races, atomic first-admin creation, bookmarkability, one/many membership navigation, suspended/nonmember denial, forged/cross-tenant identifiers, and missing/mismatched `OrganizationId` rejection.
 
 ### Increment 2.3 — Invitation and email delivery
 
@@ -236,7 +236,7 @@ The first increment creates the canonical repository commands for these lanes. A
 - Keep process transitions explicit in Sales application code and persist them with inbox, audit/activity, deadlines, and outgoing messages.
 - Compare the two real inbox/outbox implementations; extract only identical EF/Rebus mechanics in a dedicated behavior-preserving change if the deletion test justifies it.
 
-**Acceptance:** multi-line tests prove all-reserved, mixed reserved/shortage, out-of-order/duplicate/concurrent outcomes, restart, stale/foreign tenant messages, no hidden host workflow, and correct process/activity state.
+**Acceptance:** multi-line tests prove all-reserved, mixed reserved/shortage, out-of-order/duplicate/concurrent outcomes, restart, stale/foreign tenant messages, no hidden API workflow, and correct process/activity state.
 
 ### Increment 5.3 — Purchasing Stock Item snapshot plus tail
 
@@ -400,4 +400,4 @@ These do not reopen Phase 0 by default:
 - [x] V1 work is ordered into review-sized, independently verifiable increments.
 - Repository-owner approval is an external gate recorded in review and commit history, not a mutable checkbox in this file.
 
-Application scaffolding begins only after that approval is recorded.
+The approval gate was satisfied before Increment 1.1 began; later increments still require their own authorized scope and exact-change-set commit approval.

@@ -60,5 +60,5 @@ Sales defines and enforces stable permissions such as `sales.customers.manage`, 
 
 - Pricing engines, tax, discounts, invoicing, payment, shipping, returns, and complete order-to-cash behavior.
 - Reading or writing Inventory/Purchasing persistence.
-- A generic workflow DSL, generic saga base, mediator, or host-owned orchestration.
+- A generic workflow DSL, generic saga base, mediator, or API-owned orchestration.
 - Atomic reservation of all order lines or a shared multi-stream transaction abstraction.

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ModulithFoundry.Modules.Access</AssemblyName>
+    <RootNamespace>ModulithFoundry.Modules.Access</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Access.Contracts/Access.Contracts.csproj" />
+  </ItemGroup>
+</Project>

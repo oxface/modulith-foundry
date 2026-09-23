@@ -1,0 +1,16 @@
+pre-commit:
+  jobs:
+    - name: dotnet-format
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet format ModulithFoundry.slnx --verify-no-changes --no-restore
+    - name: architecture-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: >-
+        npm exec --prefix tools/repository -- commitlint
+        --config tools/repository/commitlint.config.mjs
+        --edit {1}

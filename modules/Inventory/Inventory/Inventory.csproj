@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ModulithFoundry.Modules.Inventory</AssemblyName>
+    <RootNamespace>ModulithFoundry.Modules.Inventory</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Inventory.Contracts/Inventory.Contracts.csproj" />
+  </ItemGroup>
+</Project>

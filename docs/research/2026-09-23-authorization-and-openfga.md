@@ -39,7 +39,7 @@ ASP.NET Core 10 includes policy-based and resource-based authorization without a
 - endpoint metadata through `RequireAuthorization`; and
 - custom/dynamic policy providers when policies cannot all be registered statically.
 
-Resource authorization is deliberately imperative because endpoint attributes run before the application loads the resource. This is useful at the HTTP boundary, but HTTP authorization alone is insufficient for this system: the same application use case can be invoked in-process or by a Rebus workflow. The application handler must enforce the permission and business policy, while the host may perform an earlier coarse check for fast rejection.
+Resource authorization is deliberately imperative because endpoint attributes run before the application loads the resource. This is useful at the HTTP boundary, but HTTP authorization alone is insufficient for this system: the same application use case can be invoked in-process or by a Rebus workflow. The application handler must enforce the permission and business policy, while the API may perform an earlier coarse check for fast rejection.
 
 Primary sources:
 
@@ -61,7 +61,7 @@ Authentication remains in Keycloak locally and Entra External ID in Azure. The J
 | Resource and business-state policy | Owning business module | Order is awaiting approval, actor did not submit it, amount is within authority, currency rule is satisfied. |
 | Aggregate invariant | Owning aggregate/domain service | A cancelled order cannot be approved regardless of actor permissions. |
 | Trusted workflow capability | Application composition and receiving module | The Order Fulfilment Process can invoke `ReleaseReservation`; browsers cannot. |
-| HTTP enforcement | Host plus application handler | Host requires authentication; the application handler remains authoritative. |
+| HTTP enforcement | API plus application handler | The API requires authentication; the application handler remains authoritative. |
 
 The Access module should persist tenant-scoped `Membership` and `MembershipRole` assignments using stable role codes. V1 role definitions and their permission bundles are a reviewed code catalog rather than tenant-editable rows. Permission IDs are stable text tokens, for example:
 

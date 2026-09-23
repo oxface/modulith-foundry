@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ModulithFoundry.Modules.Purchasing</AssemblyName>
+    <RootNamespace>ModulithFoundry.Modules.Purchasing</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Purchasing.Contracts/Purchasing.Contracts.csproj" />
+  </ItemGroup>
+</Project>
