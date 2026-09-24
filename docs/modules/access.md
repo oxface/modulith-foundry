@@ -12,6 +12,8 @@ Access establishes who a person is to the product, which organizations they may 
 - The reviewed system-role catalog and its coarse permission bundles.
 - Access-schema audit entries and the invitation-email outbox.
 
+Access audit entries are immutable. Indexed relational envelope fields identify the organization, actor, action, subject, and occurrence time; a versioned `jsonb` details document records the action-specific facts needed to explain the historical action without serializing whole entities or secrets.
+
 The `access` PostgreSQL schema is authoritative. Keycloak and Entra authenticate principals but do not own these records.
 
 On a validated OIDC callback, Access resolves the exact `(issuer, subject)` link or creates one User and link atomically. Repeated authentication updates mutable profile data without changing the User identity; concurrent first authentication is constrained to one link and one User. Provider tokens, authentication cookies, and provider SDK types remain outside the module.

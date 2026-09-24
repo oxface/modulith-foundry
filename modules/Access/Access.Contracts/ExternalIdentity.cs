@@ -43,17 +43,3 @@ public sealed record ExternalIdentity
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
-
-public readonly record struct UserId(Guid Value);
-
-public sealed record UserIdentityLink(
-    UserId UserId,
-    string? Email,
-    string? DisplayName);
-
-public interface IExternalIdentityLinker
-{
-    Task<UserIdentityLink> LinkAsync(
-        ExternalIdentity identity,
-        CancellationToken cancellationToken = default);
-}

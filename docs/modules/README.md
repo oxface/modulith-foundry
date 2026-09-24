@@ -37,4 +37,6 @@ An implementation project may reference another module's Contracts project when 
 
 The receiving module owns a durable integration-command type in its Contracts project. The module that publishes a fact owns the integration-event type in its Contracts project. Contracts contain no ASP.NET Core, EF Core, Rebus, identity-provider, or persistence types. Immediate commands and queries use capability-oriented in-process interfaces; durable commands and events use the broker. They are not interchangeable solely to make later extraction appear automatic.
 
-HTTP endpoints and request models live with their vertical slice inside the implementation project. A type being public to the CLR does not make it an HTTP operation. Workflow-only operations are reachable only through trusted composition or message adapters.
+HTTP endpoints and request/response models are host-owned ingress adapters under `apps/Api/Modules/{Module}`. They invoke module Contracts and contain no business workflow. Module implementations do not reference ASP.NET Core, and workflow-only operations remain reachable only through trusted composition or message adapters. The API groups each module's routes behind `Map{Module}Api`; this does not make HTTP the interface between modules.
+
+Internal application-operation and query naming follows [the application-code conventions](../conventions/application-code.md).

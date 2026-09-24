@@ -6,31 +6,23 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
 namespace ModulithFoundry.Api.Authentication;
 
-internal static class AuthenticationEndpoints
+internal static class AuthenticationApi
 {
-    internal static IEndpointRouteBuilder MapAuthenticationEndpoints(this IEndpointRouteBuilder endpoints)
+    internal static IEndpointRouteBuilder MapAuthenticationApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/auth/login", () =>
             Results.Challenge(
                 new AuthenticationProperties { RedirectUri = "/api/session" },
                 [OpenIdConnectDefaults.AuthenticationScheme]));
 
-        endpoints.MapPost("/auth/logout", async (
-            HttpContext httpContext,
-            IAntiforgery antiforgery) =>
-        {
-            if (!await antiforgery.IsRequestValidAsync(httpContext))
-            {
-                return Results.BadRequest();
-            }
-
-            return Results.SignOut(
+        endpoints.MapPost("/auth/logout", () =>
+            Results.SignOut(
                 new AuthenticationProperties { RedirectUri = "/" },
                 [
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     OpenIdConnectDefaults.AuthenticationScheme,
-                ]);
-        })
+                ]))
+            .RequireBffAntiforgery()
             .RequireAuthorization();
 
         endpoints.MapGet("/api/session", (

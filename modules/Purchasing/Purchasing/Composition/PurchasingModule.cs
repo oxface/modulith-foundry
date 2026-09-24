@@ -7,7 +7,7 @@ namespace ModulithFoundry.Modules.Purchasing.Composition;
 
 public static class PurchasingModule
 {
-    public static IServiceCollection AddPurchasing(this IServiceCollection services)
+    public static IServiceCollection AddPurchasingModule(this IServiceCollection services)
     {
         services.AddPurchasingPersistence();
         return services;

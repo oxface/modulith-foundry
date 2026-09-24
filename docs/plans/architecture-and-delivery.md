@@ -204,9 +204,10 @@ The compiler/project graph remains the first enforcement layer; architecture tes
 ### Request path — **Decided**
 
 ```text
-HTTP endpoint in owning module
+HTTP adapter grouped by owning module in the API host
   -> authenticated actor + validated request
-  -> vertical-slice command/query handler
+  -> capability-shaped module Contract
+  -> vertical-slice command/query implementation
   -> aggregate/domain policy and owned persistence
   -> direct call to another module's small contract only when required
   -> commit local transaction
@@ -215,7 +216,7 @@ HTTP endpoint in owning module
 
 Do not add a generic mediator, repository, unit-of-work, result, or event-bus abstraction in phase 1. Introduce a seam only when there are two real adapters or when the seam hides meaningful policy. This avoids replacing business code with a shallow internal framework.
 
-Use module-owned ASP.NET Core Minimal API route groups. An endpoint resolves and invokes its vertical-slice application handler directly; an in-process module contract reaches the same application use case without routing through HTTP. Do not add MediatR or a home-grown mediator/pipeline. Cross-cutting decorators or filters require demonstrated repeated behavior.
+Use host-owned ASP.NET Core Minimal API route groups organized by product module under `apps/Api/Modules/{Module}`. An endpoint invokes a capability-shaped module Contract; the implementation reaches the same vertical-slice application use case used by trusted in-process callers, without routing through HTTP. Module implementations do not reference ASP.NET Core. Do not add MediatR or a home-grown mediator/pipeline. Cross-cutting decorators or filters require demonstrated repeated behavior.
 
 Do not introduce `IRepository<T>`. Aggregate-specific internal repositories are allowed when they hide meaningful persistence semantics—for example, Stock Position hydration/append and potentially Sales Order aggregate persistence. Simple module-local queries and technical tables may use the module DbContext or a focused query service directly. Repository interfaces never appear in Contracts.
 

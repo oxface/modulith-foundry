@@ -7,7 +7,7 @@ namespace ModulithFoundry.Modules.Inventory.Composition;
 
 public static class InventoryModule
 {
-    public static IServiceCollection AddInventory(this IServiceCollection services)
+    public static IServiceCollection AddInventoryModule(this IServiceCollection services)
     {
         services.AddInventoryPersistence();
         return services;

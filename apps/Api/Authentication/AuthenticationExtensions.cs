@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
 using ModulithFoundry.Modules.Access.Contracts;
 using StackExchange.Redis;
 
@@ -148,16 +147,4 @@ internal static class AuthenticationExtensions
         && string.IsNullOrEmpty(authority.Query)
         && string.IsNullOrEmpty(authority.Fragment)
         && (!settings.RequireHttpsMetadata || authority.Scheme == Uri.UriSchemeHttps);
-}
-
-internal static class OidcTokenValidation
-{
-    internal static TokenValidationParameters Create(string clientId) =>
-        new()
-        {
-            NameClaimType = "name",
-            ValidateAudience = true,
-            ValidateIssuer = true,
-            ValidAudience = clientId,
-        };
 }

@@ -7,7 +7,7 @@ namespace ModulithFoundry.Modules.Sales.Composition;
 
 public static class SalesModule
 {
-    public static IServiceCollection AddSales(this IServiceCollection services)
+    public static IServiceCollection AddSalesModule(this IServiceCollection services)
     {
         services.AddSalesPersistence();
         return services;

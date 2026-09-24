@@ -106,7 +106,7 @@ public sealed class ExternalIdentityLinkingTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
-        services.AddAccess();
+        services.AddAccessModule();
 
         ServiceProvider provider = services.BuildServiceProvider();
         await provider.MigrateAccessAsync(TestContext.Current.CancellationToken);

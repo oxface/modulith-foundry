@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -45,7 +46,7 @@ public sealed partial class LocalRuntimeTests
     }
 
     [Fact]
-    public async Task Authentication_KeycloakLogin_CreatesOpaqueSessionAndSupportsLogout()
+    public async Task AuthenticatedJourney_KeycloakLogin_CreatesOrganizationAndSupportsLogout()
     {
         await using OtlpTestReceiver telemetry = await OtlpTestReceiver.StartAsync(
             TestContext.Current.CancellationToken);
@@ -84,6 +85,10 @@ public sealed partial class LocalRuntimeTests
             "/api/session",
             timeout.Token);
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousSession.StatusCode);
+        using HttpResponseMessage anonymousOrganizations = await client.GetAsync(
+            "/api/organizations",
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousOrganizations.StatusCode);
 
         using HttpResponseMessage challenge = await client.GetAsync(
             "/auth/login?returnUrl=/client-owned-route",
@@ -150,6 +155,80 @@ public sealed partial class LocalRuntimeTests
             sessionJson.RootElement.GetProperty("displayName").GetString());
         string csrfToken = sessionJson.RootElement.GetProperty("csrfToken").GetString()
             ?? throw new InvalidOperationException("The session response has no CSRF token.");
+
+        using var invalidOrganizationRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/organizations")
+        {
+            Content = JsonContent.Create(new
+            {
+                name = "Invalid Organization",
+                slug = "invalid/slug",
+            }),
+        };
+        invalidOrganizationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
+        using HttpResponseMessage invalidOrganization = await client.SendAsync(
+            invalidOrganizationRequest,
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidOrganization.StatusCode);
+
+        using HttpResponseMessage createWithoutCsrf = await client.PostAsJsonAsync(
+            "/api/organizations",
+            new { name = "Topology Organization", slug = "Topology_Organization" },
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.BadRequest, createWithoutCsrf.StatusCode);
+
+        using var createOrganizationRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/organizations")
+        {
+            Content = JsonContent.Create(new
+            {
+                name = "Topology Organization",
+                slug = "Topology_Organization",
+            }),
+        };
+        createOrganizationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
+        using HttpResponseMessage createOrganization = await client.SendAsync(
+            createOrganizationRequest,
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.Created, createOrganization.StatusCode);
+        using JsonDocument createdOrganization = JsonDocument.Parse(
+            await createOrganization.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(
+            "topology-organization",
+            createdOrganization.RootElement.GetProperty("slug").GetString());
+        Assert.Equal(
+            "organization-administrator",
+            Assert.Single(createdOrganization.RootElement.GetProperty("roleIds").EnumerateArray())
+                .GetString());
+
+        using var duplicateOrganizationRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/organizations")
+        {
+            Content = JsonContent.Create(new
+            {
+                name = "Other Organization",
+                slug = "topology-organization",
+            }),
+        };
+        duplicateOrganizationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
+        using HttpResponseMessage duplicateOrganization = await client.SendAsync(
+            duplicateOrganizationRequest,
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.Conflict, duplicateOrganization.StatusCode);
+
+        using HttpResponseMessage organizations = await client.GetAsync(
+            "/api/organizations",
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.OK, organizations.StatusCode);
+        using JsonDocument organizationList = JsonDocument.Parse(
+            await organizations.Content.ReadAsStringAsync(timeout.Token));
+        JsonElement listedOrganization = Assert.Single(organizationList.RootElement.EnumerateArray());
+        Assert.Equal(
+            createdOrganization.RootElement.GetProperty("organizationId").GetGuid(),
+            listedOrganization.GetProperty("organizationId").GetGuid());
 
         Cookie authenticatedCookie = Assert.Single(
             cookies.GetCookies(Assert.IsType<Uri>(client.BaseAddress)).Cast<Cookie>(),
