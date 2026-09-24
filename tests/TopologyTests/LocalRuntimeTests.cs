@@ -5,7 +5,7 @@ using Aspire.Hosting.Testing;
 
 namespace ModulithFoundry.TopologyTests;
 
-public sealed class LocalRuntimeTests
+public sealed partial class LocalRuntimeTests
 {
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(2);
 
@@ -120,16 +120,20 @@ public sealed class LocalRuntimeTests
                 cancellationToken);
 
         builder.Configuration["Parameters:postgres-password"] = "topology-test-password";
+        builder.Configuration["Parameters:keycloak-password"] = "topology-keycloak-password";
+        builder.Configuration["Parameters:oidc-client-secret"] = "topology-client-secret";
+        builder.Configuration["Parameters:keycloak-test-user-password"] = "topology-user-password";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString();
 
-        PostgresServerResource postgres = builder.CreateResourceBuilder<PostgresServerResource>("postgres")
-            .Resource;
-        foreach (ContainerMountAnnotation volume in postgres.Annotations
-                     .OfType<ContainerMountAnnotation>()
-                     .Where(static mount => mount.Type == ContainerMountType.Volume)
-                     .ToArray())
+        foreach (IResource resource in builder.Resources)
         {
-            postgres.Annotations.Remove(volume);
+            foreach (ContainerMountAnnotation volume in resource.Annotations
+                         .OfType<ContainerMountAnnotation>()
+                         .Where(static mount => mount.Type == ContainerMountType.Volume)
+                         .ToArray())
+            {
+                resource.Annotations.Remove(volume);
+            }
         }
 
         return builder;

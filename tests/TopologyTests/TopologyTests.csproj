@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../apps/Api/ModulithFoundry.Api.csproj" />
     <ProjectReference Include="../../apps/AppHost/ModulithFoundry.AppHost.csproj" />
   </ItemGroup>
 

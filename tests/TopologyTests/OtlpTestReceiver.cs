@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -11,6 +12,7 @@ namespace ModulithFoundry.TopologyTests;
 internal sealed class OtlpTestReceiver : IAsyncDisposable
 {
     private readonly WebApplication application;
+    private readonly List<byte[]> logPayloads = [];
     private readonly Lock sync = new();
     private TaskCompletionSource? nextLogExport;
 
@@ -55,6 +57,15 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
         }
     }
 
+    internal bool ContainsLogText(string value)
+    {
+        lock (sync)
+        {
+            return logPayloads.Any(payload => Encoding.UTF8.GetString(payload)
+                .Contains(value, StringComparison.Ordinal));
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         await application.StopAsync();
@@ -71,6 +82,7 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
             TaskCompletionSource? expectation;
             lock (sync)
             {
+                logPayloads.Add(payload.ToArray());
                 expectation = nextLogExport;
                 nextLogExport = null;
             }

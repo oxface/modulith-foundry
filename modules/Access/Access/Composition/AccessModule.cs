@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Access.Identity;
 using ModulithFoundry.Modules.Access.Persistence;
 using Npgsql;
 
@@ -10,6 +13,8 @@ public static class AccessModule
     public static IServiceCollection AddAccess(this IServiceCollection services)
     {
         services.AddAccessPersistence();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<IExternalIdentityLinker, ExternalIdentityLinker>();
         return services;
     }
 

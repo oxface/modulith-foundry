@@ -14,6 +14,8 @@ Access establishes who a person is to the product, which organizations they may 
 
 The `access` PostgreSQL schema is authoritative. Keycloak and Entra authenticate principals but do not own these records.
 
+On a validated OIDC callback, Access resolves the exact `(issuer, subject)` link or creates one User and link atomically. Repeated authentication updates mutable profile data without changing the User identity; concurrent first authentication is constrained to one link and one User. Provider tokens, authentication cookies, and provider SDK types remain outside the module.
+
 V1 performs no automatic deletion of Organizations, Users, Memberships, or accepted Invitations. Expired invitation payloads and operational email-outbox data may be purged under explicit jobs; audit retention/redaction remains a compliance-driven adoption decision.
 
 ## Interface
