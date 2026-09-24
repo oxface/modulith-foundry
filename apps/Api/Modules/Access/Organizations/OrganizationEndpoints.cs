@@ -27,7 +27,7 @@ internal static class OrganizationEndpoints
     {
         CreateOrganizationResult result = await organizationCreation.CreateOrganizationAsync(
             new CreateOrganizationCommand(
-                GetUserId(principal),
+                principal.GetRequiredCurrentUser().UserId,
                 request.Name,
                 request.Slug),
             cancellationToken);
@@ -52,11 +52,8 @@ internal static class OrganizationEndpoints
         IOrganizationQueries queries,
         CancellationToken cancellationToken) =>
         [.. (await queries.ListAccessibleToAsync(
-            GetUserId(principal),
+            principal.GetRequiredCurrentUser().UserId,
             cancellationToken)).Select(ToResponse)];
-
-    private static UserId GetUserId(ClaimsPrincipal principal) =>
-        new(Guid.Parse(principal.GetRequiredClaimValue(ProductClaims.UserId)));
 
     private static OrganizationResponse ToResponse(OrganizationMembership organization) =>
         new(

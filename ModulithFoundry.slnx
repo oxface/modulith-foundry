@@ -24,6 +24,7 @@
     <Project Path="shared/ServiceDefaults/ModulithFoundry.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ApplicationTests/ApplicationTests.csproj" />
     <Project Path="tests/ArchitectureSupport/ArchitectureSupport.csproj" />
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
     <Project Path="tests/PersistenceTests/PersistenceTests.csproj" />

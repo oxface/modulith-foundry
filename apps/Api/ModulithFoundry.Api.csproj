@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ApplicationTests" />
     <InternalsVisibleTo Include="TopologyTests" />
   </ItemGroup>
 </Project>

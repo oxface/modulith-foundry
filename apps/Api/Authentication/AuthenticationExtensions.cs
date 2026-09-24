@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using ModulithFoundry.Modules.Access.Contracts;
 using StackExchange.Redis;
 
 namespace ModulithFoundry.Api.Authentication;
@@ -43,6 +42,7 @@ internal static class AuthenticationExtensions
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         });
         services.AddSingleton(TimeProvider.System);
+        services.AddScoped<CurrentUserCompletion>();
         services.AddSingleton<IConnectionMultiplexer>(_ =>
             ConnectionMultiplexer.Connect(redisConfiguration));
         services.AddSingleton<RedisTicketStore>();
@@ -120,23 +120,9 @@ internal static class AuthenticationExtensions
     {
         ClaimsPrincipal principal = context.Principal
             ?? throw new InvalidOperationException("The completed OIDC principal is missing.");
-        string issuer = principal.GetRequiredClaimValue("iss");
-        string subject = principal.GetRequiredClaimValue("sub");
-        ExternalIdentity identity = ExternalIdentity.Create(
-            issuer,
-            subject,
-            principal.FindFirstValue("email"),
-            principal.FindFirstValue("name"));
-        UserIdentityLink linked = await context.HttpContext.RequestServices
-            .GetRequiredService<IExternalIdentityLinker>()
-            .LinkAsync(identity, context.HttpContext.RequestAborted);
-
-        if (principal.Identity is not ClaimsIdentity claimsIdentity)
-        {
-            throw new InvalidOperationException("The validated OIDC identity is missing.");
-        }
-
-        claimsIdentity.AddClaim(new Claim(ProductClaims.UserId, linked.UserId.Value.ToString()));
+        await context.HttpContext.RequestServices
+            .GetRequiredService<CurrentUserCompletion>()
+            .CompleteAsync(principal, context.HttpContext.RequestAborted);
     }
 
     private static bool IsValidAuthority(OidcSettings settings) =>

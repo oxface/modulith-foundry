@@ -52,7 +52,14 @@ jobs:
       - name: Build
         run: dotnet build ModulithFoundry.slnx --no-restore
 
-      - name: Test
+      - name: Test application behavior
+        run: >-
+          dotnet test
+          --project tests/ApplicationTests/ApplicationTests.csproj
+          --no-build
+          --no-restore
+
+      - name: Test architecture
         run: >-
           dotnet test
           --project tests/ArchitectureTests/ArchitectureTests.csproj

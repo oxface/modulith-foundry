@@ -14,7 +14,7 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
         var memberships = await (
             from membership in context.Set<Membership>()
                 .AsNoTracking()
-                .Active()
+                .Where(membership => membership.Status == MembershipStatus.Active)
                 .Where(membership => membership.UserId == userId.Value)
             join organization in context.Set<Organization>().AsNoTracking()
                 on membership.OrganizationId equals organization.Id

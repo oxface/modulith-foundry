@@ -31,10 +31,11 @@ internal static class AuthenticationApi
             IAntiforgery antiforgery) =>
         {
             httpContext.Response.Headers.CacheControl = "no-store";
+            CurrentUser currentUser = principal.GetRequiredCurrentUser();
             return TypedResults.Ok(new SessionResponse(
-                Guid.Parse(principal.GetRequiredClaimValue(ProductClaims.UserId)),
-                principal.FindFirstValue("email"),
-                principal.FindFirstValue("name"),
+                currentUser.UserId.Value,
+                currentUser.Email,
+                currentUser.DisplayName,
                 antiforgery.GetAndStoreTokens(httpContext).RequestToken
                     ?? throw new InvalidOperationException("No antiforgery request token was created.")));
         })
