@@ -473,7 +473,7 @@ The AppHost will orchestrate:
 - Azurite Blob only when an accepted attachment slice exists;
 - the minimal Vite frontend only after an HTTP workflow exists.
 
-Aspire is the development control plane, not a reason to decompose the application. Use Service Defaults for OpenTelemetry, health checks, discovery/configuration, and consistent telemetry. Use `aspire start`, `aspire wait`, and resource-aware diagnostics for the AppHost rather than ad hoc process startup.
+Aspire is the local-development control plane, not a production runtime dependency or a reason to decompose the application. Aspire packages are limited to the AppHost and topology tests. Runtime projects consume standard .NET configuration and vendor clients such as Npgsql; the AppHost supplies the same standard connection-string/configuration keys that a deployed environment supplies. Use the repository-owned Service Defaults project for OpenTelemetry, health checks, discovery/configuration, and consistent telemetry. Use `aspire start`, `aspire wait`, and resource-aware diagnostics for the AppHost rather than ad hoc process startup.
 
 Use a conventional C# AppHost project, not TypeScript and not a single-file AppHost, so `DistributedApplicationTestingBuilder` can reference and exercise the full topology. Register the finite Migrator as a project resource that waits for PostgreSQL; the application resource uses `.WaitForCompletion(migrator)` so a failed migration prevents application startup locally and in topology tests.
 
@@ -626,7 +626,7 @@ Versions here are the researched stable baseline as of 2026-09-23, not floating 
 | Rebus core / ServiceProvider / RabbitMQ / Azure Service Bus | 8.9.4 / 10.7.2 / 10.1.1 / 10.7.1 | MIT | Adopt only when Slice 5 begins; recheck package compatibility then |
 | ArchUnitNET | 0.13.4 | Apache-2.0 | Adopt and pin; active and expressive, but pre-1.0 |
 | Testcontainers for .NET | 4.15.0 | MIT | Adopt for focused real-infrastructure integration tests |
-| OpenTelemetry .NET | 1.18.0 | Apache-2.0 | Adopt through Aspire Service Defaults |
+| OpenTelemetry .NET | 1.18.0 | Apache-2.0 | Adopt through the repository-owned Service Defaults project |
 
 Use central NuGet package management and exact container tags/digests after plan approval. Pin SDK 10.0.112 with `latestPatch`: it carries the same 10.0.12 runtime as SDK 10.0.401 while remaining discoverable through Ubuntu's supported package channel and the development VM's editor tooling.
 

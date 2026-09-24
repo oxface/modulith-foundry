@@ -3,9 +3,16 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ModulithFoundry.AppHost</RootNamespace>
     <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>959d193a-df24-4862-b1ee-39679c16e9ac</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Api/ModulithFoundry.Api.csproj" />
+    <ProjectReference Include="../Migrator/ModulithFoundry.Migrator.csproj" />
   </ItemGroup>
 </Project>

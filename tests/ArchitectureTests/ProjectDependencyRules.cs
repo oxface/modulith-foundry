@@ -5,6 +5,7 @@ internal static class ProjectDependencyRules
     private const string ApiProject = "apps/Api/ModulithFoundry.Api.csproj";
     private const string AppHostProject = "apps/AppHost/ModulithFoundry.AppHost.csproj";
     private const string MigratorProject = "apps/Migrator/ModulithFoundry.Migrator.csproj";
+    private const string TopologyTestsProject = "tests/TopologyTests/TopologyTests.csproj";
 
     // Contracts-to-Contracts edges are exceptional and enter this allowlist with the real contract that needs them.
     private static readonly HashSet<string> AllowedContractReferences = new(
@@ -54,6 +55,19 @@ internal static class ProjectDependencyRules
         }
 
         return cycles;
+    }
+
+    internal static IReadOnlyCollection<string> AspirePackageReferenceViolations(
+        IReadOnlyCollection<ProjectDefinition> projects)
+    {
+        return projects
+            .Where(project => project.Path != AppHostProject
+                && project.Path != TopologyTestsProject)
+            .SelectMany(project => project.PackageReferences
+                .Where(package => package.StartsWith("Aspire.", StringComparison.Ordinal))
+                .Select(package =>
+                    $"{project.Path} has forbidden Aspire package reference {package}"))
+            .ToArray();
     }
 
     private static void AddRequiredReferenceViolations(

@@ -15,14 +15,17 @@ Implementation follows the accepted architecture and delivery plan in review-siz
 
 ## Development
 
-The repository requires the SDK selected in `global.json`. The current container-free Fast lane is:
+The repository requires the SDK selected in `global.json`. The container-free Fast lane is:
 
 ```bash
 dotnet restore ModulithFoundry.slnx
+dotnet tool restore
 dotnet format ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet build ModulithFoundry.slnx --no-restore
-dotnet test --solution ModulithFoundry.slnx --no-build --no-restore
+dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
 ```
+
+PostgreSQL and whole-topology behavior run in separate container-backed lanes documented in [tests/README.md](tests/README.md).
 
 Repository-only Node tooling is isolated under `tools/repository`; it does not create the deferred frontend workspace. Install the pinned Conventional Commit and Lefthook tooling, then install hooks with:
 
@@ -31,4 +34,4 @@ npm ci --prefix tools/repository
 npm exec --prefix tools/repository -- lefthook install
 ```
 
-See the [application layout](apps/README.md), [module map](docs/modules/README.md), and [test layout](tests/README.md) for the executable skeleton.
+See the [application layout](apps/README.md), [module map](docs/modules/README.md), and [test layout](tests/README.md) for the executable runtime.

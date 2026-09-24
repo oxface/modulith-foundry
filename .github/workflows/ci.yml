@@ -43,6 +43,9 @@ jobs:
       - name: Restore
         run: dotnet restore ModulithFoundry.slnx
 
+      - name: Restore repository tools
+        run: dotnet tool restore
+
       - name: Verify formatting
         run: dotnet format ModulithFoundry.slnx --verify-no-changes --no-restore
 
@@ -50,7 +53,11 @@ jobs:
         run: dotnet build ModulithFoundry.slnx --no-restore
 
       - name: Test
-        run: dotnet test --solution ModulithFoundry.slnx --no-build --no-restore
+        run: >-
+          dotnet test
+          --project tests/ArchitectureTests/ArchitectureTests.csproj
+          --no-build
+          --no-restore
 
       - name: Check pull-request commits
         if: github.event_name == 'pull_request'
@@ -68,3 +75,53 @@ jobs:
           --config tools/repository/commitlint.config.mjs
           --last
           --verbose
+
+  postgresql:
+    name: PostgreSQL lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore ModulithFoundry.slnx
+
+      - name: Test PostgreSQL behavior
+        run: >-
+          dotnet test
+          --project tests/PersistenceTests/PersistenceTests.csproj
+          --no-restore
+
+  topology:
+    name: Topology lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore ModulithFoundry.slnx
+
+      - name: Test Aspire topology
+        run: >-
+          dotnet test
+          --project tests/TopologyTests/TopologyTests.csproj
+          --no-restore

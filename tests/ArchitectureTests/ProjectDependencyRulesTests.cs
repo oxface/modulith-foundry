@@ -45,6 +45,35 @@ public sealed class ProjectDependencyRulesTests
     }
 
     [Fact]
+    public void PackageReferences_WhenInspected_KeepAspireInLocalOrchestrationProjects()
+    {
+        ProjectDefinition[] projects = [.. RepositoryLayout.RepositoryProjects()];
+
+        Assert.Empty(ProjectDependencyRules.AspirePackageReferenceViolations(projects));
+    }
+
+    [Fact]
+    public void PackageReferences_WhenRuntimeProjectReferencesAspire_ReportViolation()
+    {
+        const string apiProject = "apps/Api/ModulithFoundry.Api.csproj";
+        ProjectDefinition[] invalidProjects = RepositoryLayout.RepositoryProjects()
+            .Select(project => project.Path == apiProject
+                ? project with
+                {
+                    PackageReferences = project.PackageReferences.Append("Aspire.Npgsql").ToArray()
+                }
+                : project)
+            .ToArray();
+
+        IReadOnlyCollection<string> violations =
+            ProjectDependencyRules.AspirePackageReferenceViolations(invalidProjects);
+
+        Assert.Contains(
+            $"{apiProject} has forbidden Aspire package reference Aspire.Npgsql",
+            violations);
+    }
+
+    [Fact]
     public void ProjectReferences_WhenModuleReferencesAnotherImplementation_ReportViolation()
     {
         const string salesProject = "modules/Sales/Sales/Sales.csproj";
