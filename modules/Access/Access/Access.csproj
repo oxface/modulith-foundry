@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>ModulithFoundry.Modules.Access</AssemblyName>
     <RootNamespace>ModulithFoundry.Modules.Access</RootNamespace>
+    <ModuleSchema>access</ModuleSchema>
   </PropertyGroup>
 
   <ItemGroup>

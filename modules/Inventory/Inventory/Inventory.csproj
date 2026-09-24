@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>ModulithFoundry.Modules.Inventory</AssemblyName>
     <RootNamespace>ModulithFoundry.Modules.Inventory</RootNamespace>
+    <ModuleSchema>inventory</ModuleSchema>
   </PropertyGroup>
 
   <ItemGroup>

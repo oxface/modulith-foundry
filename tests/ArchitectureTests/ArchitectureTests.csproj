@@ -23,6 +23,7 @@
     <ProjectReference Include="../../modules/Sales/Sales.Contracts/Sales.Contracts.csproj" />
     <ProjectReference Include="../../modules/Sales/Sales/Sales.csproj" />
     <ProjectReference Include="../../shared/ServiceDefaults/ModulithFoundry.ServiceDefaults.csproj" />
+    <ProjectReference Include="../ArchitectureSupport/ArchitectureSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

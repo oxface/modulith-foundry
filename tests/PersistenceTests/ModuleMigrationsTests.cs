@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using ModulithFoundry.Testing.Architecture;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -8,6 +9,28 @@ namespace ModulithFoundry.PersistenceTests;
 public sealed class ModuleMigrationsTests
 {
     private static readonly TimeSpan MigratorTimeout = TimeSpan.FromMinutes(2);
+
+    [Fact]
+    public void MigratorCoverage_WhenModuleSchemaIsMissing_ReportsViolation()
+    {
+        string[] expected = ["access", "inventory", "shipping"];
+        string[] actual = ["access", "inventory"];
+
+        Assert.Contains(
+            "Module schema 'shipping' was not migrated",
+            MigrationCoveragePolicy.SchemaViolations(expected, actual));
+    }
+
+    [Fact]
+    public void MigratorCoverage_WhenUnknownSchemaWasMigrated_ReportsViolation()
+    {
+        string[] expected = ["access", "inventory"];
+        string[] actual = ["access", "inventory", "shipping"];
+
+        Assert.Contains(
+            "Unexpected module schema 'shipping' was migrated",
+            MigrationCoveragePolicy.SchemaViolations(expected, actual));
+    }
 
     [Fact]
     public async Task Migrator_ExecutedTwiceAgainstSameDatabase_IsIdempotent()
@@ -26,9 +49,9 @@ public sealed class ModuleMigrationsTests
         IReadOnlyList<(string Schema, long Count)> secondCounts =
             await ReadMigrationHistoryCountsAsync(connectionString);
 
-        Assert.Equal(
-            ["access", "inventory", "purchasing", "sales"],
-            firstCounts.Select(history => history.Schema));
+        Assert.Empty(MigrationCoveragePolicy.SchemaViolations(
+            ExpectedModuleSchemas(),
+            firstCounts.Select(history => history.Schema)));
         Assert.All(firstCounts, history => Assert.True(history.Count > 0));
         Assert.Equal(firstCounts, secondCounts);
     }
@@ -77,9 +100,9 @@ public sealed class ModuleMigrationsTests
                 TestContext.Current.CancellationToken);
             ProcessResult result = new(process.ExitCode, remainingOutput, await standardError);
             AssertMigratorSucceeded(result);
-            Assert.Equal(
-                ["access", "inventory", "purchasing", "sales"],
-                await ReadMigrationHistorySchemasAsync(inspectionConnectionString));
+            Assert.Empty(MigrationCoveragePolicy.SchemaViolations(
+                ExpectedModuleSchemas(),
+                await ReadMigrationHistorySchemasAsync(inspectionConnectionString)));
         }
         finally
         {
@@ -89,6 +112,10 @@ public sealed class ModuleMigrationsTests
 
     private static PostgreSqlContainer CreatePostgresContainer() =>
         new PostgreSqlBuilder("postgres:18.6").Build();
+
+    private static string[] ExpectedModuleSchemas() => [.. RepositoryTopology.Modules()
+        .Select(module => module.Schema)
+        .Order(StringComparer.Ordinal)];
 
     private static string WithSingleConnectionPool(string connectionString)
     {

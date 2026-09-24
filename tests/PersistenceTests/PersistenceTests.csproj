@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../apps/Migrator/ModulithFoundry.Migrator.csproj" />
+    <ProjectReference Include="../ArchitectureSupport/ArchitectureSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

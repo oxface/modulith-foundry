@@ -1,9 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
-
 using ArchUnitNET.Domain;
 using ArchUnitNET.Fluent;
 using ArchUnitNET.Loader;
 using ArchUnitNET.xUnitV3;
+using ModulithFoundry.Testing.Architecture;
 
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 using static ArchUnitNET.Fluent.Slices.SliceRuleDefinition;
@@ -14,21 +13,13 @@ namespace ArchitectureTests;
 
 public sealed class AssemblyDependencyRulesTests
 {
-    private static readonly string[] ContractAssemblyNames =
-    [
-        "ModulithFoundry.Modules.Access.Contracts",
-        "ModulithFoundry.Modules.Inventory.Contracts",
-        "ModulithFoundry.Modules.Purchasing.Contracts",
-        "ModulithFoundry.Modules.Sales.Contracts"
-    ];
+    private static readonly ModuleDefinition[] Modules = [.. RepositoryTopology.Modules()];
 
-    private static readonly string[] ImplementationAssemblyNames =
-    [
-        "ModulithFoundry.Modules.Access",
-        "ModulithFoundry.Modules.Inventory",
-        "ModulithFoundry.Modules.Purchasing",
-        "ModulithFoundry.Modules.Sales"
-    ];
+    private static readonly string[] ContractAssemblyNames = [.. Modules
+        .Select(module => module.ContractsProject.AssemblyName)];
+
+    private static readonly string[] ImplementationAssemblyNames = [.. Modules
+        .Select(module => module.ImplementationProject.AssemblyName)];
 
     private static readonly ReflectionAssembly[] ModuleAssemblies = ContractAssemblyNames
         .Concat(ImplementationAssemblyNames)
@@ -39,41 +30,34 @@ public sealed class AssemblyDependencyRulesTests
         .LoadAssemblies([.. ModuleAssemblies, ReflectionAssembly.Load("ModulithFoundry.Api")])
         .Build();
 
-    private static readonly IObjectProvider<IType> Contracts = Types().That()
-        .ResideInAssembly(ContractAssemblyNames[0])
-        .Or().ResideInAssembly(ContractAssemblyNames[1])
-        .Or().ResideInAssembly(ContractAssemblyNames[2])
-        .Or().ResideInAssembly(ContractAssemblyNames[3])
-        .As("module Contracts");
-
-    private static readonly IObjectProvider<IType> Implementations = Types().That()
-        .ResideInAssembly(ImplementationAssemblyNames[0])
-        .Or().ResideInAssembly(ImplementationAssemblyNames[1])
-        .Or().ResideInAssembly(ImplementationAssemblyNames[2])
-        .Or().ResideInAssembly(ImplementationAssemblyNames[3])
-        .As("module implementations");
-
     [Fact]
     public void ModuleContracts_DoNotDependOnImplementations()
     {
-        Types().That().Are(Contracts)
-            .Should().NotDependOnAny(Implementations)
-            .WithoutRequiringPositiveResults()
-            .Check(Architecture);
+        foreach (string contracts in ContractAssemblyNames)
+        {
+            foreach (string implementation in ImplementationAssemblyNames)
+            {
+                Types().That().ResideInAssembly(contracts)
+                    .Should().NotDependOnAny(Types().That().ResideInAssembly(implementation))
+                    .WithoutRequiringPositiveResults()
+                    .Check(Architecture);
+            }
+        }
     }
 
     [Fact]
     public void ModuleImplementations_DoNotDependOnOtherImplementations()
     {
-        for (int index = 0; index < ImplementationAssemblyNames.Length; index++)
+        foreach (string implementation in ImplementationAssemblyNames)
         {
-            string assemblyName = ImplementationAssemblyNames[index];
-            IObjectProvider<IType> otherImplementations = OtherImplementations(index);
-
-            Types().That().ResideInAssembly(assemblyName)
-                .Should().NotDependOnAny(otherImplementations)
-                .WithoutRequiringPositiveResults()
-                .Check(Architecture);
+            foreach (string otherImplementation in ImplementationAssemblyNames.Where(name =>
+                name != implementation))
+            {
+                Types().That().ResideInAssembly(implementation)
+                    .Should().NotDependOnAny(Types().That().ResideInAssembly(otherImplementation))
+                    .WithoutRequiringPositiveResults()
+                    .Check(Architecture);
+            }
         }
     }
 
@@ -88,10 +72,13 @@ public sealed class AssemblyDependencyRulesTests
             .Or().HaveFullNameStartingWith("System.Linq.IQueryable")
             .As("ASP.NET Core, EF Core, Npgsql, Rebus, or IQueryable types");
 
-        Types().That().Are(Contracts)
-            .Should().NotDependOnAny(infrastructureTypes)
-            .WithoutRequiringPositiveResults()
-            .Check(Architecture);
+        foreach (string contracts in ContractAssemblyNames)
+        {
+            Types().That().ResideInAssembly(contracts)
+                .Should().NotDependOnAny(infrastructureTypes)
+                .WithoutRequiringPositiveResults()
+                .Check(Architecture);
+        }
     }
 
     [Fact]
@@ -128,22 +115,5 @@ public sealed class AssemblyDependencyRulesTests
             .Should().NotDependOnAny(moduleFeatureTypes)
             .WithoutRequiringPositiveResults()
             .Check(Architecture);
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1859:Use concrete types when possible for improved performance",
-        Justification = "The ArchUnitNET concrete fluent type is an implementation detail; callers need its provider contract.")]
-    private static IObjectProvider<IType> OtherImplementations(int excludedIndex)
-    {
-        string[] names = ImplementationAssemblyNames
-            .Where((_, index) => index != excludedIndex)
-            .ToArray();
-
-        return Types().That()
-            .ResideInAssembly(names[0])
-            .Or().ResideInAssembly(names[1])
-            .Or().ResideInAssembly(names[2])
-            .As("other module implementations");
     }
 }

@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>ModulithFoundry.Modules.Sales</AssemblyName>
     <RootNamespace>ModulithFoundry.Modules.Sales</RootNamespace>
+    <ModuleSchema>sales</ModuleSchema>
   </PropertyGroup>
 
   <ItemGroup>

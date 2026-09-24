@@ -1,3 +1,5 @@
+using ModulithFoundry.Testing.Architecture;
+
 namespace ArchitectureTests;
 
 internal static class ProjectDependencyRules

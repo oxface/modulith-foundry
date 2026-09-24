@@ -10,25 +10,55 @@ using ModulithFoundry.Modules.Access.Composition;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Purchasing.Composition;
 using ModulithFoundry.Modules.Sales.Composition;
+using ModulithFoundry.Testing.Architecture;
 using Npgsql;
 
 namespace ArchitectureTests;
 
 public sealed class ModulePersistenceRulesTests
 {
-    private static readonly ModulePersistence[] Modules =
+    private static readonly ModulePersistenceAdapter[] PersistenceAdapters =
     [
-        new("Access", "access", services => services.AddAccessPersistence()),
+        new("Access", services => services.AddAccessPersistence()),
         new(
             "Inventory",
-            "inventory",
             services => services.AddInventoryPersistence()),
         new(
             "Purchasing",
-            "purchasing",
             services => services.AddPurchasingPersistence()),
-        new("Sales", "sales", services => services.AddSalesPersistence()),
+        new("Sales", services => services.AddSalesPersistence()),
     ];
+
+    [Fact]
+    public void ModulePersistenceAdapters_WhenDiscoveredModuleHasNoAdapter_ReportViolation()
+    {
+        string[] discoveredModules = [.. PersistenceAdapters.Select(module => module.Name), "Shipping"];
+        string[] adaptedModules = [.. PersistenceAdapters.Select(module => module.Name)];
+
+        Assert.Contains(
+            "Shipping has no persistence architecture-test adapter",
+            ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules));
+    }
+
+    [Fact]
+    public void ModulePersistenceAdapters_WhenAdapterHasNoDiscoveredModule_ReportViolation()
+    {
+        string[] discoveredModules = [.. PersistenceAdapters.Select(module => module.Name)];
+        string[] adaptedModules = [.. discoveredModules, "Shipping"];
+
+        Assert.Contains(
+            "Shipping persistence architecture-test adapter has no discovered module",
+            ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules));
+    }
+
+    [Fact]
+    public void ModulePersistenceAdapters_WhenInspected_CoverEveryDiscoveredModule()
+    {
+        string[] discoveredModules = [.. RepositoryTopology.Modules().Select(module => module.Name)];
+        string[] adaptedModules = [.. PersistenceAdapters.Select(module => module.Name)];
+
+        Assert.Empty(ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules));
+    }
 
     [Fact]
     public async Task ModulePersistence_WhenEfMetadataIsInspected_UsesOnlyItsOwnedSchema()
@@ -36,11 +66,13 @@ public sealed class ModulePersistenceRulesTests
         await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(
             "Host=localhost;Database=architecture_tests;Username=unused;Password=unused");
 
-        foreach (ModulePersistence module in Modules)
+        foreach (ModuleDefinition module in RepositoryTopology.Modules())
         {
+            ModulePersistenceAdapter adapter = PersistenceAdapters.Single(candidate =>
+                candidate.Name == module.Name);
             var services = new ServiceCollection();
             services.AddSingleton(dataSource);
-            module.Register(services);
+            adapter.Register(services);
             Type dbContextType = services
                 .Select(descriptor => descriptor.ServiceType)
                 .Single(type => typeof(DbContext).IsAssignableFrom(type));
@@ -201,8 +233,7 @@ public sealed class ModulePersistenceRulesTests
         }
     }
 
-    private sealed record ModulePersistence(
+    private sealed record ModulePersistenceAdapter(
         string Name,
-        string Schema,
         Action<IServiceCollection> Register);
 }

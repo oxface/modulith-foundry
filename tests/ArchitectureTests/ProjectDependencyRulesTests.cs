@@ -1,3 +1,5 @@
+using ModulithFoundry.Testing.Architecture;
+
 namespace ArchitectureTests;
 
 public sealed class ProjectDependencyRulesTests
@@ -5,10 +7,10 @@ public sealed class ProjectDependencyRulesTests
     [Fact]
     public void Solution_WhenProjectsAreDiscovered_ContainsEveryRepositoryProject()
     {
-        string[] expected = [.. RepositoryLayout.RepositoryProjects()
+        string[] expected = [.. RepositoryTopology.Projects()
             .Select(project => project.Path)
             .Order(StringComparer.Ordinal)];
-        string[] actual = [.. RepositoryLayout.SolutionProjects()];
+        string[] actual = [.. RepositoryTopology.SolutionProjects()];
 
         Assert.Equal(expected, actual);
     }
@@ -16,7 +18,7 @@ public sealed class ProjectDependencyRulesTests
     [Fact]
     public void ProjectReferences_WhenInspected_RespectDependencyRules()
     {
-        ProjectDefinition[] projects = [.. RepositoryLayout.RepositoryProjects()];
+        ProjectDefinition[] projects = [.. RepositoryTopology.Projects()];
 
         Assert.Empty(ProjectDependencyRules.ReferenceViolations(projects));
     }
@@ -30,7 +32,7 @@ public sealed class ProjectDependencyRulesTests
     [Fact]
     public void ContractsProjects_WhenInspected_HaveNoInfrastructureDependencies()
     {
-        ProjectDefinition[] contracts = RepositoryLayout.RepositoryProjects()
+        ProjectDefinition[] contracts = RepositoryTopology.Projects()
             .Where(project => project.Path.Contains(".Contracts/", StringComparison.Ordinal))
             .ToArray();
 
@@ -47,7 +49,7 @@ public sealed class ProjectDependencyRulesTests
     [Fact]
     public void PackageReferences_WhenInspected_KeepAspireInLocalOrchestrationProjects()
     {
-        ProjectDefinition[] projects = [.. RepositoryLayout.RepositoryProjects()];
+        ProjectDefinition[] projects = [.. RepositoryTopology.Projects()];
 
         Assert.Empty(ProjectDependencyRules.AspirePackageReferenceViolations(projects));
     }
@@ -56,7 +58,7 @@ public sealed class ProjectDependencyRulesTests
     public void PackageReferences_WhenRuntimeProjectReferencesAspire_ReportViolation()
     {
         const string apiProject = "apps/Api/ModulithFoundry.Api.csproj";
-        ProjectDefinition[] invalidProjects = RepositoryLayout.RepositoryProjects()
+        ProjectDefinition[] invalidProjects = RepositoryTopology.Projects()
             .Select(project => project.Path == apiProject
                 ? project with
                 {
@@ -78,7 +80,7 @@ public sealed class ProjectDependencyRulesTests
     {
         const string salesProject = "modules/Sales/Sales/Sales.csproj";
         const string inventoryProject = "modules/Inventory/Inventory/Inventory.csproj";
-        ProjectDefinition[] invalidProjects = RepositoryLayout.RepositoryProjects()
+        ProjectDefinition[] invalidProjects = RepositoryTopology.Projects()
             .Select(project => project.Path == salesProject
                 ? project with
                 {
@@ -94,7 +96,7 @@ public sealed class ProjectDependencyRulesTests
 
     private static Dictionary<string, IReadOnlySet<string>> LoadReferences()
     {
-        return RepositoryLayout.RepositoryProjects().ToDictionary(
+        return RepositoryTopology.Projects().ToDictionary(
             project => project.Path,
             project => (IReadOnlySet<string>)new HashSet<string>(
                 project.ProjectReferences,
