@@ -12,9 +12,14 @@ internal sealed class MembershipRoleAssignmentConfiguration
         role.HasKey(entity => new { entity.MembershipId, entity.RoleId })
             .HasName("pk_membership_role_assignments");
         role.Property(entity => entity.MembershipId).HasColumnName("membership_id");
+        role.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
         role.Property(entity => entity.RoleId)
             .HasColumnName("role_id")
             .HasMaxLength(100);
         role.Property(entity => entity.AssignedAt).HasColumnName("assigned_at");
+        role.HasIndex(entity => new { entity.MembershipId, entity.OrganizationId })
+            .HasDatabaseName("ix_membership_roles_membership_organization");
+        role.HasIndex(entity => new { entity.OrganizationId, entity.MembershipId })
+            .HasDatabaseName("ix_membership_roles_organization_membership");
     }
 }

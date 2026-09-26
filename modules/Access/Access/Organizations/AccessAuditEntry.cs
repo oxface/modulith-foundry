@@ -1,8 +1,9 @@
 using System.Text.Json;
+using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Modules.Access.Organizations;
 
-internal sealed class AccessAuditEntry
+internal sealed class AccessAuditEntry : IOrganizationOwned
 {
     private const string AccessSourceModule = "access";
     private const short OrganizationCreatedSchemaVersion = 1;
@@ -51,7 +52,7 @@ internal sealed class AccessAuditEntry
 
     internal Guid Id { get; private set; }
 
-    internal Guid OrganizationId { get; private set; }
+    public Guid OrganizationId { get; private set; }
 
     internal Guid ActorUserId { get; private set; }
 

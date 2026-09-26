@@ -134,6 +134,46 @@ public sealed class OrganizationBootstrapTests
             await CountOrganizationCreatedAuditsAsync(postgres.GetConnectionString()));
     }
 
+    [Fact]
+    public async Task ResolveOrganizationAccess_ActiveMember_ReturnsTheirOrganizationContext()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString());
+        UserIdentityLink member = await LinkUserAsync(
+            services,
+            "member-subject",
+            "member@example.test");
+        UserIdentityLink otherUser = await LinkUserAsync(
+            services,
+            "other-subject",
+            "other@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            member.UserId,
+            "Scoped Organization",
+            "scoped-organization");
+
+        OrganizationAccessContext? resolved = await ResolveOrganizationAccessAsync(
+            services,
+            member.UserId,
+            organization.Slug);
+        OrganizationAccessContext? denied = await ResolveOrganizationAccessAsync(
+            services,
+            otherUser.UserId,
+            organization.Slug);
+
+        OrganizationAccessContext context = Assert.IsType<OrganizationAccessContext>(resolved);
+        Assert.Equal(member.UserId, context.UserId);
+        Assert.Equal(organization.OrganizationId, context.OrganizationId);
+        Assert.NotEqual(Guid.Empty, context.MembershipId.Value);
+        Assert.Equal(organization.Name, context.OrganizationName);
+        Assert.Equal(organization.Slug, context.OrganizationSlug);
+        Assert.Equal([SystemRoleIds.OrganizationAdministrator], context.RoleIds);
+        Assert.Null(denied);
+    }
+
     private static PostgreSqlContainer CreatePostgresContainer() =>
         new PostgreSqlBuilder("postgres:18.6").Build();
 
@@ -195,6 +235,19 @@ public sealed class OrganizationBootstrapTests
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<IOrganizationQueries>()
             .ListAccessibleToAsync(userId, TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<OrganizationAccessContext?> ResolveOrganizationAccessAsync(
+        IServiceProvider services,
+        UserId userId,
+        string organizationSlug)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationQueries>()
+            .ResolveAccessAsync(
+                userId,
+                organizationSlug,
+                TestContext.Current.CancellationToken);
     }
 
     private static async Task<OrganizationCreationAttempt> CaptureCreationAsync(

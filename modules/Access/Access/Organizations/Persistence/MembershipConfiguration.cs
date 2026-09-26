@@ -25,6 +25,8 @@ internal sealed class MembershipConfiguration : IEntityTypeConfiguration<Members
             .HasDatabaseName("ux_memberships_organization_user");
         membership.HasIndex(entity => entity.UserId)
             .HasDatabaseName("ix_memberships_user_id");
+        membership.HasAlternateKey(entity => new { entity.Id, entity.OrganizationId })
+            .HasName("ak_memberships_id_organization_id");
         membership.HasOne<Organization>()
             .WithMany()
             .HasForeignKey(entity => entity.OrganizationId)
@@ -37,9 +39,10 @@ internal sealed class MembershipConfiguration : IEntityTypeConfiguration<Members
             .HasConstraintName("fk_memberships_users_user_id");
         membership.HasMany(entity => entity.RoleAssignments)
             .WithOne()
-            .HasForeignKey(entity => entity.MembershipId)
+            .HasForeignKey(entity => new { entity.MembershipId, entity.OrganizationId })
+            .HasPrincipalKey(entity => new { entity.Id, entity.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade)
-            .HasConstraintName("fk_membership_roles_memberships_membership_id");
+            .HasConstraintName("fk_membership_roles_memberships_membership_organization");
     }
 
     private static string ToStoredValue(MembershipStatus status) =>

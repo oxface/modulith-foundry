@@ -24,6 +24,7 @@ public static class AccessModule
 
     public static IServiceCollection AddAccessPersistence(this IServiceCollection services)
     {
+        services.TryAddScoped<IOrganizationContextAccessor, UnresolvedOrganizationContextAccessor>();
         services.AddDbContext<AccessDbContext>((serviceProvider, options) =>
             options.UseNpgsql(serviceProvider.GetRequiredService<NpgsqlDataSource>(), postgres =>
             {

@@ -55,6 +55,10 @@ public sealed partial class LocalRuntimeTests
             "/api/organizations",
             timeout.Token);
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousOrganizations.StatusCode);
+        using HttpResponseMessage anonymousOrganizationScope = await client.GetAsync(
+            "/api/o/topology-organization",
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousOrganizationScope.StatusCode);
 
         using HttpResponseMessage challenge = await client.GetAsync(
             "/auth/login?returnUrl=/client-owned-route",
@@ -195,6 +199,25 @@ public sealed partial class LocalRuntimeTests
         Assert.Equal(
             createdOrganization.RootElement.GetProperty("organizationId").GetGuid(),
             listedOrganization.GetProperty("organizationId").GetGuid());
+
+        using HttpResponseMessage organizationScope = await client.GetAsync(
+            "/api/o/topology-organization",
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.OK, organizationScope.StatusCode);
+        using JsonDocument organizationScopeJson = JsonDocument.Parse(
+            await organizationScope.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(
+            createdOrganization.RootElement.GetProperty("organizationId").GetGuid(),
+            organizationScopeJson.RootElement.GetProperty("organizationId").GetGuid());
+        Assert.Equal(
+            "organization-administrator",
+            Assert.Single(organizationScopeJson.RootElement.GetProperty("roleIds").EnumerateArray())
+                .GetString());
+
+        using HttpResponseMessage unknownOrganizationScope = await client.GetAsync(
+            "/api/o/unknown-organization",
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.NotFound, unknownOrganizationScope.StatusCode);
 
         Cookie authenticatedCookie = Assert.Single(
             cookies.GetCookies(Assert.IsType<Uri>(client.BaseAddress)).Cast<Cookie>(),

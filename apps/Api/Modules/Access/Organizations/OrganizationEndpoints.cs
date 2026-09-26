@@ -19,6 +19,19 @@ internal static class OrganizationEndpoints
         return endpoints;
     }
 
+    internal static IEndpointRouteBuilder MapOrganizationScopeEndpoints(
+        this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapGet("", (IOrganizationContextAccessor contextAccessor) =>
+        {
+            OrganizationAccessContext context = contextAccessor.OrganizationContext
+                ?? throw new InvalidOperationException("Organization context is not resolved.");
+            return TypedResults.Ok(ToResponse(context));
+        });
+
+        return endpoints;
+    }
+
     private static async Task<IResult> CreateOrganizationAsync(
         CreateOrganizationRequest request,
         ClaimsPrincipal principal,
@@ -61,6 +74,13 @@ internal static class OrganizationEndpoints
             organization.Name,
             organization.Slug,
             organization.RoleIds);
+
+    private static OrganizationResponse ToResponse(OrganizationAccessContext context) =>
+        new(
+            context.OrganizationId.Value,
+            context.OrganizationName,
+            context.OrganizationSlug,
+            context.RoleIds);
 
     private static IResult InvalidOrganization(string detail) =>
         Results.Problem(

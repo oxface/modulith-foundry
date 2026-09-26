@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.Modules.Access.Composition;
+using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Purchasing.Composition;
 using ModulithFoundry.Modules.Sales.Composition;
@@ -17,6 +18,8 @@ namespace ArchitectureTests;
 
 public sealed class ModulePersistenceRulesTests
 {
+    private const string OwnedSchemaAnnotation = "ModulithFoundry:OwnedSchema";
+
     private static readonly ModulePersistenceAdapter[] PersistenceAdapters =
     [
         new("Access", services => services.AddAccessPersistence()),
@@ -61,7 +64,7 @@ public sealed class ModulePersistenceRulesTests
     }
 
     [Fact]
-    public async Task ModulePersistence_WhenEfMetadataIsInspected_UsesOnlyItsOwnedSchema()
+    public async Task ModulePersistence_WhenEfMetadataIsInspected_RespectsModuleAndOrganizationBoundaries()
     {
         await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(
             "Host=localhost;Database=architecture_tests;Username=unused;Password=unused");
@@ -90,6 +93,15 @@ public sealed class ModulePersistenceRulesTests
             Assert.All(
                 context.Model.GetEntityTypes(),
                 entity => Assert.Equal(module.Schema, entity.GetSchema()));
+            Assert.All(context.Model.GetEntityTypes(), entity =>
+            {
+                bool isOrganizationOwned = typeof(IOrganizationOwned)
+                    .IsAssignableFrom(entity.ClrType);
+                IQueryFilter? organizationFilter = entity.FindDeclaredQueryFilter(
+                    "OrganizationScope");
+
+                Assert.Equal(isOrganizationOwned, organizationFilter is not null);
+            });
 
             IMigrationsAssembly migrationsAssembly = context.GetService<IMigrationsAssembly>();
             string activeProvider = context.Database.ProviderName
@@ -162,6 +174,32 @@ public sealed class ModulePersistenceRulesTests
             SchemaOwnershipViolations("sales", operations));
     }
 
+    [Fact]
+    public void SchemaOwnership_WhenRawSqlDeclaresOwnedSchema_HasNoViolation()
+    {
+        var operation = new SqlOperation
+        {
+            Sql = "UPDATE sales.orders SET status = 'pending';",
+        };
+        operation.AddAnnotation(OwnedSchemaAnnotation, "sales");
+
+        Assert.Empty(SchemaOwnershipViolations("sales", [operation]));
+    }
+
+    [Fact]
+    public void SchemaOwnership_WhenRawSqlDeclaresAnotherSchema_ReportsViolation()
+    {
+        var operation = new SqlOperation
+        {
+            Sql = "UPDATE inventory.stock SET available = false;",
+        };
+        operation.AddAnnotation(OwnedSchemaAnnotation, "inventory");
+
+        Assert.Contains(
+            "SqlOperation declares schema 'inventory' instead of owned schema 'sales'",
+            SchemaOwnershipViolations("sales", [operation]));
+    }
+
     private static List<string> SchemaOwnershipViolations(
         string ownedSchema,
         IEnumerable<MigrationOperation> operations)
@@ -172,8 +210,19 @@ public sealed class ModulePersistenceRulesTests
         {
             if (operation is SqlOperation)
             {
-                violations.Add(
-                    "SqlOperation contains raw SQL; schema ownership cannot be verified");
+                string? declaredSchema = operation.FindAnnotation(OwnedSchemaAnnotation)?.Value
+                    as string;
+                if (declaredSchema is null)
+                {
+                    violations.Add(
+                        "SqlOperation contains raw SQL; schema ownership cannot be verified");
+                }
+                else if (!string.Equals(declaredSchema, ownedSchema, StringComparison.Ordinal))
+                {
+                    violations.Add(
+                        $"SqlOperation declares schema '{declaredSchema}' instead of owned schema '{ownedSchema}'");
+                }
+
                 continue;
             }
 

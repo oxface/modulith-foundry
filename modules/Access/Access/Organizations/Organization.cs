@@ -1,5 +1,3 @@
-using ModulithFoundry.Modules.Access.Contracts;
-
 namespace ModulithFoundry.Modules.Access.Organizations;
 
 internal sealed class Organization

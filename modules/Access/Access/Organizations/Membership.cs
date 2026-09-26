@@ -7,7 +7,7 @@ internal enum MembershipStatus
     Active,
 }
 
-internal sealed class Membership
+internal sealed class Membership : IOrganizationOwned
 {
     private readonly List<MembershipRoleAssignment> _roleAssignments = [];
 
@@ -30,7 +30,7 @@ internal sealed class Membership
 
     internal Guid Id { get; private set; }
 
-    internal Guid OrganizationId { get; private set; }
+    public Guid OrganizationId { get; private set; }
 
     internal Guid UserId { get; private set; }
 
@@ -52,5 +52,9 @@ internal sealed class Membership
     }
 
     private void AssignRole(string roleId, DateTimeOffset assignedAt) =>
-        _roleAssignments.Add(MembershipRoleAssignment.Create(Id, roleId, assignedAt));
+        _roleAssignments.Add(MembershipRoleAssignment.Create(
+            Id,
+            OrganizationId,
+            roleId,
+            assignedAt));
 }

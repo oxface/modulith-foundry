@@ -50,6 +50,15 @@ Prefer a precise domain term over any suffix in this table.
 - Never expose `IQueryable` through Contracts.
 - Do not use global query filters for ordinary lifecycle states that administrative queries must be able to see. Tenant-isolation filters are considered separately.
 
+## Organization scope
+
+- Organization-scoped HTTP endpoints live under `/api/o/{organizationSlug}` and opt into the API's organization-scope middleware through endpoint metadata. Do not parse path text, query parameters, or a mutable session preference to select the organization.
+- Access resolves the authenticated product `UserId`, canonical route slug, and active `Membership` together before constructing the immutable `OrganizationAccessContext`. A missing or inaccessible organization fails closed without disclosing whether another tenant exists.
+- `IOrganizationContextAccessor` is request/persistence infrastructure. Do not inject it into aggregates or use it to hide tenant selection from application operations; capability inputs and tenant-owned entities carry `OrganizationId` explicitly.
+- Tenant-owned persistence types implement `IOrganizationOwned`. Their EF query filters deny access when no verified organization context exists. Access bootstrap queries such as organization choice and route resolution bypass only the named organization filter explicitly.
+- Query filters are defense in depth, not authorization. Resource queries still constrain identifiers by `OrganizationId`, and application/domain policy still decides whether the current membership may perform an operation.
+- Persistence never infers or fills `OrganizationId` from the current request. Constructors and handlers set it explicitly; persistence validation may reject missing or mismatched values.
+
 ## Mapping
 
 Keep a private mapping method beside its only caller. When the same mapping has multiple callers or obscures an operation, move it to an internal `{Subject}Mappings` extension class. Contracts and transport DTOs never accept implementation entities in constructors.

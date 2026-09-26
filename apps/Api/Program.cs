@@ -9,6 +9,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddPostgresDataSource("database");
 builder.Services.AddBffAuthentication(builder.Configuration);
+builder.Services.AddAccessApi();
 
 builder.Services.AddAccessModule();
 builder.Services.AddInventoryModule();
@@ -18,6 +19,7 @@ builder.Services.AddSalesModule();
 WebApplication app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseOrganizationScope();
 app.MapDefaultEndpoints();
 app.MapAuthenticationApi();
 app.MapAccessApi();

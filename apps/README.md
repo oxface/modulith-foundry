@@ -46,3 +46,6 @@ ConnectionStrings__database="Host=localhost;Database=modulith_foundry" \
 ```
 
 Substitute the owning module project and context. Never generate one module's migration into another module or the Migrator.
+Raw SQL used for a necessary data backfill must declare its owning schema with the
+`ModulithFoundry:OwnedSchema` migration-operation annotation; architecture tests reject
+unannotated SQL and SQL attributed to another module's schema.
