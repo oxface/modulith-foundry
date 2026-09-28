@@ -374,6 +374,348 @@ public sealed class AccessModulePersistenceTests
         Assert.Null(state.ProtectedPayload);
     }
 
+    [Fact]
+    public async Task AcceptInvitation_MatchingAssuredEmail_CreatesMembershipWithAssignedRoles()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "accepting-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Acceptance Organization",
+            "acceptance-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "recipient@example.test",
+            [SalesRoleIds.Clerk, InventoryRoleIds.Manager]);
+        UserIdentityLink recipient = await LinkUserAsync(
+            services,
+            "invitation-recipient",
+            "recipient@example.test");
+
+        AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
+            services,
+            recipient.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "recipient@example.test");
+
+        AcceptOrganizationInvitationResult.Accepted accepted =
+            Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(result);
+        Assert.Equal(organization.OrganizationId, accepted.Membership.OrganizationId);
+        Assert.Equal(
+            [InventoryRoleIds.Manager, SalesRoleIds.Clerk],
+            accepted.Membership.RoleIds);
+        OrganizationMembership accessible = Assert.Single(
+            await ListOrganizationsAsync(services, recipient.UserId));
+        Assert.Equal(accepted.Membership.OrganizationId, accessible.OrganizationId);
+        Assert.Equal(accepted.Membership.Name, accessible.Name);
+        Assert.Equal(accepted.Membership.Slug, accessible.Slug);
+        Assert.Equal(accepted.Membership.RoleIds, accessible.RoleIds);
+        InvitationAcceptanceFacts facts = await ReadInvitationAcceptanceFactsAsync(
+            postgres.GetConnectionString(),
+            delivered.InvitationId);
+        Assert.Equal("accepted", facts.Status);
+        Assert.Equal(recipient.UserId.Value, facts.AcceptedByUserId);
+        Assert.NotNull(facts.AcceptedAt);
+        Assert.Equal("invitation.accepted", facts.AuditAction);
+    }
+
+    [Fact]
+    public async Task AcceptInvitation_InvalidSecret_RejectsWithoutCreatingMembership()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "invalid-secret-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Invalid Secret Organization",
+            "invalid-secret-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "recipient@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink recipient = await LinkUserAsync(
+            services,
+            "invalid-secret-recipient",
+            "recipient@example.test");
+
+        AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
+            services,
+            recipient.UserId,
+            delivered.InvitationId,
+            "not-the-invitation-secret",
+            "recipient@example.test");
+
+        Assert.IsType<AcceptOrganizationInvitationResult.Invalid>(result);
+        Assert.Empty(await ListOrganizationsAsync(services, recipient.UserId));
+    }
+
+    [Fact]
+    public async Task AcceptInvitation_DifferentAssuredEmail_RejectsWithoutCreatingMembership()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "mismatch-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Mismatch Organization",
+            "mismatch-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "invited@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink differentUser = await LinkUserAsync(
+            services,
+            "different-recipient",
+            "different@example.test");
+
+        AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
+            services,
+            differentUser.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "different@example.test");
+
+        Assert.IsType<AcceptOrganizationInvitationResult.RecipientMismatch>(result);
+        Assert.Empty(await ListOrganizationsAsync(services, differentUser.UserId));
+    }
+
+    [Fact]
+    public async Task AcceptInvitation_ExpiredInvitation_RejectsWithoutCreatingMembership()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        var timeProvider = new AdjustableTimeProvider(
+            new DateTimeOffset(2026, 9, 28, 12, 0, 0, TimeSpan.Zero));
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection =>
+            {
+                collection.AddSingleton<IEmailTransport>(transport);
+                collection.AddSingleton<TimeProvider>(timeProvider);
+            });
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "expiry-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Expiry Organization",
+            "expiry-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "recipient@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink recipient = await LinkUserAsync(
+            services,
+            "expiry-recipient",
+            "recipient@example.test");
+        timeProvider.Advance(TimeSpan.FromDays(7));
+
+        AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
+            services,
+            recipient.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "recipient@example.test");
+
+        Assert.IsType<AcceptOrganizationInvitationResult.Expired>(result);
+        Assert.Empty(await ListOrganizationsAsync(services, recipient.UserId));
+    }
+
+    [Fact]
+    public async Task AcceptInvitation_ReplayedByAcceptingUser_ReturnsExistingMembership()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "replay-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Replay Organization",
+            "replay-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "recipient@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink recipient = await LinkUserAsync(
+            services,
+            "replay-recipient",
+            "recipient@example.test");
+        AcceptOrganizationInvitationResult first = await AcceptInvitationAsync(
+            services,
+            recipient.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "recipient@example.test");
+
+        AcceptOrganizationInvitationResult replay = await AcceptInvitationAsync(
+            services,
+            recipient.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "recipient@example.test");
+
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(first);
+        Assert.IsType<AcceptOrganizationInvitationResult.AlreadyAccepted>(replay);
+        Assert.Single(await ListOrganizationsAsync(services, recipient.UserId));
+    }
+
+    [Fact]
+    public async Task AcceptInvitation_ReplayedByDifferentUser_ReturnsConsumed()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "consumed-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Consumed Organization",
+            "consumed-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "recipient@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink firstRecipient = await LinkUserAsync(
+            services,
+            "first-consumed-recipient",
+            "recipient@example.test");
+        UserIdentityLink secondRecipient = await LinkUserAsync(
+            services,
+            "second-consumed-recipient",
+            "recipient@example.test");
+        await AcceptInvitationAsync(
+            services,
+            firstRecipient.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "recipient@example.test");
+
+        AcceptOrganizationInvitationResult replay = await AcceptInvitationAsync(
+            services,
+            secondRecipient.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "recipient@example.test");
+
+        Assert.IsType<AcceptOrganizationInvitationResult.Consumed>(replay);
+        Assert.Empty(await ListOrganizationsAsync(services, secondRecipient.UserId));
+    }
+
+    [Fact]
+    public async Task AcceptInvitation_ConcurrentDifferentUsers_CreatesOneMembership()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "concurrent-acceptance-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Concurrent Acceptance Organization",
+            "concurrent-acceptance-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "recipient@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink firstRecipient = await LinkUserAsync(
+            services,
+            "first-concurrent-recipient",
+            "recipient@example.test");
+        UserIdentityLink secondRecipient = await LinkUserAsync(
+            services,
+            "second-concurrent-recipient",
+            "recipient@example.test");
+
+        AcceptOrganizationInvitationResult[] results = await Task.WhenAll(
+            AcceptInvitationAsync(
+                services,
+                firstRecipient.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "recipient@example.test"),
+            AcceptInvitationAsync(
+                services,
+                secondRecipient.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "recipient@example.test"));
+
+        Assert.Single(results, result => result is AcceptOrganizationInvitationResult.Accepted);
+        Assert.Single(results, result => result is AcceptOrganizationInvitationResult.Consumed);
+        int membershipCount = (await ListOrganizationsAsync(services, firstRecipient.UserId)).Count
+            + (await ListOrganizationsAsync(services, secondRecipient.UserId)).Count;
+        Assert.Equal(1, membershipCount);
+    }
+
     private static PostgreSqlContainer CreatePostgresContainer() =>
         new PostgreSqlBuilder("postgres:18.6")
             .Build();
@@ -486,6 +828,74 @@ public sealed class AccessModulePersistenceTests
                     organizationId,
                     invitationId),
                 TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<AcceptOrganizationInvitationResult> AcceptInvitationAsync(
+        IServiceProvider services,
+        UserId userId,
+        InvitationId invitationId,
+        string secret,
+        string assuredEmail)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitations>()
+            .AcceptInvitationAsync(
+                new AcceptOrganizationInvitationCommand(
+                    userId,
+                    invitationId,
+                    secret,
+                    assuredEmail),
+                TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<DeliveredInvitation> CreateDeliveredInvitationAsync(
+        IServiceProvider services,
+        RecordingEmailTransport transport,
+        UserId actorUserId,
+        OrganizationId organizationId,
+        string recipientEmail,
+        IReadOnlyCollection<string> roleIds)
+    {
+        CreateOrganizationInvitationResult result = await CreateInvitationAsync(
+            services,
+            actorUserId,
+            organizationId,
+            recipientEmail,
+            roleIds);
+        InvitationId invitationId = Assert.IsType<CreateOrganizationInvitationResult.Created>(result)
+            .Invitation.InvitationId;
+        IHostedService[] hostedServices = [.. services.GetServices<IHostedService>()];
+        foreach (IHostedService hostedService in hostedServices)
+        {
+            await hostedService.StartAsync(TestContext.Current.CancellationToken);
+        }
+
+        EmailMessage message;
+        try
+        {
+            message = await transport.WaitForMessageAsync(TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            foreach (IHostedService hostedService in hostedServices.Reverse())
+            {
+                await hostedService.StopAsync(TestContext.Current.CancellationToken);
+            }
+        }
+
+        const string linkPrefix = "Accept the invitation: ";
+        string link = message.TextBody.Split('\n', StringSplitOptions.TrimEntries)
+            .Single(line => line.StartsWith(linkPrefix, StringComparison.Ordinal))[linkPrefix.Length..];
+        var uri = new Uri(link);
+        Dictionary<string, string> query = uri.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .ToDictionary(
+                part => Uri.UnescapeDataString(part[0]),
+                part => Uri.UnescapeDataString(part[1]),
+                StringComparer.Ordinal);
+        Assert.Equal(invitationId.Value, Guid.Parse(query["invitationId"]));
+        return new DeliveredInvitation(invitationId, query["code"]);
     }
 
     private static async Task<OrganizationAccessContext?> ResolveOrganizationAccessAsync(
@@ -640,6 +1050,37 @@ public sealed class AccessModulePersistenceTests
             reader.GetInt64(0));
     }
 
+    private static async Task<InvitationAcceptanceFacts> ReadInvitationAcceptanceFactsAsync(
+        string connectionString,
+        InvitationId invitationId)
+    {
+        const string sql = """
+            SELECT i.status,
+                   i.accepted_by_user_id,
+                   i.accepted_at,
+                   a.action
+            FROM access.invitations AS i
+            LEFT JOIN access.audit_entries AS a
+              ON a.organization_id = i.organization_id
+             AND a.subject_id = i.id
+             AND a.action = 'invitation.accepted'
+            WHERE i.id = @invitation_id
+            """;
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using NpgsqlCommand command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("invitation_id", invitationId.Value);
+        await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
+            TestContext.Current.CancellationToken);
+        Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
+        return new InvitationAcceptanceFacts(
+            reader.GetString(0),
+            reader.GetGuid(1),
+            reader.IsDBNull(2) ? null : reader.GetFieldValue<DateTimeOffset>(2),
+            reader.IsDBNull(3) ? null : reader.GetString(3));
+    }
+
     private static async Task WaitForDeliveredAsync(
         string connectionString,
         InvitationId invitationId,
@@ -710,6 +1151,40 @@ public sealed class AccessModulePersistenceTests
         int AttemptCount,
         DateTimeOffset? SentAt,
         string? ProtectedPayload);
+
+    private sealed record InvitationAcceptanceFacts(
+        string Status,
+        Guid AcceptedByUserId,
+        DateTimeOffset? AcceptedAt,
+        string? AuditAction);
+
+    private sealed record DeliveredInvitation(
+        InvitationId InvitationId,
+        string Secret);
+
+    private sealed class RecordingEmailTransport : IEmailTransport
+    {
+        private readonly TaskCompletionSource<EmailMessage> _message = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
+        {
+            _message.TrySetResult(message);
+            return Task.CompletedTask;
+        }
+
+        internal Task<EmailMessage> WaitForMessageAsync(CancellationToken cancellationToken) =>
+            _message.Task.WaitAsync(cancellationToken);
+    }
+
+    private sealed class AdjustableTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        private DateTimeOffset _utcNow = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        internal void Advance(TimeSpan duration) => _utcNow = _utcNow.Add(duration);
+    }
 
     private sealed class FailOnceEmailTransport : IEmailTransport
     {

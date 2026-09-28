@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Identity;
 using ModulithFoundry.Modules.Access.Invitations;
+using ModulithFoundry.Modules.Access.Invitations.AcceptInvitation;
 using ModulithFoundry.Modules.Access.Invitations.CreateInvitation;
 using ModulithFoundry.Modules.Access.Invitations.ResendInvitation;
 using ModulithFoundry.Modules.Access.Organizations;
@@ -33,6 +34,7 @@ public static class AccessModule
         services.AddScoped<InvitationEmailDeliveryFactory>();
         services.AddScoped<CreateInvitationHandler>();
         services.AddScoped<ResendInvitationHandler>();
+        services.AddScoped<AcceptInvitationHandler>();
         services.AddScoped<IOrganizationInvitations, OrganizationInvitations>();
         services.AddScoped<IOrganizationQueries, OrganizationQueries>();
         return services;

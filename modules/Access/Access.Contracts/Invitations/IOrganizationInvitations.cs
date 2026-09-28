@@ -9,4 +9,8 @@ public interface IOrganizationInvitations
     Task<ResendOrganizationInvitationResult> ResendInvitationAsync(
         ResendOrganizationInvitationCommand command,
         CancellationToken cancellationToken = default);
+
+    Task<AcceptOrganizationInvitationResult> AcceptInvitationAsync(
+        AcceptOrganizationInvitationCommand command,
+        CancellationToken cancellationToken = default);
 }

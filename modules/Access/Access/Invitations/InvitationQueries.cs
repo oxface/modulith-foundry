@@ -5,6 +5,16 @@ namespace ModulithFoundry.Modules.Access.Invitations;
 
 internal sealed class InvitationQueries(AccessDbContext context)
 {
+    internal Task<Invitation?> FindByIdAsync(
+        Guid invitationId,
+        CancellationToken cancellationToken) =>
+        context.Invitations
+            .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+            .Include(invitation => invitation.RoleAssignments)
+            .SingleOrDefaultAsync(
+                invitation => invitation.Id == invitationId,
+                cancellationToken);
+
     internal Task<Invitation?> FindPendingAsync(
         Guid organizationId,
         string recipientEmail,

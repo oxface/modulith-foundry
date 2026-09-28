@@ -49,6 +49,10 @@ internal sealed class Invitation : IOrganizationOwned
 
     internal DateTimeOffset ExpiresAt { get; private set; }
 
+    internal Guid? AcceptedByUserId { get; private set; }
+
+    internal DateTimeOffset? AcceptedAt { get; private set; }
+
     internal IReadOnlyCollection<InvitationRoleAssignment> RoleAssignments => _roleAssignments;
 
     internal static Invitation Create(
@@ -73,5 +77,17 @@ internal sealed class Invitation : IOrganizationOwned
         SecretDigest = secretDigest;
         Generation++;
         ExpiresAt = resentAt.Add(lifetime);
+    }
+
+    internal void Accept(Guid userId, DateTimeOffset acceptedAt)
+    {
+        if (Status != InvitationStatus.Pending)
+        {
+            throw new InvalidOperationException("Only a pending invitation can be accepted.");
+        }
+
+        Status = InvitationStatus.Accepted;
+        AcceptedByUserId = userId;
+        AcceptedAt = acceptedAt;
     }
 }

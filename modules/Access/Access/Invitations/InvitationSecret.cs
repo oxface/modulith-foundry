@@ -12,4 +12,7 @@ internal static class InvitationSecret
 
     internal static byte[] Digest(string secret) =>
         SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(secret));
+
+    internal static bool Matches(string secret, byte[] expectedDigest) =>
+        CryptographicOperations.FixedTimeEquals(Digest(secret), expectedDigest);
 }

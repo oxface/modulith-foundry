@@ -51,4 +51,27 @@ internal static class InvitationAuditEntries
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
             occurredAt);
+
+    internal static AccessAuditEntry Accepted(
+        Invitation invitation,
+        Guid acceptedByUserId,
+        IReadOnlyCollection<string> roleIds,
+        DateTimeOffset occurredAt) =>
+        AccessAuditEntry.Create(
+            Guid.CreateVersion7(occurredAt),
+            invitation.OrganizationId,
+            acceptedByUserId,
+            "invitation.accepted",
+            "invitation",
+            invitation.Id,
+            schemaVersion: 1,
+            new
+            {
+                acceptedByUserId,
+                roleIds,
+                occurredAt,
+            },
+            Activity.Current?.RootId,
+            Activity.Current?.TraceId.ToHexString(),
+            occurredAt);
 }

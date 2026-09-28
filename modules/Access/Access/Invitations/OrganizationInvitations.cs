@@ -1,4 +1,5 @@
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Access.Invitations.AcceptInvitation;
 using ModulithFoundry.Modules.Access.Invitations.CreateInvitation;
 using ModulithFoundry.Modules.Access.Invitations.ResendInvitation;
 
@@ -6,7 +7,8 @@ namespace ModulithFoundry.Modules.Access.Invitations;
 
 internal sealed class OrganizationInvitations(
     CreateInvitationHandler createInvitation,
-    ResendInvitationHandler resendInvitation) : IOrganizationInvitations
+    ResendInvitationHandler resendInvitation,
+    AcceptInvitationHandler acceptInvitation) : IOrganizationInvitations
 {
     public Task<CreateOrganizationInvitationResult> CreateInvitationAsync(
         CreateOrganizationInvitationCommand command,
@@ -17,4 +19,9 @@ internal sealed class OrganizationInvitations(
         ResendOrganizationInvitationCommand command,
         CancellationToken cancellationToken = default) =>
         resendInvitation.HandleAsync(command, cancellationToken);
+
+    public Task<AcceptOrganizationInvitationResult> AcceptInvitationAsync(
+        AcceptOrganizationInvitationCommand command,
+        CancellationToken cancellationToken = default) =>
+        acceptInvitation.HandleAsync(command, cancellationToken);
 }

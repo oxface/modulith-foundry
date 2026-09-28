@@ -51,6 +51,22 @@ internal sealed class Membership : IOrganizationOwned
         return membership;
     }
 
+    internal static Membership CreateFromInvitation(
+        Guid id,
+        Guid organizationId,
+        Guid userId,
+        IReadOnlyCollection<string> roleIds,
+        DateTimeOffset createdAt)
+    {
+        var membership = new Membership(id, organizationId, userId, createdAt);
+        foreach (string roleId in roleIds)
+        {
+            membership.AssignRole(roleId, createdAt);
+        }
+
+        return membership;
+    }
+
     private void AssignRole(string roleId, DateTimeOffset assignedAt) =>
         _roleAssignments.Add(MembershipRoleAssignment.Create(
             Id,
