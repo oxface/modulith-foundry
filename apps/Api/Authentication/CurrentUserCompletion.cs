@@ -3,7 +3,7 @@ using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Api.Authentication;
 
-internal sealed class CurrentUserCompletion(IExternalIdentityLinker identityLinker)
+internal sealed class CurrentUserCompletion(IExternalIdentityLinking identityLinking)
 {
     internal async Task<CurrentUser> CompleteAsync(
         ClaimsPrincipal principal,
@@ -16,7 +16,7 @@ internal sealed class CurrentUserCompletion(IExternalIdentityLinker identityLink
             principal.GetRequiredClaimValue("sub"),
             principal.FindFirstValue("email"),
             principal.FindFirstValue("name"));
-        UserIdentityLink linked = await identityLinker.LinkAsync(
+        UserIdentityLink linked = await identityLinking.LinkAsync(
             externalIdentity,
             cancellationToken);
 

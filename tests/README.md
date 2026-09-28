@@ -22,10 +22,10 @@ Docker works without additional configuration. For rootless Podman, start its us
 ```bash
 systemctl --user enable --now podman.socket
 export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
-export TESTCONTAINERS_RYUK_DISABLED=true
+export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE="${XDG_RUNTIME_DIR}/podman/podman.sock"
 ```
 
-The Ryuk override is needed only by Testcontainers; Aspire owns and cleans up its topology resources. Do not add container suites to Lefthook: local hooks intentionally stay fast and container-free.
+Keep Testcontainers' resource reaper enabled. The socket override lets its container reach the same rootless Podman endpoint; Aspire owns and cleans up its topology resources independently. Do not add container suites to Lefthook: local hooks intentionally stay fast and container-free.
 
 The repository uses xUnit v3 on Microsoft Testing Platform v2. MTP is the test execution platform; ArchUnitNET supplies architecture assertions and does not require MTP itself.
 

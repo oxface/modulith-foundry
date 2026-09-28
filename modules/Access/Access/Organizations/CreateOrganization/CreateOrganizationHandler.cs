@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Organizations;
@@ -50,19 +49,14 @@ internal sealed class CreateOrganizationHandler(
             organization.Id,
             command.ActorUserId.Value,
             createdAt);
-        AccessAuditEntry audit = AccessAuditEntry.OrganizationCreated(
-            Guid.CreateVersion7(createdAt),
-            organization.Id,
+        AccessAuditEntry audit = OrganizationAuditEntries.Created(
+            organization,
             command.ActorUserId.Value,
-            organization.Name,
-            organization.Slug.Value,
-            Activity.Current?.RootId,
-            Activity.Current?.TraceId.ToHexString(),
             createdAt);
 
-        context.Add(organization);
-        context.Add(membership);
-        context.Add(audit);
+        context.Organizations.Add(organization);
+        context.Memberships.Add(membership);
+        context.AuditEntries.Add(audit);
 
         try
         {

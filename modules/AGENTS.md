@@ -6,4 +6,4 @@ Follow the repository-wide instructions in [../AGENTS.md](../AGENTS.md).
 - Read the owning module charter before changing a module's responsibilities or Contracts surface.
 - Keep business behavior in its owning module. The API composes modules and process-wide concerns only.
 - Do not create shared abstractions, generic repositories, mediators, or cross-module infrastructure for hypothetical use.
-- Keep implementation types internal unless the type is a deliberate module composition entry point. Contracts must not expose web, persistence, transport, entity, `DbContext`, or `IQueryable` types.
+- Keep implementation types internal unless the type is a deliberate composition entry point or provider replacement seam under `ExtensionPoints`. Contracts must not expose web, persistence, transport, entity, `DbContext`, or `IQueryable` types.

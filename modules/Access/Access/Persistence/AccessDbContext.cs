@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Access.Invitations;
 using ModulithFoundry.Modules.Access.Organizations;
 
 namespace ModulithFoundry.Modules.Access.Persistence;
@@ -15,6 +16,20 @@ internal sealed class AccessDbContext(
     internal DbSet<User> Users => Set<User>();
 
     internal DbSet<ExternalIdentityRecord> ExternalIdentities => Set<ExternalIdentityRecord>();
+
+    internal DbSet<Organization> Organizations => Set<Organization>();
+
+    internal DbSet<Membership> Memberships => Set<Membership>();
+
+    internal DbSet<MembershipRoleAssignment> MembershipRoleAssignments =>
+        Set<MembershipRoleAssignment>();
+
+    internal DbSet<AccessAuditEntry> AuditEntries => Set<AccessAuditEntry>();
+
+    internal DbSet<Invitation> Invitations => Set<Invitation>();
+
+    internal DbSet<InvitationEmailDelivery> InvitationEmailDeliveries =>
+        Set<InvitationEmailDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,10 +56,10 @@ internal sealed class AccessDbContext(
                     currentOrganizationId,
                     nameof(Nullable<Guid>.HasValue)),
                 Expression.Equal(
-                    Expression.Property(entity, nameof(IOrganizationOwned.OrganizationId)),
-                    Expression.Property(
-                        currentOrganizationId,
-                        nameof(Nullable<Guid>.Value))));
+                    Expression.Convert(
+                        Expression.Property(entity, nameof(IOrganizationOwned.OrganizationId)),
+                        typeof(Guid?)),
+                    currentOrganizationId));
 
             modelBuilder.Entity(entityType).HasQueryFilter(
                 OrganizationScopeFilter,

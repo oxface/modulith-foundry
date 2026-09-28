@@ -54,7 +54,7 @@ No Sales integration event is published in v1 without an actual consumer. Starti
 
 ## Authorization
 
-Sales defines and enforces stable permissions such as `sales.customers.manage`, `sales.orders.create`, `sales.orders.submit`, `sales.approval-authorities.manage`, `sales.orders.approve`, `sales.orders.cancel`, and `sales.orders.view`. HTTP policy checks are coarse adapters; Sales handlers re-check organization, resource state, permission, separation of duties, and approval authority for every entry path.
+Sales exposes the stable `sales-clerk`, `sales-manager`, and `sales-approver` role identifiers from Sales.Contracts. It defines and enforces permissions such as `sales.customers.manage`, `sales.orders.create`, `sales.orders.submit`, `sales.approval-authorities.manage`, `sales.orders.approve`, `sales.orders.cancel`, and `sales.orders.view`. HTTP policy checks are coarse adapters; Sales handlers re-check organization, resource state, permission, separation of duties, and approval authority for every entry path.
 
 ## Explicit exclusions
 

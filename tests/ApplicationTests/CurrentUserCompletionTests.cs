@@ -36,7 +36,7 @@ public sealed class CurrentUserCompletionTests
         Assert.Equal(expected, restored);
     }
 
-    private sealed class LinkedUserStub(UserId userId) : IExternalIdentityLinker
+    private sealed class LinkedUserStub(UserId userId) : IExternalIdentityLinking
     {
         public Task<UserIdentityLink> LinkAsync(
             ExternalIdentity identity,

@@ -4,7 +4,7 @@ namespace ModulithFoundry.Modules.Access.Organizations;
 
 internal enum MembershipStatus
 {
-    Active,
+    Active = 1,
 }
 
 internal sealed class Membership : IOrganizationOwned

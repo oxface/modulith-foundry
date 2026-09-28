@@ -8,8 +8,8 @@ Access establishes who a person is to the product, which organizations they may 
 
 - `Organization`, including its immutable canonical slug and exceptional slug aliases.
 - `User` and its links to immutable external `(issuer, subject)` identities.
-- `Membership`, `Invitation`, system-role assignments, and membership lifecycle state.
-- The reviewed system-role catalog and its coarse permission bundles.
+- `Membership`, Organization `Invitation`, system-role assignments, and membership lifecycle state.
+- Access-owned role definitions and the assembled catalog of roles contributed by business modules.
 - Access-schema audit entries and the invitation-email outbox.
 
 Access audit entries are immutable. Indexed relational envelope fields identify the organization, actor, action, subject, and occurrence time; a versioned `jsonb` details document records the action-specific facts needed to explain the historical action without serializing whole entities or secrets.
@@ -41,7 +41,9 @@ Expected business failures are explicit: slug unavailable, invitation invalid/ex
 
 ## Integration and external effects
 
-Access publishes no broker integration event in v1 because no accepted consumer needs one. Invitation email is an Access-owned external effect: invitation state, audit, and an email-outbox record commit together; a native hosted worker sends it to Mailpit locally and the configured provider later.
+Access publishes no broker integration event in v1 because no accepted consumer needs one. Organization-invitation email is an Access-owned external effect: invitation state, audit, and an organization-invitation email-delivery record commit together; a native hosted worker sends it to Mailpit locally and the configured provider later.
+
+The organization-invitation email outbox is concrete Access infrastructure, not the future broker-event outbox. Its delivery record is technical durable-process state, not a child of the Invitation aggregate. It uses a database lease for multi-replica dispatch, protects the recoverable bearer payload with the process Data Protection key ring, retries the same generation after ambiguous SMTP outcomes, and clears the protected payload after confirmed delivery or supersession. Explicit resend rotates the invitation secret and generation. `IEmailTransport` is the narrow public extension point for replacing SMTP; it is intentionally not a cross-module business contract, and no general notification framework exists in v1.
 
 ## Invariants
 
@@ -54,7 +56,7 @@ Access publishes no broker integration event in v1 because no accepted consumer 
 
 ## Authorization
 
-V1 system roles are stable textual product definitions: `organization-administrator`, `sales-clerk`, `sales-manager`, `sales-approver`, `inventory-manager`, and `purchasing-agent`. Access persists assignments; each business module remains authoritative for the meaning and enforcement of its permissions and invariants.
+V1 system roles use stable textual identifiers. Access defines `organization-administrator`, persists assignments, and validates assignments against the catalog assembled by the host. Sales, Inventory, and Purchasing expose their own role identifiers from their Contracts projects and remain authoritative for those roles' meaning and enforcement. This keeps role ownership aligned with module ownership while leaving Access responsible for membership access management. The catalog is a product composition input, not an authorization-provider API; a later OpenFGA adapter may map the same stable role and permission identifiers into its model and relationship tuples without moving business policy into Access.
 
 ## Explicit exclusions
 

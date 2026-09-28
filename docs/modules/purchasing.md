@@ -44,7 +44,7 @@ The Stock Item reference projection is bootstrapped from an Inventory-owned vers
 
 ## Authorization
 
-Purchasing enforces `purchasing.requirements.view` and, only when those behaviors exist, module-owned supplier and purchase-order permissions. The workflow may create a requirement through its trusted capability; a browser cannot forge workflow identity.
+Purchasing exposes the stable `purchasing-agent` role identifier from Purchasing.Contracts. It enforces `purchasing.requirements.view` and, only when those behaviors exist, module-owned supplier and purchase-order permissions. The workflow may create a requirement through its trusted capability; a browser cannot forge workflow identity.
 
 ## Explicit exclusions
 

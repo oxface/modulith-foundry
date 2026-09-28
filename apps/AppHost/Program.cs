@@ -35,12 +35,21 @@ IResourceBuilder<KeycloakResource> keycloak = builder
     .WithEnvironment("MODULITH_FOUNDRY_CLIENT_SECRET", oidcClientSecret)
     .WithEnvironment("MODULITH_FOUNDRY_TEST_USER_PASSWORD", keycloakTestUserPassword);
 
+IResourceBuilder<ContainerResource> mailpit = builder
+    .AddContainer("mailpit", "axllent/mailpit", "v1.31.1")
+    .WithHttpEndpoint(port: 58025, targetPort: 8025, name: "http")
+    .WithEndpoint(port: 51025, targetPort: 1025, name: "smtp", scheme: "tcp")
+    .WithHttpHealthCheck("/readyz")
+    .WithExternalHttpEndpoints()
+    .ExcludeFromManifest();
+
 IResourceBuilder<ProjectResource> migrator = builder
     .AddProject<Projects.ModulithFoundry_Migrator>("migrator")
     .WithReference(database)
     .WaitFor(database);
 
-builder.AddProject<Projects.ModulithFoundry_Api>("api")
+IResourceBuilder<ProjectResource> api = builder
+    .AddProject<Projects.ModulithFoundry_Api>("api")
     .WithReference(database)
     .WithReference(redis)
     .WithReference(keycloak)
@@ -51,11 +60,19 @@ builder.AddProject<Projects.ModulithFoundry_Api>("api")
     .WithEnvironment("Authentication__Oidc__ClientId", "modulith-foundry-bff")
     .WithEnvironment("Authentication__Oidc__ClientSecret", oidcClientSecret)
     .WithEnvironment("Authentication__Oidc__RequireHttpsMetadata", "true")
+    .WithEnvironment("Email__Smtp__Host", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
+    .WithEnvironment("Email__Smtp__Port", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
+    .WithEnvironment("Email__Smtp__Security", "None")
+    .WithEnvironment("Email__Smtp__FromAddress", "no-reply@modulith-foundry.local")
+    .WithEnvironment("Email__Smtp__FromName", "Modulith Foundry")
     .WithHttpEndpoint(port: 5080, name: "http")
     .WithHttpsEndpoint(port: 5443, name: "https")
     .WaitForCompletion(migrator)
     .WaitFor(redis)
     .WaitFor(keycloak)
+    .WaitFor(mailpit)
     .WithHttpHealthCheck("/health");
+
+api.WithEnvironment("Invitations__PublicApplicationUrl", api.GetEndpoint("https"));
 
 builder.Build().Run();

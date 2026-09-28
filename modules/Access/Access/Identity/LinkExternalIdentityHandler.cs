@@ -5,9 +5,9 @@ using Npgsql;
 
 namespace ModulithFoundry.Modules.Access.Identity;
 
-internal sealed class ExternalIdentityLinker(
+internal sealed class LinkExternalIdentityHandler(
     AccessDbContext context,
-    TimeProvider timeProvider) : IExternalIdentityLinker
+    TimeProvider timeProvider) : IExternalIdentityLinking
 {
     public async Task<UserIdentityLink> LinkAsync(
         ExternalIdentity identity,

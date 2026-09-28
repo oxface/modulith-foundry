@@ -24,6 +24,156 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.Invitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int>("Generation")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer")
+                        .HasColumnName("generation");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("recipient_email");
+
+                    b.Property<byte[]>("SecretDigest")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea")
+                        .HasColumnName("secret_digest");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invitations");
+
+                    b.HasAlternateKey("Id", "OrganizationId")
+                        .HasName("ak_invitations_id_organization_id");
+
+                    b.HasIndex("OrganizationId", "RecipientEmail")
+                        .IsUnique()
+                        .HasDatabaseName("ux_invitations_organization_pending_email")
+                        .HasFilter("status = 'pending'");
+
+                    b.ToTable("invitations", "access");
+                });
+
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.InvitationEmailDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTimeOffset>("AvailableAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("available_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("InvitationGeneration")
+                        .HasColumnType("integer")
+                        .HasColumnName("invitation_generation");
+
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invitation_id");
+
+                    b.Property<DateTimeOffset?>("LeaseExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_expires_at");
+
+                    b.Property<Guid?>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("ProtectedPayload")
+                        .HasColumnType("text")
+                        .HasColumnName("protected_payload");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<DateTimeOffset?>("SupersededAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("superseded_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invitation_email_deliveries");
+
+                    b.HasIndex("InvitationId", "OrganizationId")
+                        .HasDatabaseName("ix_invitation_email_deliveries_invitation_organization");
+
+                    b.HasIndex("OrganizationId", "InvitationId", "InvitationGeneration")
+                        .IsUnique()
+                        .HasDatabaseName("ux_invitation_email_deliveries_invitation_generation");
+
+                    b.HasIndex("AvailableAt", "SentAt", "SupersededAt", "LeaseExpiresAt")
+                        .HasDatabaseName("ix_invitation_email_deliveries_dispatch");
+
+                    b.ToTable("invitation_email_deliveries", "access");
+                });
+
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.InvitationRoleAssignment", b =>
+                {
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invitation_id");
+
+                    b.Property<string>("RoleId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("role_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.HasKey("InvitationId", "RoleId")
+                        .HasName("pk_invitation_role_assignments");
+
+                    b.HasIndex("InvitationId", "OrganizationId")
+                        .HasDatabaseName("ix_invitation_roles_invitation_organization");
+
+                    b.HasIndex("OrganizationId", "InvitationId")
+                        .HasDatabaseName("ix_invitation_roles_organization_invitation");
+
+                    b.ToTable("invitation_role_assignments", "access");
+                });
+
             modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.AccessAuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -286,6 +436,38 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                     b.ToTable("users", "access");
                 });
 
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.Invitation", b =>
+                {
+                    b.HasOne("ModulithFoundry.Modules.Access.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invitations_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.InvitationEmailDelivery", b =>
+                {
+                    b.HasOne("ModulithFoundry.Modules.Access.Invitations.Invitation", null)
+                        .WithMany()
+                        .HasForeignKey("InvitationId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invitation_email_deliveries_invitation_organization");
+                });
+
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.InvitationRoleAssignment", b =>
+                {
+                    b.HasOne("ModulithFoundry.Modules.Access.Invitations.Invitation", null)
+                        .WithMany("RoleAssignments")
+                        .HasForeignKey("InvitationId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_invitation_roles_invitations_invitation_organization");
+                });
+
             modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.AccessAuditEntry", b =>
                 {
                     b.HasOne("ModulithFoundry.Modules.Access.Persistence.User", null)
@@ -341,6 +523,11 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasConstraintName("fk_external_identities_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ModulithFoundry.Modules.Access.Invitations.Invitation", b =>
+                {
+                    b.Navigation("RoleAssignments");
                 });
 
             modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.Membership", b =>

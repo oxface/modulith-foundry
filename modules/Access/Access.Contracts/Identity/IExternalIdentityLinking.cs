@@ -1,6 +1,6 @@
 namespace ModulithFoundry.Modules.Access.Contracts;
 
-public interface IExternalIdentityLinker
+public interface IExternalIdentityLinking
 {
     Task<UserIdentityLink> LinkAsync(
         ExternalIdentity identity,

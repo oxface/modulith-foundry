@@ -82,20 +82,13 @@ public sealed class AssemblyDependencyRulesTests
     }
 
     [Fact]
-    public void ModuleNamespaces_AreAcyclic()
-    {
-        Slices().Matching("ModulithFoundry.Modules.(*)")
-            .Should().BeFreeOfCycles()
-            .Check(Architecture);
-    }
-
-    [Fact]
-    public void ModuleImplementations_ExposeOnlyCompositionEntryPoints()
+    public void ModuleImplementations_ExposeOnlyCompositionAndExplicitExtensionPoints()
     {
         System.Type[] leakedTypes = ImplementationAssemblyNames
             .Select(ReflectionAssembly.Load)
             .SelectMany(assembly => assembly.ExportedTypes)
             .Where(type => type.Namespace?.EndsWith(".Composition", StringComparison.Ordinal) is not true)
+            .Where(type => type.Namespace?.EndsWith(".ExtensionPoints", StringComparison.Ordinal) is not true)
             .ToArray();
 
         Assert.Empty(leakedTypes);

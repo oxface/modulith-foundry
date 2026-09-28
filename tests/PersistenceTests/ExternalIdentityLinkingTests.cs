@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.Modules.Access.Composition;
 using ModulithFoundry.Modules.Access.Contracts;
@@ -106,7 +107,17 @@ public sealed class ExternalIdentityLinkingTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
-        services.AddAccessModule();
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Invitations:PublicApplicationUrl"] = "https://example.test",
+                ["Email:Smtp:Host"] = "localhost",
+                ["Email:Smtp:Port"] = "1025",
+                ["Email:Smtp:Security"] = "None",
+                ["Email:Smtp:FromAddress"] = "no-reply@example.test",
+            })
+            .Build();
+        services.AddAccessModule(configuration);
 
         ServiceProvider provider = services.BuildServiceProvider();
         await provider.MigrateAccessAsync(TestContext.Current.CancellationToken);
@@ -118,7 +129,7 @@ public sealed class ExternalIdentityLinkingTests
         ExternalIdentity identity)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IExternalIdentityLinker>()
+        return await scope.ServiceProvider.GetRequiredService<IExternalIdentityLinking>()
             .LinkAsync(identity, TestContext.Current.CancellationToken);
     }
 }

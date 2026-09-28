@@ -5,8 +5,10 @@ These conventions keep module code navigable without introducing a mediator, gen
 ## Files and types
 
 - Give each independently useful top-level type its own file with the same name, especially public Contracts types.
+- Group a growing Contracts project into capability folders such as `Identity`, `Invitations`, and `Organizations`; folders need not fragment the Contracts namespace.
 - Closely coupled internal implementation details may share their owner's file when separating them would make navigation worse. Generated files and deliberately grouped exception types are exempt.
 - Name a file containing part of a partial type `{Type}.{Concern}.cs`.
+- Give every enum member an explicit numeric value starting at `1`. Value `0` is reserved as an invalid/uninitialized state, including when the enum is persisted as text today.
 
 ## Composition and HTTP adapters
 
@@ -45,6 +47,8 @@ Prefer a precise domain term over any suffix in this table.
 
 ## Reusable EF queries
 
+- Module DbContexts expose internal, meaningfully named `DbSet` properties for mapped aggregate roots, technical records, and entities queried directly by projections. Module code uses those properties instead of ad hoc `Set<T>()`; this is a navigability convention, not an authorization boundary.
+- Do not expose a child entity as a `DbSet` merely to mutate it independently. Querying a child table directly for a read projection is allowed when aggregate hydration would add no value.
 - Extract reusable semantic predicates as internal `IQueryable<T>` extensions named `{Subject}QueryExtensions`, such as `Active`, `AccessibleTo`, or `Available`.
 - Keep trivial one-off comparisons inline. A wrapper must add domain meaning or prevent meaningful rule duplication.
 - Never expose `IQueryable` through Contracts.

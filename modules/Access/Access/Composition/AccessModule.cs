@@ -1,8 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Identity;
+using ModulithFoundry.Modules.Access.Invitations;
+using ModulithFoundry.Modules.Access.Invitations.CreateInvitation;
+using ModulithFoundry.Modules.Access.Invitations.ResendInvitation;
+using ModulithFoundry.Modules.Access.Organizations;
 using ModulithFoundry.Modules.Access.Organizations.CreateOrganization;
 using ModulithFoundry.Modules.Access.Organizations.Queries;
 using ModulithFoundry.Modules.Access.Persistence;
@@ -12,12 +17,23 @@ namespace ModulithFoundry.Modules.Access.Composition;
 
 public static class AccessModule
 {
-    public static IServiceCollection AddAccessModule(this IServiceCollection services)
+    public static IServiceCollection AddAccessModule(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IEnumerable<string>? productRoleIds = null)
     {
         services.AddAccessPersistence();
+        services.AddInvitationEmailDelivery(configuration);
         services.TryAddSingleton(TimeProvider.System);
-        services.AddScoped<IExternalIdentityLinker, ExternalIdentityLinker>();
+        services.AddSingleton(new SystemRoleCatalog(productRoleIds ?? []));
+        services.AddScoped<IExternalIdentityLinking, LinkExternalIdentityHandler>();
         services.AddScoped<IOrganizationCreation, CreateOrganizationHandler>();
+        services.AddScoped<OrganizationMembershipQueries>();
+        services.AddScoped<InvitationQueries>();
+        services.AddScoped<InvitationEmailDeliveryFactory>();
+        services.AddScoped<CreateInvitationHandler>();
+        services.AddScoped<ResendInvitationHandler>();
+        services.AddScoped<IOrganizationInvitations, OrganizationInvitations>();
         services.AddScoped<IOrganizationQueries, OrganizationQueries>();
         return services;
     }

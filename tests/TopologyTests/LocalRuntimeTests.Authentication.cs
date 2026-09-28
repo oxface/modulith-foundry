@@ -11,6 +11,8 @@ namespace ModulithFoundry.TopologyTests;
 
 public sealed partial class LocalRuntimeTests
 {
+    private static readonly string[] InvitationRoleIds = ["sales-clerk"];
+
     [Fact]
     public async Task AuthenticatedJourney_KeycloakLogin_CreatesOrganizationAndSupportsLogout()
     {
@@ -214,6 +216,35 @@ public sealed partial class LocalRuntimeTests
             Assert.Single(organizationScopeJson.RootElement.GetProperty("roleIds").EnumerateArray())
                 .GetString());
 
+        using HttpResponseMessage inviteWithoutCsrf = await client.PostAsJsonAsync(
+            "/api/o/topology-organization/invitations",
+            new
+            {
+                recipientEmail = "invited.person@example.test",
+                roleIds = InvitationRoleIds,
+            },
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.BadRequest, inviteWithoutCsrf.StatusCode);
+
+        using var invitationRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/o/topology-organization/invitations")
+        {
+            Content = JsonContent.Create(new
+            {
+                recipientEmail = "invited.person@example.test",
+                roleIds = InvitationRoleIds,
+            }),
+        };
+        invitationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
+        using HttpResponseMessage invitation = await client.SendAsync(
+            invitationRequest,
+            timeout.Token);
+        Assert.Equal(HttpStatusCode.Created, invitation.StatusCode);
+
+        using HttpClient mailpit = app.CreateHttpClient("mailpit", "http");
+        await WaitForInvitationEmailAsync(mailpit, timeout.Token);
+
         using HttpResponseMessage unknownOrganizationScope = await client.GetAsync(
             "/api/o/unknown-organization",
             timeout.Token);
@@ -354,6 +385,41 @@ public sealed partial class LocalRuntimeTests
         }
 
         throw new InvalidOperationException("Keycloak login exceeded the redirect limit.");
+    }
+
+    private static async Task WaitForInvitationEmailAsync(
+        HttpClient mailpit,
+        CancellationToken cancellationToken)
+    {
+        const string recipient = "invited.person@example.test";
+        string searchPath = $"/api/v1/search?query={Uri.EscapeDataString($"to:{recipient}")}";
+
+        while (true)
+        {
+            using HttpResponseMessage response = await mailpit.GetAsync(
+                searchPath,
+                cancellationToken);
+            response.EnsureSuccessStatusCode();
+            using JsonDocument results = JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync(cancellationToken));
+            JsonElement messages = results.RootElement.GetProperty("messages");
+            if (messages.GetArrayLength() > 0)
+            {
+                JsonElement message = messages[0];
+                Assert.Equal(
+                    "Invitation to Topology Organization",
+                    message.GetProperty("Subject").GetString());
+                using HttpResponseMessage text = await mailpit.GetAsync(
+                    $"/view/{message.GetProperty("ID").GetString()}.txt",
+                    cancellationToken);
+                string body = await text.Content.ReadAsStringAsync(cancellationToken);
+                Assert.Contains("/invitations/accept?invitationId=", body, StringComparison.Ordinal);
+                Assert.Contains("code=", body, StringComparison.Ordinal);
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken);
+        }
     }
 
     private static void StoreLoopbackSecureCookies(

@@ -6,11 +6,7 @@ namespace ModulithFoundry.Modules.Access.Organizations;
 internal sealed class AccessAuditEntry : IOrganizationOwned
 {
     private const string AccessSourceModule = "access";
-    private const short OrganizationCreatedSchemaVersion = 1;
     private const string SucceededOutcome = "succeeded";
-
-    private const string OrganizationCreatedAction = "organization.created";
-    private const string OrganizationSubject = "organization";
 
     private AccessAuditEntry()
     {
@@ -78,12 +74,15 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
 
     internal DateTimeOffset OccurredAt { get; private set; }
 
-    internal static AccessAuditEntry OrganizationCreated(
+    internal static AccessAuditEntry Create<TDetails>(
         Guid id,
         Guid organizationId,
         Guid actorUserId,
-        string organizationName,
-        string organizationSlug,
+        string action,
+        string subjectType,
+        Guid subjectId,
+        short schemaVersion,
+        TDetails details,
         string? correlationId,
         string? traceId,
         DateTimeOffset occurredAt) =>
@@ -91,19 +90,15 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
             id,
             organizationId,
             actorUserId,
-            OrganizationCreatedAction,
-            OrganizationSubject,
-            organizationId,
+            action,
+            subjectType,
+            subjectId,
             SucceededOutcome,
             reasonCode: null,
             correlationId,
             traceId,
             AccessSourceModule,
-            OrganizationCreatedSchemaVersion,
-            JsonSerializer.SerializeToElement(new
-            {
-                name = organizationName,
-                slug = organizationSlug,
-            }),
+            schemaVersion,
+            JsonSerializer.SerializeToElement(details),
             occurredAt);
 }

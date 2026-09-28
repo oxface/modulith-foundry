@@ -107,20 +107,33 @@ The first increment creates the canonical repository commands for these lanes. A
 
 **Acceptance:** PostgreSQL and API tests prove slug races, atomic first-admin creation, bookmarkability, one/many membership navigation, suspended/nonmember denial, forged/cross-tenant identifiers, and missing/mismatched `OrganizationId` rejection.
 
-### Increment 2.3 — Invitation and email delivery
+### Increment 2.3 — Invitation creation and email delivery
 
-**Outcome:** an Organization Administrator creates a single-use invitation and the matching authenticated person accepts it without Access provisioning an IdP account.
+**Outcome:** an Organization Administrator creates or explicitly resends a single-use invitation, and Access durably delivers the current invitation generation without provisioning an IdP account.
 
 **Work:**
 
-- Add Invitation lifecycle and minimal role selection.
+- Add the pending Invitation lifecycle, minimal role selection, expiry, and explicit resend with secret rotation.
 - Commit Invitation, audit, and Access-owned email-outbox row together.
-- Add Mailpit and a native hosted sender; tolerate ambiguous duplicate email delivery while making invitation acceptance idempotent.
+- Add Mailpit and a native hosted sender; tolerate ambiguous duplicate email delivery of the same generation.
+- Protect the recoverable delivery payload with Data Protection and document the mandatory shared durable production key ring.
+
+**Acceptance:** PostgreSQL/Topology tests prove administrator enforcement, role validation, active-member rejection, one pending invitation per normalized recipient, protected payload storage, resend generation behavior, and SMTP delivery to Mailpit.
+
+### Increment 2.4 — Invitation acceptance and provider admission
+
+**Outcome:** the matching authenticated person accepts one valid invitation without Access provisioning an identity-provider account.
+
+**Work:**
+
+- Resolve the invitation bearer secret without storing it in plaintext and consume it once.
+- Require an authenticated/JIT-linked User and the configured assured-email match before atomically creating Membership and role assignments.
 - Support both OpenRegistration and DirectoryGated provider admission without provider administration APIs.
+- Keep provider tokens and administration SDKs outside Access.
 
-**Acceptance:** PostgreSQL/Topology tests prove expiry, single use, recipient mismatch, resend behavior, ambiguous send, JIT identity link, open-registration acceptance, and a directory-gated login rejection leaving the product invitation pending.
+**Acceptance:** PostgreSQL/Topology tests prove expiry, single use, recipient mismatch, concurrent/idempotent acceptance, JIT identity link, open-registration acceptance, and a directory-gated login rejection leaving the product invitation pending.
 
-### Increment 2.4 — Membership administration and product roles
+### Increment 2.5 — Membership administration and product roles
 
 **Outcome:** an Organization Administrator lists members, assigns system roles, suspends/reactivates/removes memberships, and cannot remove the last active administrator.
 
