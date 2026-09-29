@@ -15,6 +15,7 @@ public sealed class CurrentUserCompletionTests
                 new Claim("iss", "https://issuer.example"),
                 new Claim("sub", "external-subject"),
                 new Claim("email", " provider@example.test "),
+                new Claim("email_verified", "true"),
                 new Claim("name", " Provider Name "),
                 new Claim(ProductClaims.UserId, "01997d4b-99a4-7e12-bf9a-8fd4cdbaf012"),
                 new Claim(ProductClaims.Email, "stale@example.test"),
@@ -23,7 +24,7 @@ public sealed class CurrentUserCompletionTests
             "oidc"));
         var completion = new CurrentUserCompletion(new LinkedUserStub(userId));
 
-        CurrentUser completed = await completion.CompleteAsync(
+        CompletedOidcIdentity completed = await completion.CompleteAsync(
             principal,
             TestContext.Current.CancellationToken);
         CurrentUser restored = principal.GetRequiredCurrentUser();
@@ -32,8 +33,32 @@ public sealed class CurrentUserCompletionTests
             userId,
             "linked@example.test",
             "Linked User");
-        Assert.Equal(expected, completed);
+        Assert.Equal(expected, completed.CurrentUser);
+        Assert.Equal("provider@example.test", completed.VerifiedProviderEmail);
         Assert.Equal(expected, restored);
+        Assert.Null(principal.FindFirst("email_verified"));
+    }
+
+    [Fact]
+    public async Task CompleteCurrentUser_UnverifiedProviderEmail_DoesNotExposeVerifiedProviderEmail()
+    {
+        var userId = new UserId(Guid.Parse("01997d51-204d-7c67-a715-823b2fd516de"));
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim("iss", "https://issuer.example"),
+                new Claim("sub", "unverified-subject"),
+                new Claim("email", "unverified@example.test"),
+                new Claim("email_verified", "false"),
+            ],
+            "oidc"));
+        var completion = new CurrentUserCompletion(new LinkedUserStub(userId));
+
+        CompletedOidcIdentity completed = await completion.CompleteAsync(
+            principal,
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(completed.VerifiedProviderEmail);
+        Assert.Null(principal.FindFirst("email_verified"));
     }
 
     private sealed class LinkedUserStub(UserId userId) : IExternalIdentityLinking

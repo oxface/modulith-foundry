@@ -27,9 +27,9 @@ internal sealed class AcceptInvitationHandler(
         }
 
         if (!InvitationEmailAddress.TryCreate(
-            command.AssuredEmail,
-            out InvitationEmailAddress assuredEmail)
-            || assuredEmail.Value != invitation.RecipientEmail)
+            command.VerifiedProviderEmail,
+            out InvitationEmailAddress verifiedProviderEmail)
+            || verifiedProviderEmail.Value != invitation.RecipientEmail)
         {
             return new AcceptOrganizationInvitationResult.RecipientMismatch();
         }

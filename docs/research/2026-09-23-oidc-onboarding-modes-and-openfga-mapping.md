@@ -88,7 +88,7 @@ The inverse is also important: the same human authenticating through a different
 
 ## Clarifying invitation-email matching
 
-The earlier question “require an assured normalized email match” asks what prevents an invitation sent to `alice@example.com` from being forwarded and accepted while signed in as `bob@example.net`.
+The earlier question “require a verified provider email match” asks what prevents an invitation sent to `alice@example.com` from being forwarded and accepted while signed in as `bob@example.net`.
 
 There are two independent proofs:
 
@@ -100,11 +100,11 @@ Therefore, a hard dependency on `email_verified=true` is not fully provider-neut
 Recommended v1 policy:
 
 - Invitation acceptance always requires both the unconsumed product invitation and a validated OIDC session.
-- When the configured provider supplies an assured email, require its normalized value to match the invitation address. Keycloak can satisfy this with realm email verification; External ID federation supports explicit `email` and `email_verified` claim mapping. [Keycloak registration documentation](https://www.keycloak.org/docs/latest/server_admin/#_registration) [External ID custom OIDC claims mapping](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-custom-oidc-federation-customers)
-- If a directory-gated provider cannot supply an assured address, do not guess assurance from `email`, UPN, or `preferred_username`. Either declare the invitation link plus authenticated directory admission sufficient for that deployment, or add a product-owned second verification message to the invited mailbox. Make this an explicit deployment policy and audit which path accepted the invitation.
+- When the configured provider supplies a verified email, require its normalized value to match the invitation address. Keycloak can satisfy this with realm email verification; External ID federation supports explicit `email` and `email_verified` claim mapping. [Keycloak registration documentation](https://www.keycloak.org/docs/latest/server_admin/#_registration) [External ID custom OIDC claims mapping](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-custom-oidc-federation-customers)
+- If a directory-gated provider cannot supply a verified address, do not infer verification from `email`, UPN, or `preferred_username`. Either declare the invitation link plus authenticated directory admission sufficient for that deployment, or add a product-owned second verification message to the invited mailbox. Make this an explicit deployment policy and audit which path accepted the invitation.
 - Never use the matched email as the stored identity key or as continuing authorization data.
 
-This preserves provider neutrality while allowing a higher-assurance deployment. The template should prove the assured-email path locally with Keycloak. It need not implement product-owned second verification until an actual Entra workforce pilot demonstrates that its accepted claims cannot meet the assurance contract.
+This preserves provider neutrality while allowing a higher-assurance deployment. The template should prove the verified-provider-email path locally with Keycloak. It need not implement product-owned second verification until an actual Entra workforce pilot demonstrates that its accepted claims cannot meet the assurance contract.
 
 ## Minimal v1 recommendation
 
@@ -124,8 +124,8 @@ The application-level suite should be reusable against each supported OIDC deplo
 - first login JIT-creates one product identity keyed by `(iss, sub)`;
 - repeat login remains idempotent;
 - one user accepts invitations into two product organizations;
-- wrong assured email cannot consume the invitation;
-- absent/unassured email follows the configured deployment policy and is audited;
+- a wrong verified provider email cannot consume the invitation;
+- an absent or unverified provider email follows the configured deployment policy and is audited;
 - an IdP rejection leaves the application invitation pending;
 - accepting an invitation never creates, deletes, or assigns a provider-directory account;
 - changing display name or email does not create another product user;
@@ -216,7 +216,7 @@ Therefore:
 - Application-owned organizations, invitations, memberships, seeded system roles, permission checks, and audit records.
 - One JIT callback path for both open-registration and directory-gated deployments.
 - Keycloak open registration with verified email as the local/reference deployment.
-- Assured-email matching when the provider can satisfy it; explicit deployment policy when it cannot.
+- Verified-provider-email matching when the provider can satisfy it; explicit deployment policy when it cannot.
 - Static product roles and permissions defined as reviewed code/catalog data, with assignments in Access persistence.
 
 ### Deployment options, not product semantics
@@ -237,7 +237,7 @@ Therefore:
 
 ### Principal risks to prove
 
-- Supported production IdPs may not emit an assured email uniformly; invitation binding needs an explicit tested policy rather than implicit claim guesses.
+- Supported production IdPs may not emit a verified email uniformly; invitation binding needs an explicit tested policy rather than implicit claim guesses.
 - Switching issuer/client configuration can change `sub`, especially with pairwise subjects; account migration/linking is a deliberate data migration, not an email join. [OIDC subject identifier types](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes)
 - An Entra workforce deployment and an External ID external-tenant deployment have materially different admission and UX behavior even though both present OIDC to the application.
 - A future OpenFGA projection introduces eventual consistency and a second authorization datastore; static role naming alone does not make that migration operationally seamless.

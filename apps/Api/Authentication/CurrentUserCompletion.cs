@@ -5,7 +5,7 @@ namespace ModulithFoundry.Api.Authentication;
 
 internal sealed class CurrentUserCompletion(IExternalIdentityLinking identityLinking)
 {
-    internal async Task<CurrentUser> CompleteAsync(
+    internal async Task<CompletedOidcIdentity> CompleteAsync(
         ClaimsPrincipal principal,
         CancellationToken cancellationToken = default)
     {
@@ -28,20 +28,36 @@ internal sealed class CurrentUserCompletion(IExternalIdentityLinking identityLin
         ReplaceClaim(claimsIdentity, ProductClaims.UserId, linked.UserId.Value.ToString());
         ReplaceClaim(claimsIdentity, ProductClaims.Email, linked.Email);
         ReplaceClaim(claimsIdentity, ProductClaims.DisplayName, linked.DisplayName);
-
-        return new CurrentUser(linked.UserId, linked.Email, linked.DisplayName);
+        string? verifiedProviderEmail = string.Equals(
+            principal.FindFirstValue("email_verified"),
+            "true",
+            StringComparison.OrdinalIgnoreCase)
+            ? externalIdentity.Email
+            : null;
+        RemoveClaims(claimsIdentity, "email_verified");
+        return new CompletedOidcIdentity(
+            new CurrentUser(
+                linked.UserId,
+                linked.Email,
+                linked.DisplayName),
+            verifiedProviderEmail);
     }
 
     private static void ReplaceClaim(ClaimsIdentity identity, string type, string? value)
     {
-        foreach (Claim claim in identity.FindAll(type).ToArray())
-        {
-            identity.RemoveClaim(claim);
-        }
+        RemoveClaims(identity, type);
 
         if (value is not null)
         {
             identity.AddClaim(new Claim(type, value));
+        }
+    }
+
+    private static void RemoveClaims(ClaimsIdentity identity, string type)
+    {
+        foreach (Claim claim in identity.FindAll(type).ToArray())
+        {
+            identity.RemoveClaim(claim);
         }
     }
 }

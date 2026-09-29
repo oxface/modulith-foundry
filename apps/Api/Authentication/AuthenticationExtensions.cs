@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using ModulithFoundry.Api.Modules.Access.Invitations;
 using StackExchange.Redis;
 
 namespace ModulithFoundry.Api.Authentication;
@@ -61,7 +62,7 @@ internal static class AuthenticationExtensions
                 options.Cookie.Name = "__Host-modulith-foundry";
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
-                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SameSite = SameSiteMode.Strict;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 options.SlidingExpiration = true;
@@ -120,9 +121,26 @@ internal static class AuthenticationExtensions
     {
         ClaimsPrincipal principal = context.Principal
             ?? throw new InvalidOperationException("The completed OIDC principal is missing.");
-        await context.HttpContext.RequestServices
+        CompletedOidcIdentity completedIdentity = await context.HttpContext.RequestServices
             .GetRequiredService<CurrentUserCompletion>()
             .CompleteAsync(principal, context.HttpContext.RequestAborted);
+        AuthenticationProperties? properties = context.Properties;
+        if (properties?.Items.TryGetValue(
+                InvitationAuthenticationProperties.AcceptanceHandle,
+                out string? acceptanceHandle) is true)
+        {
+            properties.Items.Remove(InvitationAuthenticationProperties.AcceptanceHandle);
+            if (!string.IsNullOrWhiteSpace(acceptanceHandle))
+            {
+                context.ReturnUri = await context.HttpContext.RequestServices
+                    .GetRequiredService<CompleteInvitationAcceptanceHandler>()
+                    .HandleAsync(
+                        acceptanceHandle,
+                        completedIdentity.CurrentUser,
+                        completedIdentity.VerifiedProviderEmail,
+                        context.HttpContext.RequestAborted);
+            }
+        }
     }
 
     private static bool IsValidAuthority(OidcSettings settings) =>

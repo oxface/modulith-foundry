@@ -375,7 +375,7 @@ public sealed class AccessModulePersistenceTests
     }
 
     [Fact]
-    public async Task AcceptInvitation_MatchingAssuredEmail_CreatesMembershipWithAssignedRoles()
+    public async Task AcceptInvitation_MatchingVerifiedProviderEmail_CreatesMembershipWithAssignedRoles()
     {
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
@@ -474,7 +474,7 @@ public sealed class AccessModulePersistenceTests
     }
 
     [Fact]
-    public async Task AcceptInvitation_DifferentAssuredEmail_RejectsWithoutCreatingMembership()
+    public async Task AcceptInvitation_DifferentVerifiedProviderEmail_RejectsWithoutCreatingMembership()
     {
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
@@ -835,7 +835,7 @@ public sealed class AccessModulePersistenceTests
         UserId userId,
         InvitationId invitationId,
         string secret,
-        string assuredEmail)
+        string verifiedProviderEmail)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitations>()
@@ -844,7 +844,7 @@ public sealed class AccessModulePersistenceTests
                     userId,
                     invitationId,
                     secret,
-                    assuredEmail),
+                    verifiedProviderEmail),
                 TestContext.Current.CancellationToken);
     }
 

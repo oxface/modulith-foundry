@@ -39,7 +39,7 @@ Data Protection keys are therefore application data, not disposable machine stat
 
 ## Deferred deliberately
 
-- Invitation acceptance, assured-email matching, and JIT membership creation are the next increment.
+- Invitation acceptance, verified-provider-email matching, and JIT membership creation are the next increment.
 - HTML branding remains one simple text/HTML renderer until another concrete email proves a reusable template system is needed.
 - Delivery retention and purge jobs wait until operational retention requirements exist.
 - Azure Blob/Key Vault packages and Azurite wiring wait for the Azure compatibility increment; the production requirement is documented now and may not be waived.

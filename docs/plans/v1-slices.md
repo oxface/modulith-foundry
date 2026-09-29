@@ -127,11 +127,11 @@ The first increment creates the canonical repository commands for these lanes. A
 **Work:**
 
 - Resolve the invitation bearer secret without storing it in plaintext and consume it once.
-- Require an authenticated/JIT-linked User and the configured assured-email match before atomically creating Membership and role assignments.
+- Require an authenticated/JIT-linked User and a matching verified provider email before atomically creating Membership and role assignments.
 - Support both OpenRegistration and DirectoryGated provider admission without provider administration APIs.
 - Keep provider tokens and administration SDKs outside Access.
 
-**Acceptance:** PostgreSQL/Topology tests prove expiry, single use, recipient mismatch, concurrent/idempotent acceptance, JIT identity link, open-registration acceptance, and a directory-gated login rejection leaving the product invitation pending.
+**Acceptance:** PostgreSQL/Topology tests prove expiry, single use, recipient mismatch with an explicit wrong-account retry, concurrent/idempotent acceptance, JIT identity link, open-registration acceptance, a directory-gated login rejection leaving the product invitation pending, and absence of the invitation bearer from exported logs, traces, OIDC state, and referrers.
 
 ### Increment 2.5 — Membership administration and product roles
 

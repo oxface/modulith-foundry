@@ -9,6 +9,8 @@ internal static class AccessApi
 {
     internal static IServiceCollection AddAccessApi(this IServiceCollection services)
     {
+        services.AddSingleton<RedisPendingInvitationAcceptanceStore>();
+        services.AddScoped<CompleteInvitationAcceptanceHandler>();
         services.AddScoped<OrganizationContextAccessor>();
         services.AddScoped<IOrganizationContextAccessor>(serviceProvider =>
             serviceProvider.GetRequiredService<OrganizationContextAccessor>());
@@ -20,6 +22,7 @@ internal static class AccessApi
 
     internal static IEndpointRouteBuilder MapAccessApi(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapInvitationAcceptanceEndpoints();
         endpoints.MapOrganizationEndpoints();
         RouteGroupBuilder organization = endpoints.MapGroup("/api/o/{organizationSlug}")
             .RequireAuthorization()

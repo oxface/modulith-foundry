@@ -24,6 +24,7 @@ public static class Extensions
             options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
             options.UseUtcTimestamp = true;
         });
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 
         builder.ConfigureOpenTelemetry();
         builder.AddDefaultHealthChecks();

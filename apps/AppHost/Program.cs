@@ -60,6 +60,9 @@ IResourceBuilder<ProjectResource> api = builder
     .WithEnvironment("Authentication__Oidc__ClientId", "modulith-foundry-bff")
     .WithEnvironment("Authentication__Oidc__ClientSecret", oidcClientSecret)
     .WithEnvironment("Authentication__Oidc__RequireHttpsMetadata", "true")
+    .WithEnvironment(
+        "OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION",
+        "false")
     .WithEnvironment("Email__Smtp__Host", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
     .WithEnvironment("Email__Smtp__Port", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
     .WithEnvironment("Email__Smtp__Security", "None")

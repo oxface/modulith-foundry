@@ -54,7 +54,7 @@ The outbox sends a product-branded link such as `/invitations/accept?token=...`.
 
 The accept endpoint checks that the digest identifies a pending, unexpired invitation. It does not consume it yet.
 
-If unauthenticated, store only a random, short-lived continuation handle in protected same-site browser state or server-side state, then initiate the normal OIDC challenge. The framework must generate and validate OIDC `state`, nonce, PKCE, and correlation data. OIDC defines `state` as an opaque request/callback binding normally used for CSRF protection; application code should not replace it with the raw invitation token. [`login_hint` is optional and the provider may ignore it](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest), so it is only a convenience. [`prompt=login` forces reauthentication and `prompt=select_account` asks for account selection](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest); use them only for an explicit “use another account” action, not for every invitation.
+If unauthenticated, store only a random, short-lived pending-acceptance handle in protected same-site browser state or server-side state, then initiate the normal OIDC challenge. The framework must generate and validate OIDC `state`, nonce, PKCE, and correlation data. OIDC defines `state` as an opaque request/callback binding normally used for CSRF protection; application code should not replace it with the raw invitation token. [`login_hint` is optional and the provider may ignore it](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest), so it is only a convenience. [`prompt=login` forces reauthentication and `prompt=select_account` asks for account selection](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest); use them only for an explicit “use another account” action, not for every invitation.
 
 Keycloak supports ordinary OIDC login and self-registration; clients should not bypass the OIDC flow by linking directly to internal login-action endpoints. [Keycloak documents its browser OIDC flow and warns against direct internal login redirects](https://www.keycloak.org/docs/latest/server_admin/#_oidc). Entra External ID uses the same browser-delegated sign-up/sign-in user flow; it does not require Graph creation first.
 
@@ -71,7 +71,7 @@ Provider switching therefore creates another external-identity link only through
 
 ### 4. Bind the invitation and membership
 
-Resume through the short-lived continuation and revalidate the invitation. When the provider supplies an assured email, require it to normalize to the invited email. The invitation link proves possession of the mailbox at send time; the claim comparison also prevents a forwarded link from being accepted under an unrelated signed-in account.
+Resume through the short-lived pending acceptance and revalidate the invitation. When the provider supplies a verified email, require it to normalize to the invited email. The invitation link proves possession of the mailbox at send time; the claim comparison also prevents a forwarded link from being accepted under an unrelated signed-in account.
 
 - For local Keycloak accounts, require realm email verification and `email_verified=true`.
 - For Entra local accounts, the configured sign-up flow verifies email by one-time passcode. Ensure the application token emits the configured email attribute.
@@ -126,6 +126,6 @@ Run the same product behavior tests against Keycloak locally and Entra External 
 5. Expired, revoked, rotated, and replayed tokens behave safely.
 6. Two concurrent acceptances create one membership and one accepted invitation.
 7. Missing/unverified email follows the explicit deployment policy and records the chosen assurance path.
-8. Provider callback succeeds after app restart because continuation state is durable enough for its short lifetime.
+8. Provider callback succeeds after app restart because pending-acceptance state is durable enough for its short lifetime.
 9. Mail/outbox retry does not create duplicate invitations or tokens.
 10. No raw invitation token appears in structured logs, telemetry, or OIDC request parameters.

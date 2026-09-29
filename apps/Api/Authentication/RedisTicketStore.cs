@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using ModulithFoundry.Api.Infrastructure;
 using StackExchange.Redis;
 
 namespace ModulithFoundry.Api.Authentication;
@@ -20,7 +21,7 @@ internal sealed class RedisTicketStore : ITicketStore
         IHostEnvironment environment,
         TimeProvider timeProvider)
     {
-        keyPrefix = $"modulith-foundry:{NormalizeNamespace(environment.EnvironmentName)}:v1:auth-ticket:";
+        keyPrefix = RedisKeyNamespace.Create(environment, "auth-ticket");
         redis = connection.GetDatabase();
         protector = dataProtectionProvider.CreateProtector(
             "ModulithFoundry.Api.Authentication.RedisTicketStore.v1");
@@ -104,8 +105,4 @@ internal sealed class RedisTicketStore : ITicketStore
             ? key
             : throw new ArgumentException("The authentication ticket key is invalid.", nameof(key));
 
-    private static string NormalizeNamespace(string value) =>
-        string.Concat(value.Select(character => char.IsAsciiLetterOrDigit(character)
-            ? char.ToLowerInvariant(character)
-            : '-'));
 }
