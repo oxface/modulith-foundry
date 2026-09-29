@@ -46,7 +46,7 @@ internal sealed class CreateInvitationHandler(
             return new CreateOrganizationInvitationResult.PermissionDenied();
         }
 
-        if (await membershipQueries.HasActiveMembershipForEmailAsync(
+        if (await membershipQueries.HasCurrentMembershipForEmailAsync(
             command.OrganizationId.Value,
             email.Value,
             cancellationToken))

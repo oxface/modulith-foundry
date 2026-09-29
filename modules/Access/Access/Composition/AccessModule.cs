@@ -9,6 +9,7 @@ using ModulithFoundry.Modules.Access.Invitations.AcceptInvitation;
 using ModulithFoundry.Modules.Access.Invitations.CreateInvitation;
 using ModulithFoundry.Modules.Access.Invitations.ResendInvitation;
 using ModulithFoundry.Modules.Access.Organizations;
+using ModulithFoundry.Modules.Access.Organizations.ChangeMembershipStatus;
 using ModulithFoundry.Modules.Access.Organizations.CreateOrganization;
 using ModulithFoundry.Modules.Access.Organizations.Queries;
 using ModulithFoundry.Modules.Access.Organizations.ReplaceMembershipRoles;
@@ -33,7 +34,10 @@ public static class AccessModule
         services.AddScoped<OrganizationMembershipQueries>();
         services.AddScoped<IOrganizationMembershipQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<OrganizationMembershipQueries>());
-        services.AddScoped<IOrganizationMembershipAdministration, ReplaceMembershipRolesHandler>();
+        services.AddScoped<MembershipAdministrationConsistency>();
+        services.AddScoped<ChangeMembershipStatusHandler>();
+        services.AddScoped<ReplaceMembershipRolesHandler>();
+        services.AddScoped<IOrganizationMembershipAdministration, MembershipAdministration>();
         services.AddScoped<InvitationQueries>();
         services.AddScoped<InvitationEmailDeliveryFactory>();
         services.AddScoped<CreateInvitationHandler>();

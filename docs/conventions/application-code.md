@@ -16,6 +16,7 @@ These conventions keep module code navigable without introducing a mediator, gen
 - The API owns HTTP ingress adapters under `apps/Api/Modules/{Module}` and groups them behind `Map{Module}Api`.
 - Reserve `Use...` for middleware pipeline behavior. Mapping routes is a `Map...` operation.
 - Other modules, hosted workers, broker handlers, and durable processes call Contracts; they never call in-process HTTP endpoints.
+- Prefer command-shaped endpoints such as `suspend`, `reactivate`, or `remove` when the caller is requesting a domain action. Use generic update or replacement endpoints only when the operation genuinely replaces user-editable state rather than concealing a business command behind field mutation.
 
 ## Commands and queries
 

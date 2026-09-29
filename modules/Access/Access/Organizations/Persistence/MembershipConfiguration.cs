@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Persistence;
 
 namespace ModulithFoundry.Modules.Access.Organizations.Persistence;
@@ -17,12 +18,13 @@ internal sealed class MembershipConfiguration : IEntityTypeConfiguration<Members
             .HasColumnName("status")
             .HasMaxLength(32)
             .HasConversion(
-                status => ToStoredValue(status),
-                value => FromStoredValue(value));
+                status => MembershipStatusValues.ToValue(status),
+                value => MembershipStatusValues.FromValue(value));
         membership.Property(entity => entity.CreatedAt).HasColumnName("created_at");
         membership.HasIndex(entity => new { entity.OrganizationId, entity.UserId })
             .IsUnique()
-            .HasDatabaseName("ux_memberships_organization_user");
+            .HasFilter(MembershipPersistence.CurrentMembershipFilter)
+            .HasDatabaseName(MembershipPersistence.CurrentMembershipIndexName);
         membership.HasIndex(entity => entity.UserId)
             .HasDatabaseName("ix_memberships_user_id");
         membership.HasAlternateKey(entity => new { entity.Id, entity.OrganizationId })
@@ -44,18 +46,4 @@ internal sealed class MembershipConfiguration : IEntityTypeConfiguration<Members
             .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("fk_membership_roles_memberships_membership_organization");
     }
-
-    private static string ToStoredValue(MembershipStatus status) =>
-        status switch
-        {
-            MembershipStatus.Active => "active",
-            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown membership status."),
-        };
-
-    private static MembershipStatus FromStoredValue(string value) =>
-        value switch
-        {
-            "active" => MembershipStatus.Active,
-            _ => throw new InvalidOperationException($"Unknown stored membership status '{value}'."),
-        };
 }

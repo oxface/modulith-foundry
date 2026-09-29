@@ -13,6 +13,9 @@ public abstract record ReplaceMembershipRolesResult
     public sealed record InvalidRoles(IReadOnlyList<string> RoleIds)
         : ReplaceMembershipRolesResult;
 
+    public sealed record InvalidMembershipStatus(MembershipStatus Status)
+        : ReplaceMembershipRolesResult;
+
     public sealed record NotFound : ReplaceMembershipRolesResult;
 
     public sealed record PermissionDenied : ReplaceMembershipRolesResult;

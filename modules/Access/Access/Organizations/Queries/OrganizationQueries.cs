@@ -15,7 +15,7 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
             from membership in context.Memberships
                 .AsNoTracking()
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
-                .Where(membership => membership.Status == MembershipStatus.Active)
+                .Active()
                 .Where(membership => membership.UserId == userId.Value)
             join organization in context.Organizations.AsNoTracking()
                 on membership.OrganizationId equals organization.Id
@@ -73,10 +73,10 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
             from membership in context.Memberships
                 .AsNoTracking()
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+                .Active()
             join organization in context.Organizations.AsNoTracking()
                 on membership.OrganizationId equals organization.Id
             where membership.UserId == userId.Value
-                && membership.Status == MembershipStatus.Active
                 && organization.Slug == slug
             select new
             {

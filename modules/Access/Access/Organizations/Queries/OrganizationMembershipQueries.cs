@@ -16,13 +16,13 @@ internal sealed class OrganizationMembershipQueries(
         (await (
             from membership in context.Memberships
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+                .Active()
             join role in context.MembershipRoleAssignments
                     .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
                 on new { MembershipId = membership.Id, membership.OrganizationId }
                 equals new { role.MembershipId, role.OrganizationId }
             where membership.OrganizationId == organizationId
                 && membership.UserId == actorUserId
-                && membership.Status == MembershipStatus.Active
             select role.RoleId)
             .ToArrayAsync(cancellationToken))
         .Any(roleId => roleCatalog.Grants(roleId, permissionId));
@@ -46,6 +46,7 @@ internal sealed class OrganizationMembershipQueries(
             from membership in context.Memberships
                 .AsNoTracking()
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+                .Current()
             join user in context.Users.AsNoTracking()
                 on membership.UserId equals user.Id
             where membership.OrganizationId == query.OrganizationId.Value
@@ -56,6 +57,7 @@ internal sealed class OrganizationMembershipQueries(
                 UserId = user.Id,
                 user.Email,
                 user.DisplayName,
+                membership.Status,
             })
             .ToListAsync(cancellationToken);
 
@@ -78,26 +80,39 @@ internal sealed class OrganizationMembershipQueries(
                 new UserId(member.UserId),
                 member.Email,
                 member.DisplayName,
+                member.Status,
                 rolesByMembership.GetValueOrDefault(member.MembershipId, [])))],
             roleCatalog.Roles,
             roleCatalog.Permissions);
         return new ListOrganizationMembersResult.Listed(view);
     }
 
-    internal Task<bool> HasActiveMembershipForEmailAsync(
+    internal Task<bool> HasCurrentMembershipForEmailAsync(
         Guid organizationId,
         string normalizedEmail,
         CancellationToken cancellationToken) =>
         (
             from membership in context.Memberships
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+                .Current()
             join user in context.Users on membership.UserId equals user.Id
             where membership.OrganizationId == organizationId
-                && membership.Status == MembershipStatus.Active
                 && user.Email != null
                 && EF.Functions.ILike(user.Email, EscapeLikePattern(normalizedEmail), @"\")
             select membership.Id)
             .AnyAsync(cancellationToken);
+
+    internal Task<bool> HasCurrentMembershipAsync(
+        Guid organizationId,
+        Guid userId,
+        CancellationToken cancellationToken) =>
+        context.Memberships
+            .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+            .Current()
+            .AnyAsync(
+                membership => membership.OrganizationId == organizationId
+                    && membership.UserId == userId,
+                cancellationToken);
 
     private static string EscapeLikePattern(string value) =>
         value.Replace(@"\", @"\\", StringComparison.Ordinal)

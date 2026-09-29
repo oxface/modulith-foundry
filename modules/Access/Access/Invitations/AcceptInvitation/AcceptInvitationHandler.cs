@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Organizations;
+using ModulithFoundry.Modules.Access.Organizations.Persistence;
+using ModulithFoundry.Modules.Access.Organizations.Queries;
 using ModulithFoundry.Modules.Access.Persistence;
 
 namespace ModulithFoundry.Modules.Access.Invitations.AcceptInvitation;
@@ -8,6 +10,7 @@ namespace ModulithFoundry.Modules.Access.Invitations.AcceptInvitation;
 internal sealed class AcceptInvitationHandler(
     AccessDbContext context,
     InvitationQueries invitationQueries,
+    OrganizationMembershipQueries membershipQueries,
     TimeProvider timeProvider)
 {
     internal async Task<AcceptOrganizationInvitationResult> HandleAsync(
@@ -70,6 +73,15 @@ internal sealed class AcceptInvitationHandler(
             invitation,
             roleIds,
             cancellationToken);
+        bool hasCurrentMembership = await membershipQueries.HasCurrentMembershipAsync(
+            invitation.OrganizationId,
+            command.UserId.Value,
+            cancellationToken);
+        if (hasCurrentMembership)
+        {
+            return new AcceptOrganizationInvitationResult.Consumed();
+        }
+
         invitation.Accept(command.UserId.Value, acceptedAt);
         Membership membership = Membership.CreateFromInvitation(
             Guid.CreateVersion7(acceptedAt),
@@ -78,8 +90,10 @@ internal sealed class AcceptInvitationHandler(
             roleIds,
             acceptedAt);
         context.Memberships.Add(membership);
+
         context.AuditEntries.Add(InvitationAuditEntries.Accepted(
             invitation,
+            membership.Id,
             command.UserId.Value,
             roleIds,
             acceptedAt));
@@ -104,6 +118,12 @@ internal sealed class AcceptInvitationHandler(
             }
 
             return new AcceptOrganizationInvitationResult.AlreadyAccepted(acceptedMembership);
+        }
+        catch (DbUpdateException exception) when (
+            MembershipPersistence.IsCurrentMembershipConflict(exception))
+        {
+            context.ChangeTracker.Clear();
+            return new AcceptOrganizationInvitationResult.Consumed();
         }
 
         return new AcceptOrganizationInvitationResult.Accepted(acceptedMembership);

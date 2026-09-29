@@ -245,6 +245,12 @@ A CLR-public contract is not automatically a public HTTP API. Each capability an
 - Production migrations run as a pre-deployment operation/job rather than opportunistically from every app replica.
 - A finite Migrator project references module implementations and invokes their module-owned migrations in a declared order. It is packaged at the same source/image version as the application, acquires a PostgreSQL advisory lock, exits nonzero on failure, and runs as a separate pre-deployment resource rather than an application startup behavior.
 
+Lifecycle and retention are model-specific. Do not add a universal soft-delete interface,
+interceptor, or query filter. A state-stored aggregate uses an explicit lifecycle state when the
+ended record remains meaningful history, and physical deletion only for technical, replaceable, or
+retention-expired data whose owning policy permits it. Queries deliberately choose whether they show
+current or historical records; mandatory tenant isolation remains a separate global filter.
+
 ### Cross-module atomic transaction spike — **Deferred; gated**
 
 The first Order Fulfilment workflow uses separate commits and does not justify this spike. Only promote it after a later named short workflow demonstrates a real all-or-nothing invariant that cannot tolerate durable coordination.
@@ -313,6 +319,7 @@ Within the owning module schema:
 - unique constraints on event ID and `(stream_id, stream_version)`;
 - append with optimistic expected-version checking;
 - immutable event records; ordinary corrections append explicit correction events and never update or delete prior events;
+- aggregate removal or retirement appends a lifecycle event and retains the stream; current-state projections may omit the ended aggregate, while privacy erasure or destructive sanitization remains a separately governed retention process;
 - event serializer registry with explicit persisted names, never raw CLR assembly-qualified names;
 - metadata for correlation, causation, actor, tenant (if applicable), and trace context;
 - payload classification so secrets and unnecessary personal data are never stored;

@@ -15,6 +15,10 @@ Inventory decides what is stockable, where stock is held, how physical quantity 
 The `inventory` PostgreSQL schema is authoritative. No other module reads its tables or private event streams.
 
 Stock Position streams are retained as immutable business history for the life of the Stock Position in v1. Published outbox payloads and inbox receipts use bounded operational retention; audit/export/redaction requirements remain compliance-driven rather than inferred from the event store.
+Ending an event-sourced aggregate is a domain lifecycle transition recorded by an appended event,
+not deletion of its stream. Current-state projections may omit ended aggregates while replay still
+reconstructs their terminal state. Any future privacy erasure or destructive sanitization is a
+separate, explicitly governed retention operation rather than an ordinary domain command.
 
 ## Interface
 

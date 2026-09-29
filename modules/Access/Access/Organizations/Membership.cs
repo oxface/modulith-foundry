@@ -2,11 +2,6 @@ using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Modules.Access.Organizations;
 
-internal enum MembershipStatus
-{
-    Active = 1,
-}
-
 internal sealed class Membership : IOrganizationOwned
 {
     private readonly List<MembershipRoleAssignment> _roleAssignments = [];
@@ -74,11 +69,48 @@ internal sealed class Membership : IOrganizationOwned
         IReadOnlySet<string> roleIds,
         DateTimeOffset assignedAt)
     {
+        if (!AllowsRoleChanges)
+        {
+            throw new InvalidOperationException(
+                "Roles cannot be changed after a membership has ended.");
+        }
+
         _roleAssignments.RemoveAll(role => !roleIds.Contains(role.RoleId));
         foreach (string roleId in roleIds.Where(roleId => !HasRole(roleId)))
         {
             AssignRole(roleId, assignedAt);
         }
+    }
+
+    internal bool AllowsRoleChanges => Status is MembershipStatus.Active or MembershipStatus.Suspended;
+
+    internal bool WouldDeactivateAdministrator(MembershipStatus requestedStatus) =>
+        Status == MembershipStatus.Active
+        && requestedStatus is MembershipStatus.Suspended or MembershipStatus.Removed
+        && HasRole(SystemRoleIds.OrganizationAdministrator);
+
+    internal MembershipStatusChangeOutcome ChangeStatus(MembershipStatus requestedStatus)
+    {
+        if (Status == requestedStatus)
+        {
+            return MembershipStatusChangeOutcome.Unchanged;
+        }
+
+        bool allowed = (Status, requestedStatus) switch
+        {
+            (MembershipStatus.Active, MembershipStatus.Suspended) => true,
+            (MembershipStatus.Active, MembershipStatus.Removed) => true,
+            (MembershipStatus.Suspended, MembershipStatus.Active) => true,
+            (MembershipStatus.Suspended, MembershipStatus.Removed) => true,
+            _ => false,
+        };
+        if (!allowed)
+        {
+            return MembershipStatusChangeOutcome.InvalidTransition;
+        }
+
+        Status = requestedStatus;
+        return MembershipStatusChangeOutcome.Changed;
     }
 
     private void AssignRole(string roleId, DateTimeOffset assignedAt) =>
@@ -87,4 +119,11 @@ internal sealed class Membership : IOrganizationOwned
             OrganizationId,
             roleId,
             assignedAt));
+}
+
+internal enum MembershipStatusChangeOutcome
+{
+    Changed = 1,
+    Unchanged = 2,
+    InvalidTransition = 3,
 }

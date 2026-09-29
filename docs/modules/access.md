@@ -20,6 +20,12 @@ On a validated OIDC callback, Access resolves the exact `(issuer, subject)` link
 
 V1 performs no automatic deletion of Organizations, Users, Memberships, or accepted Invitations. Expired invitation payloads and operational email-outbox data may be purged under explicit jobs; audit retention/redaction remains a compliance-driven adoption decision.
 
+Membership suspension is reversible by an Organization Administrator and retains assigned roles.
+Removal ends access and cannot be directly reactivated. A removed User may rejoin only through a
+new matching Invitation; acceptance retains the removed Membership as history and creates a new
+Membership identity with the Invitation's current assignments. At most one active or suspended
+Membership may exist for one User and Organization.
+
 ## Interface
 
 Commands exposed through Access capabilities:
@@ -65,7 +71,11 @@ Access operation rather than trusting HTTP policy or a role cached in the authen
 Role replacement is an atomic full-set operation. It serializes on the owning Organization row
 because the last-active-administrator invariant spans multiple Memberships; locking only the target
 Membership cannot protect that invariant. Successful changes and security-significant denials are
-recorded in the Access audit.
+recorded in the Access audit. Membership suspension and removal use the same serialization boundary;
+suspended and removed Memberships do not grant access or permissions.
+Ordinary membership administration lists only active and suspended Memberships. Removed tenures
+remain available to audit and deliberately historical queries; lifecycle visibility is not hidden by
+a global persistence filter.
 
 ## Explicit exclusions
 

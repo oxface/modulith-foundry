@@ -5,4 +5,5 @@ public sealed record OrganizationMember(
     UserId UserId,
     string? Email,
     string? DisplayName,
+    MembershipStatus Status,
     IReadOnlyList<string> RoleIds);

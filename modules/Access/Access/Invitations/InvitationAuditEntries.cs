@@ -54,6 +54,7 @@ internal static class InvitationAuditEntries
 
     internal static AccessAuditEntry Accepted(
         Invitation invitation,
+        Guid membershipId,
         Guid acceptedByUserId,
         IReadOnlyCollection<string> roleIds,
         DateTimeOffset occurredAt) =>
@@ -64,9 +65,10 @@ internal static class InvitationAuditEntries
             "invitation.accepted",
             "invitation",
             invitation.Id,
-            schemaVersion: 1,
+            schemaVersion: 2,
             new
             {
+                membershipId,
                 acceptedByUserId,
                 roleIds,
                 occurredAt,

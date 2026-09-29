@@ -3,26 +3,19 @@ using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Organizations.Queries;
 using ModulithFoundry.Modules.Access.Persistence;
 
-namespace ModulithFoundry.Modules.Access.Organizations.ReplaceMembershipRoles;
+namespace ModulithFoundry.Modules.Access.Organizations.ChangeMembershipStatus;
 
-internal sealed class ReplaceMembershipRolesHandler(
+internal sealed class ChangeMembershipStatusHandler(
     AccessDbContext context,
     MembershipAdministrationConsistency consistency,
     OrganizationMembershipQueries membershipQueries,
-    SystemRoleCatalog roleCatalog,
     TimeProvider timeProvider)
 {
-    internal async Task<ReplaceMembershipRolesResult> HandleAsync(
-        ReplaceMembershipRolesCommand command,
-        CancellationToken cancellationToken = default)
+    internal async Task<ChangeMembershipStatusResult> HandleAsync(
+        ChangeMembershipStatusCommand command,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        ArgumentNullException.ThrowIfNull(command.RoleIds);
-
-        string[] roleIds = [.. command.RoleIds
-            .Where(static roleId => !string.IsNullOrWhiteSpace(roleId))
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)];
 
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken);
@@ -31,7 +24,7 @@ internal sealed class ReplaceMembershipRolesHandler(
             cancellationToken);
         if (!organizationExists)
         {
-            return new ReplaceMembershipRolesResult.NotFound();
+            return new ChangeMembershipStatusResult.NotFound();
         }
 
         if (!await membershipQueries.HasPermissionAsync(
@@ -42,17 +35,10 @@ internal sealed class ReplaceMembershipRolesHandler(
         {
             await RecordDenialAsync(
                 command,
-                roleIds,
                 AccessAuditReasonCodes.PermissionDenied,
                 cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new ReplaceMembershipRolesResult.PermissionDenied();
-        }
-
-        string[] invalidRoleIds = [.. roleIds.Where(roleId => !roleCatalog.Contains(roleId))];
-        if (roleIds.Length == 0 || invalidRoleIds.Length > 0)
-        {
-            return new ReplaceMembershipRolesResult.InvalidRoles(invalidRoleIds);
+            return new ChangeMembershipStatusResult.PermissionDenied();
         }
 
         Membership? membership = await context.Memberships
@@ -64,30 +50,10 @@ internal sealed class ReplaceMembershipRolesHandler(
                 cancellationToken);
         if (membership is null)
         {
-            return new ReplaceMembershipRolesResult.NotFound();
+            return new ChangeMembershipStatusResult.NotFound();
         }
 
-        if (!membership.AllowsRoleChanges)
-        {
-            return new ReplaceMembershipRolesResult.InvalidMembershipStatus(membership.Status);
-        }
-
-        string[] previousRoleIds = [.. membership.RoleAssignments
-            .Select(role => role.RoleId)
-            .Order(StringComparer.Ordinal)];
-        if (previousRoleIds.SequenceEqual(roleIds, StringComparer.Ordinal))
-        {
-            await transaction.CommitAsync(cancellationToken);
-            return new ReplaceMembershipRolesResult.Updated(
-                command.MembershipId,
-                roleIds);
-        }
-
-        bool removesAdministrator = previousRoleIds.Contains(
-                SystemRoleIds.OrganizationAdministrator,
-                StringComparer.Ordinal)
-            && !roleIds.Contains(SystemRoleIds.OrganizationAdministrator, StringComparer.Ordinal);
-        if (removesAdministrator
+        if (membership.WouldDeactivateAdministrator(command.Status)
             && !await consistency.HasAnotherActiveAdministratorAsync(
                 command.OrganizationId.Value,
                 membership.Id,
@@ -95,41 +61,54 @@ internal sealed class ReplaceMembershipRolesHandler(
         {
             await RecordDenialAsync(
                 command,
-                roleIds,
                 AccessAuditReasonCodes.LastAdministrator,
                 cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new ReplaceMembershipRolesResult.LastAdministrator();
+            return new ChangeMembershipStatusResult.LastAdministrator();
+        }
+
+        MembershipStatus previousStatus = membership.Status;
+        MembershipStatusChangeOutcome outcome = membership.ChangeStatus(command.Status);
+        if (outcome == MembershipStatusChangeOutcome.Unchanged)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return new ChangeMembershipStatusResult.Unchanged(
+                command.MembershipId,
+                membership.Status);
+        }
+
+        if (outcome == MembershipStatusChangeOutcome.InvalidTransition)
+        {
+            return new ChangeMembershipStatusResult.InvalidTransition(
+                previousStatus,
+                command.Status);
         }
 
         DateTimeOffset changedAt = timeProvider.GetUtcNow();
-        membership.ReplaceRoles(roleIds.ToHashSet(StringComparer.Ordinal), changedAt);
-        context.AuditEntries.Add(MembershipAuditEntries.RolesReplaced(
+        context.AuditEntries.Add(MembershipAuditEntries.StatusChanged(
             membership,
             command.ActorUserId.Value,
-            previousRoleIds,
-            roleIds,
+            previousStatus,
             changedAt));
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new ReplaceMembershipRolesResult.Updated(
+        return new ChangeMembershipStatusResult.Changed(
             command.MembershipId,
-            roleIds);
+            membership.Status);
     }
 
     private async Task RecordDenialAsync(
-        ReplaceMembershipRolesCommand command,
-        IReadOnlyCollection<string> roleIds,
+        ChangeMembershipStatusCommand command,
         string reasonCode,
         CancellationToken cancellationToken)
     {
-        context.AuditEntries.Add(MembershipAuditEntries.RoleReplacementDenied(
+        context.AuditEntries.Add(MembershipAuditEntries.StatusChangeDenied(
             command.OrganizationId.Value,
             command.MembershipId.Value,
             command.ActorUserId.Value,
+            command.Status,
             reasonCode,
-            roleIds,
             timeProvider.GetUtcNow()));
         await context.SaveChangesAsync(cancellationToken);
     }

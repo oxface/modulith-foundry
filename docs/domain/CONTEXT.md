@@ -21,7 +21,7 @@ A single-use, expiring product request for a verified person to join one organiz
 _Avoid_: Identity-provider invitation, membership, user
 
 **Membership**:
-The relationship granting a user access to an organization under product-owned permissions and limits.
+One tenure in a user's relationship with an organization under product-owned permissions and limits. An active membership grants access, a suspended membership temporarily denies access while retaining its roles, and a removed membership has permanently ended. A removed user may rejoin only by accepting a new invitation, which creates a new membership tenure with its own identity and invited roles.
 _Avoid_: Identity-provider role
 
 **Permission**:
