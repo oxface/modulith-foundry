@@ -109,7 +109,7 @@ public sealed partial class LocalRuntimeTests
         Assert.Contains("__Host-modulith-foundry=", setCookie, StringComparison.Ordinal);
         Assert.Contains("secure", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("samesite=lax", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("samesite=strict", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("alice@example.test", setCookie, StringComparison.OrdinalIgnoreCase);
 
         using HttpResponseMessage session = await client.GetAsync("/api/session", timeout.Token);
