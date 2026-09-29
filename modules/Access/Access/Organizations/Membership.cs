@@ -67,6 +67,20 @@ internal sealed class Membership : IOrganizationOwned
         return membership;
     }
 
+    internal bool HasRole(string roleId) =>
+        _roleAssignments.Any(role => role.RoleId == roleId);
+
+    internal void ReplaceRoles(
+        IReadOnlySet<string> roleIds,
+        DateTimeOffset assignedAt)
+    {
+        _roleAssignments.RemoveAll(role => !roleIds.Contains(role.RoleId));
+        foreach (string roleId in roleIds.Where(roleId => !HasRole(roleId)))
+        {
+            AssignRole(roleId, assignedAt);
+        }
+    }
+
     private void AssignRole(string roleId, DateTimeOffset assignedAt) =>
         _roleAssignments.Add(MembershipRoleAssignment.Create(
             Id,

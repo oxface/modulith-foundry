@@ -3,4 +3,8 @@
     <AssemblyName>ModulithFoundry.Modules.Sales.Contracts</AssemblyName>
     <RootNamespace>ModulithFoundry.Modules.Sales.Contracts</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Access/Access.Contracts/Access.Contracts.csproj" />
+  </ItemGroup>
 </Project>

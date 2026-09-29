@@ -19,9 +19,10 @@ internal sealed class ResendInvitationHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (!await membershipQueries.IsAdministratorAsync(
+        if (!await membershipQueries.HasPermissionAsync(
             command.ActorUserId.Value,
             command.OrganizationId.Value,
+            AccessPermissionIds.MembersManage,
             cancellationToken))
         {
             return new ResendOrganizationInvitationResult.PermissionDenied();

@@ -58,6 +58,15 @@ The organization-invitation email outbox is concrete Access infrastructure, not 
 
 V1 system roles use stable textual identifiers. Access defines `organization-administrator`, persists assignments, and validates assignments against the catalog assembled by the host. Sales, Inventory, and Purchasing expose their own role identifiers from their Contracts projects and remain authoritative for those roles' meaning and enforcement. This keeps role ownership aligned with module ownership while leaving Access responsible for membership access management. The catalog is a product composition input, not an authorization-provider API; a later OpenFGA adapter may map the same stable role and permission identifiers into its model and relationship tuples without moving business policy into Access.
 
+Each business module registers its code-defined role and permission manifest through its normal
+`Add{Module}Module` composition entry point. Access validates and assembles those manifests; the API
+does not duplicate the catalog. Membership administration checks `access.members.manage` inside the
+Access operation rather than trusting HTTP policy or a role cached in the authentication session.
+Role replacement is an atomic full-set operation. It serializes on the owning Organization row
+because the last-active-administrator invariant spans multiple Memberships; locking only the target
+Membership cannot protect that invariant. Successful changes and security-significant denials are
+recorded in the Access audit.
+
 ## Explicit exclusions
 
 - Creating or inviting identity-provider accounts through provider administration APIs.

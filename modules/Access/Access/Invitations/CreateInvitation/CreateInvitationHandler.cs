@@ -37,9 +37,10 @@ internal sealed class CreateInvitationHandler(
             return new CreateOrganizationInvitationResult.InvalidRoles(invalidRoleIds);
         }
 
-        if (!await membershipQueries.IsAdministratorAsync(
+        if (!await membershipQueries.HasPermissionAsync(
             command.ActorUserId.Value,
             command.OrganizationId.Value,
+            AccessPermissionIds.MembersManage,
             cancellationToken))
         {
             return new CreateOrganizationInvitationResult.PermissionDenied();

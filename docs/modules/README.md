@@ -33,7 +33,7 @@ Purchasing implementation
   -> Inventory.Contracts
 ```
 
-An implementation project may reference another module's Contracts project when an implemented use case requires it. A Contracts project may reference another Contracts project only when its own interface genuinely contains an owner-defined stable identifier or value type, such as `OrganizationId` or `StockItemId`; architecture tests reject cycles and transitive DTO graphs. Contracts never reference module implementations. The API references implementations for composition but contains no business workflow.
+An implementation project may reference another module's Contracts project when an implemented use case requires it. A Contracts project may reference another Contracts project only when its own interface genuinely contains an owner-defined stable identifier, value type, or composition manifest, such as `OrganizationId`, `StockItemId`, or the Access-owned system-role definition used by each business module's authorization manifest; architecture tests keep those edges in an explicit allowlist and reject cycles and transitive DTO graphs. Contracts never reference module implementations. The API references implementations for composition but contains no business workflow.
 
 The receiving module owns a durable integration-command type in its Contracts project. The module that publishes a fact owns the integration-event type in its Contracts project. Contracts contain no ASP.NET Core, EF Core, Rebus, identity-provider, or persistence types. Immediate commands and queries use capability-oriented in-process interfaces; durable commands and events use the broker. They are not interchangeable solely to make later extraction appear automatic.
 

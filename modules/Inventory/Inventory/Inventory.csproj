@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../Access/Access.Contracts/Access.Contracts.csproj" />
     <ProjectReference Include="../Inventory.Contracts/Inventory.Contracts.csproj" />
   </ItemGroup>
 </Project>

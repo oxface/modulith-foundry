@@ -11,6 +11,7 @@ using ModulithFoundry.Modules.Access.Invitations.ResendInvitation;
 using ModulithFoundry.Modules.Access.Organizations;
 using ModulithFoundry.Modules.Access.Organizations.CreateOrganization;
 using ModulithFoundry.Modules.Access.Organizations.Queries;
+using ModulithFoundry.Modules.Access.Organizations.ReplaceMembershipRoles;
 using ModulithFoundry.Modules.Access.Persistence;
 using Npgsql;
 
@@ -20,16 +21,19 @@ public static class AccessModule
 {
     public static IServiceCollection AddAccessModule(
         this IServiceCollection services,
-        IConfiguration configuration,
-        IEnumerable<string>? productRoleIds = null)
+        IConfiguration configuration)
     {
         services.AddAccessPersistence();
         services.AddInvitationEmailDelivery(configuration);
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton(new SystemRoleCatalog(productRoleIds ?? []));
+        services.AddSingleton(serviceProvider =>
+            new SystemRoleCatalog(serviceProvider.GetServices<SystemRoleManifest>()));
         services.AddScoped<IExternalIdentityLinking, LinkExternalIdentityHandler>();
         services.AddScoped<IOrganizationCreation, CreateOrganizationHandler>();
         services.AddScoped<OrganizationMembershipQueries>();
+        services.AddScoped<IOrganizationMembershipQueries>(serviceProvider =>
+            serviceProvider.GetRequiredService<OrganizationMembershipQueries>());
+        services.AddScoped<IOrganizationMembershipAdministration, ReplaceMembershipRolesHandler>();
         services.AddScoped<InvitationQueries>();
         services.AddScoped<InvitationEmailDeliveryFactory>();
         services.AddScoped<CreateInvitationHandler>();

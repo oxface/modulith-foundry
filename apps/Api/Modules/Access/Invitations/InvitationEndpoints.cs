@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ModulithFoundry.Api.Authentication;
+using ModulithFoundry.Api.Modules.Access.Middleware;
 using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Api.Modules.Access.Invitations;
@@ -23,7 +24,7 @@ internal static class InvitationEndpoints
         IOrganizationInvitations invitations,
         CancellationToken cancellationToken)
     {
-        OrganizationAccessContext context = GetOrganizationContext(contextAccessor);
+        OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
         CreateOrganizationInvitationResult result = await invitations.CreateInvitationAsync(
             new CreateOrganizationInvitationCommand(
                 context.UserId,
@@ -65,7 +66,7 @@ internal static class InvitationEndpoints
         IOrganizationInvitations invitations,
         CancellationToken cancellationToken)
     {
-        OrganizationAccessContext context = GetOrganizationContext(contextAccessor);
+        OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
         ResendOrganizationInvitationResult result = await invitations.ResendInvitationAsync(
             new ResendOrganizationInvitationCommand(
                 context.UserId,
@@ -83,11 +84,6 @@ internal static class InvitationEndpoints
             _ => throw new UnreachableException(),
         };
     }
-
-    private static OrganizationAccessContext GetOrganizationContext(
-        IOrganizationContextAccessor contextAccessor) =>
-        contextAccessor.OrganizationContext
-            ?? throw new InvalidOperationException("Organization context is not resolved.");
 
     private static InvitationResponse ToResponse(OrganizationInvitation invitation) =>
         new(

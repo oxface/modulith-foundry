@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Purchasing.Persistence;
 using Npgsql;
 
@@ -10,6 +11,8 @@ public static class PurchasingModule
     public static IServiceCollection AddPurchasingModule(this IServiceCollection services)
     {
         services.AddPurchasingPersistence();
+        services.AddSingleton(PurchasingAuthorizationManifest.Instance);
+
         return services;
     }
 

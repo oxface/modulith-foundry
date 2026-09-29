@@ -6,6 +6,7 @@ namespace ModulithFoundry.Modules.Access.Organizations;
 internal sealed class AccessAuditEntry : IOrganizationOwned
 {
     private const string AccessSourceModule = "access";
+    private const string DeniedOutcome = "denied";
     private const string SucceededOutcome = "succeeded";
 
     private AccessAuditEntry()
@@ -95,6 +96,35 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
             subjectId,
             SucceededOutcome,
             reasonCode: null,
+            correlationId,
+            traceId,
+            AccessSourceModule,
+            schemaVersion,
+            JsonSerializer.SerializeToElement(details),
+            occurredAt);
+
+    internal static AccessAuditEntry CreateDenied<TDetails>(
+        Guid id,
+        Guid organizationId,
+        Guid actorUserId,
+        string action,
+        string subjectType,
+        Guid subjectId,
+        string reasonCode,
+        short schemaVersion,
+        TDetails details,
+        string? correlationId,
+        string? traceId,
+        DateTimeOffset occurredAt) =>
+        new(
+            id,
+            organizationId,
+            actorUserId,
+            action,
+            subjectType,
+            subjectId,
+            DeniedOutcome,
+            reasonCode,
             correlationId,
             traceId,
             AccessSourceModule,

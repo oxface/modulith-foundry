@@ -1,4 +1,5 @@
 using ModulithFoundry.Api.Modules.Access.Invitations;
+using ModulithFoundry.Api.Modules.Access.Memberships;
 using ModulithFoundry.Api.Modules.Access.Middleware;
 using ModulithFoundry.Api.Modules.Access.Organizations;
 using ModulithFoundry.Modules.Access.Contracts;
@@ -29,6 +30,7 @@ internal static class AccessApi
             .WithMetadata(OrganizationScopeMetadata.Instance);
         organization.MapOrganizationScopeEndpoints();
         organization.MapInvitationEndpoints();
+        organization.MapMembershipEndpoints();
         return endpoints;
     }
 }

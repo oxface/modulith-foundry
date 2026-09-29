@@ -11,7 +11,12 @@ internal static class ProjectDependencyRules
 
     // Contracts-to-Contracts edges are exceptional and enter this allowlist with the real contract that needs them.
     private static readonly HashSet<string> AllowedContractReferences = new(
-        StringComparer.Ordinal);
+        StringComparer.Ordinal)
+    {
+        "modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
+        "modules/Purchasing/Purchasing.Contracts/Purchasing.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
+        "modules/Sales/Sales.Contracts/Sales.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
+    };
 
     internal static IReadOnlyCollection<string> ReferenceViolations(
         IReadOnlyCollection<ProjectDefinition> projects)

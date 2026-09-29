@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Persistence;
 using Npgsql;
 
@@ -10,6 +11,8 @@ public static class SalesModule
     public static IServiceCollection AddSalesModule(this IServiceCollection services)
     {
         services.AddSalesPersistence();
+        services.AddSingleton(SalesAuthorizationManifest.Instance);
+
         return services;
     }
 

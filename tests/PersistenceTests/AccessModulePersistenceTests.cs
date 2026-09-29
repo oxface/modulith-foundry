@@ -6,7 +6,11 @@ using Microsoft.Extensions.Hosting;
 using ModulithFoundry.Modules.Access.Composition;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.ExtensionPoints;
+using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Purchasing.Composition;
+using ModulithFoundry.Modules.Purchasing.Contracts;
+using ModulithFoundry.Modules.Sales.Composition;
 using ModulithFoundry.Modules.Sales.Contracts;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -15,6 +19,334 @@ namespace ModulithFoundry.PersistenceTests;
 
 public sealed class AccessModulePersistenceTests
 {
+    [Fact]
+    public async Task ListMembershipAdministration_ActiveAdministrator_ReturnsMembersAndProductRoles()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString());
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "membership-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Membership Organization",
+            "membership-organization");
+
+        ListOrganizationMembersResult result;
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            result = await scope.ServiceProvider.GetRequiredService<IOrganizationMembershipQueries>()
+                .ListForAdministrationAsync(
+                    new ListOrganizationMembersQuery(
+                        administrator.UserId,
+                        organization.OrganizationId),
+                    TestContext.Current.CancellationToken);
+        }
+
+        ListOrganizationMembersResult.Listed listed =
+            Assert.IsType<ListOrganizationMembersResult.Listed>(result);
+        OrganizationMember member = Assert.Single(listed.View.Members);
+        Assert.Equal(administrator.UserId, member.UserId);
+        Assert.Equal("administrator@example.test", member.Email);
+        Assert.Equal([SystemRoleIds.OrganizationAdministrator], member.RoleIds);
+        Assert.Equal(
+            [
+                InventoryRoleIds.Manager,
+                SystemRoleIds.OrganizationAdministrator,
+                PurchasingRoleIds.Agent,
+                SalesRoleIds.Approver,
+                SalesRoleIds.Clerk,
+                SalesRoleIds.Manager,
+            ],
+            listed.View.SystemRoles.Select(role => role.Id));
+        SystemRoleDefinition administratorRole = listed.View.SystemRoles.Single(
+            role => role.Id == SystemRoleIds.OrganizationAdministrator);
+        Assert.Equal(
+            [AccessPermissionIds.MembersManage],
+            administratorRole.PermissionIds);
+        Assert.Contains(
+            listed.View.SystemPermissions,
+            permission => permission.Id == AccessPermissionIds.MembersManage
+                && permission.DisplayName == "Manage organization access");
+    }
+
+    [Fact]
+    public async Task ReplaceMembershipRoles_ValidRoles_ReplacesAssignmentsAtomically()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "role-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Role Organization",
+            "role-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "member@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink member = await LinkUserAsync(
+            services,
+            "role-member",
+            "member@example.test");
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
+            services,
+            member.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "member@example.test"));
+        OrganizationMember memberBefore = (await ListMembershipAdministrationAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
+
+        ReplaceMembershipRolesResult result;
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            result = await scope.ServiceProvider
+                .GetRequiredService<IOrganizationMembershipAdministration>()
+                .ReplaceRolesAsync(
+                    new ReplaceMembershipRolesCommand(
+                        administrator.UserId,
+                        organization.OrganizationId,
+                        memberBefore.MembershipId,
+                        [InventoryRoleIds.Manager]),
+                    TestContext.Current.CancellationToken);
+        }
+
+        ReplaceMembershipRolesResult.Updated updated =
+            Assert.IsType<ReplaceMembershipRolesResult.Updated>(result);
+        Assert.Equal(memberBefore.MembershipId, updated.MembershipId);
+        Assert.Equal([InventoryRoleIds.Manager], updated.RoleIds);
+        MembershipRoleReplacementAttempt replay = await ReplaceMembershipRolesAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId,
+            memberBefore.MembershipId,
+            [InventoryRoleIds.Manager]);
+        Assert.IsType<ReplaceMembershipRolesResult.Updated>(replay.Result);
+        OrganizationMember memberAfter = (await ListMembershipAdministrationAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
+        Assert.Equal([InventoryRoleIds.Manager], memberAfter.RoleIds);
+        Assert.Equal(
+            1,
+            await CountAuditEntriesAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                "membership.roles-replaced"));
+    }
+
+    [Fact]
+    public async Task ReplaceMembershipRoles_ConcurrentAdministratorRemoval_PreservesLastAdministrator()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink firstAdministrator = await LinkUserAsync(
+            services,
+            "first-role-administrator",
+            "first-administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            firstAdministrator.UserId,
+            "Concurrent Role Organization",
+            "concurrent-role-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            firstAdministrator.UserId,
+            organization.OrganizationId,
+            "second-administrator@example.test",
+            [SystemRoleIds.OrganizationAdministrator]);
+        UserIdentityLink secondAdministrator = await LinkUserAsync(
+            services,
+            "second-role-administrator",
+            "second-administrator@example.test");
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
+            services,
+            secondAdministrator.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "second-administrator@example.test"));
+        OrganizationMembershipAdministration before = await ListMembershipAdministrationAsync(
+            services,
+            firstAdministrator.UserId,
+            organization.OrganizationId);
+        OrganizationMember firstMembership = before.Members.Single(
+            member => member.UserId == firstAdministrator.UserId);
+        OrganizationMember secondMembership = before.Members.Single(
+            member => member.UserId == secondAdministrator.UserId);
+
+        MembershipRoleReplacementAttempt[] attempts = await Task.WhenAll(
+            ReplaceMembershipRolesAsync(
+                services,
+                firstAdministrator.UserId,
+                organization.OrganizationId,
+                firstMembership.MembershipId,
+                [SalesRoleIds.Clerk]),
+            ReplaceMembershipRolesAsync(
+                services,
+                secondAdministrator.UserId,
+                organization.OrganizationId,
+                secondMembership.MembershipId,
+                [SalesRoleIds.Clerk]));
+
+        Assert.Single(
+            attempts,
+            attempt => attempt.Result is ReplaceMembershipRolesResult.Updated);
+        MembershipRoleReplacementAttempt protectedAttempt = Assert.Single(
+            attempts,
+            attempt => attempt.Result is ReplaceMembershipRolesResult.LastAdministrator);
+        OrganizationMembershipAdministration after = await ListMembershipAdministrationAsync(
+            services,
+            protectedAttempt.ActorUserId,
+            organization.OrganizationId);
+        Assert.Single(
+            after.Members,
+            member => member.RoleIds.Contains(
+                SystemRoleIds.OrganizationAdministrator,
+                StringComparer.Ordinal));
+        Assert.Equal(
+            1,
+            await CountAuditEntriesAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                "membership.roles-replaced"));
+        Assert.Equal(
+            1,
+            await CountAuditEntriesAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                "membership.roles-replacement-denied"));
+    }
+
+    [Fact]
+    public async Task ManageMemberships_InvalidOrUnauthorizedRequest_ReturnsSpecificFailureWithoutChanges()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var transport = new RecordingEmailTransport();
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString(),
+            collection => collection.AddSingleton<IEmailTransport>(transport));
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "failure-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Failure Organization",
+            "failure-organization");
+        DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
+            services,
+            transport,
+            administrator.UserId,
+            organization.OrganizationId,
+            "ordinary-member@example.test",
+            [SalesRoleIds.Clerk]);
+        UserIdentityLink ordinaryMember = await LinkUserAsync(
+            services,
+            "ordinary-member",
+            "ordinary-member@example.test");
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
+            services,
+            ordinaryMember.UserId,
+            delivered.InvitationId,
+            delivered.Secret,
+            "ordinary-member@example.test"));
+        OrganizationMembershipAdministration before = await ListMembershipAdministrationAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId);
+        OrganizationMember target = before.Members.Single(
+            member => member.UserId == ordinaryMember.UserId);
+        OrganizationMembership otherOrganization = await CreateOrganizationAsync(
+            services,
+            ordinaryMember.UserId,
+            "Other Organization",
+            "other-membership-organization");
+        OrganizationAccessContext otherContext = Assert.IsType<OrganizationAccessContext>(
+            await ResolveOrganizationAccessAsync(
+                services,
+                ordinaryMember.UserId,
+                otherOrganization.Slug));
+
+        MembershipRoleReplacementAttempt invalid = await ReplaceMembershipRolesAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId,
+            target.MembershipId,
+            ["unknown-role"]);
+        MembershipRoleReplacementAttempt denied = await ReplaceMembershipRolesAsync(
+            services,
+            ordinaryMember.UserId,
+            organization.OrganizationId,
+            target.MembershipId,
+            [InventoryRoleIds.Manager]);
+        MembershipRoleReplacementAttempt crossTenant = await ReplaceMembershipRolesAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId,
+            otherContext.MembershipId,
+            [InventoryRoleIds.Manager]);
+        ListOrganizationMembersResult deniedList;
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            deniedList = await scope.ServiceProvider
+                .GetRequiredService<IOrganizationMembershipQueries>()
+                .ListForAdministrationAsync(
+                    new ListOrganizationMembersQuery(
+                        ordinaryMember.UserId,
+                        organization.OrganizationId),
+                    TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(
+            ["unknown-role"],
+            Assert.IsType<ReplaceMembershipRolesResult.InvalidRoles>(invalid.Result).RoleIds);
+        Assert.IsType<ReplaceMembershipRolesResult.PermissionDenied>(denied.Result);
+        Assert.IsType<ReplaceMembershipRolesResult.NotFound>(crossTenant.Result);
+        Assert.IsType<ListOrganizationMembersResult.PermissionDenied>(deniedList);
+        OrganizationMember unchanged = (await ListMembershipAdministrationAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId)).Members.Single(
+                member => member.UserId == ordinaryMember.UserId);
+        Assert.Equal([SalesRoleIds.Clerk], unchanged.RoleIds);
+        Assert.Equal(
+            0,
+            await CountAuditEntriesAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                "membership.roles-replaced"));
+        Assert.Equal(
+            1,
+            await CountAuditEntriesAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                "membership.roles-replacement-denied"));
+    }
+
     [Fact]
     public async Task CreateOrganization_NewSlug_CreatesFirstAdministratorMembership()
     {
@@ -739,9 +1071,10 @@ public sealed class AccessModulePersistenceTests
                 ["Email:Smtp:FromAddress"] = "no-reply@example.test",
             })
             .Build();
-        services.AddAccessModule(
-            configuration,
-            [.. SalesRoleIds.All, .. InventoryRoleIds.All]);
+        services.AddAccessModule(configuration);
+        services.AddInventoryModule();
+        services.AddPurchasingModule();
+        services.AddSalesModule();
 
         ServiceProvider provider = services.BuildServiceProvider();
         await provider.MigrateAccessAsync(TestContext.Current.CancellationToken);
@@ -794,6 +1127,41 @@ public sealed class AccessModulePersistenceTests
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<IOrganizationQueries>()
             .ListAccessibleToAsync(userId, TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<OrganizationMembershipAdministration>
+        ListMembershipAdministrationAsync(
+            IServiceProvider services,
+            UserId actorUserId,
+            OrganizationId organizationId)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        ListOrganizationMembersResult result = await scope.ServiceProvider
+            .GetRequiredService<IOrganizationMembershipQueries>()
+            .ListForAdministrationAsync(
+                new ListOrganizationMembersQuery(actorUserId, organizationId),
+                TestContext.Current.CancellationToken);
+        return Assert.IsType<ListOrganizationMembersResult.Listed>(result).View;
+    }
+
+    private static async Task<MembershipRoleReplacementAttempt> ReplaceMembershipRolesAsync(
+        IServiceProvider services,
+        UserId actorUserId,
+        OrganizationId organizationId,
+        MembershipId membershipId,
+        IReadOnlyCollection<string> roleIds)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        ReplaceMembershipRolesResult result = await scope.ServiceProvider
+            .GetRequiredService<IOrganizationMembershipAdministration>()
+            .ReplaceRolesAsync(
+                new ReplaceMembershipRolesCommand(
+                    actorUserId,
+                    organizationId,
+                    membershipId,
+                    roleIds),
+                TestContext.Current.CancellationToken);
+        return new MembershipRoleReplacementAttempt(actorUserId, result);
     }
 
     private static async Task<CreateOrganizationInvitationResult> CreateInvitationAsync(
@@ -936,6 +1304,28 @@ public sealed class AccessModulePersistenceTests
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using NpgsqlCommand command = connection.CreateCommand();
         command.CommandText = sql;
+
+        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("Audit count query returned no value."));
+    }
+
+    private static async Task<long> CountAuditEntriesAsync(
+        string connectionString,
+        OrganizationId organizationId,
+        string action)
+    {
+        const string sql = """
+            SELECT count(*)
+            FROM access.audit_entries
+            WHERE organization_id = @organization_id
+              AND action = @action
+            """;
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using NpgsqlCommand command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("organization_id", organizationId.Value);
+        command.Parameters.AddWithValue("action", action);
 
         return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
             ?? throw new InvalidOperationException("Audit count query returned no value."));
@@ -1127,6 +1517,10 @@ public sealed class AccessModulePersistenceTests
     private sealed record OrganizationCreationAttempt(
         UserId UserId,
         CreateOrganizationResult Result);
+
+    private sealed record MembershipRoleReplacementAttempt(
+        UserId ActorUserId,
+        ReplaceMembershipRolesResult Result);
 
     private sealed record OrganizationCreatedAudit(
         short SchemaVersion,

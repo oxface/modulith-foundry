@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using Npgsql;
 
@@ -10,6 +11,8 @@ public static class InventoryModule
     public static IServiceCollection AddInventoryModule(this IServiceCollection services)
     {
         services.AddInventoryPersistence();
+        services.AddSingleton(InventoryAuthorizationManifest.Instance);
+
         return services;
     }
 
