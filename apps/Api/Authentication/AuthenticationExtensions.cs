@@ -132,13 +132,14 @@ internal static class AuthenticationExtensions
             properties.Items.Remove(InvitationAuthenticationProperties.AcceptanceHandle);
             if (!string.IsNullOrWhiteSpace(acceptanceHandle))
             {
-                context.ReturnUri = await context.HttpContext.RequestServices
+                InvitationAcceptanceNavigation navigation = await context.HttpContext.RequestServices
                     .GetRequiredService<CompleteInvitationAcceptanceHandler>()
                     .HandleAsync(
                         acceptanceHandle,
                         completedIdentity.CurrentUser,
                         completedIdentity.VerifiedProviderEmail,
                         context.HttpContext.RequestAborted);
+                context.ReturnUri = navigation.ReturnUri;
             }
         }
     }

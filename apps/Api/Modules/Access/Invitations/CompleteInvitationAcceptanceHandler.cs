@@ -7,7 +7,7 @@ internal sealed class CompleteInvitationAcceptanceHandler(
     RedisPendingInvitationAcceptanceStore pendingAcceptances,
     IOrganizationInvitations invitations)
 {
-    internal async Task<string> HandleAsync(
+    internal async Task<InvitationAcceptanceNavigation> HandleAsync(
         string acceptanceHandle,
         CurrentUser currentUser,
         string? verifiedProviderEmail,
@@ -18,12 +18,12 @@ internal sealed class CompleteInvitationAcceptanceHandler(
             cancellationToken);
         if (pendingAcceptance is null)
         {
-            return ResultUri("invalid");
+            return new InvitationAcceptanceNavigation.Unavailable();
         }
 
         if (verifiedProviderEmail is null)
         {
-            return ResultUri("recipient-mismatch", acceptanceHandle);
+            return new InvitationAcceptanceNavigation.RecipientMismatch(acceptanceHandle);
         }
 
         AcceptOrganizationInvitationResult result = await invitations.AcceptInvitationAsync(
@@ -41,7 +41,7 @@ internal sealed class CompleteInvitationAcceptanceHandler(
             AcceptOrganizationInvitationResult.AlreadyAccepted accepted =>
                 await CompleteAsync(acceptanceHandle, accepted.Membership, cancellationToken),
             AcceptOrganizationInvitationResult.RecipientMismatch =>
-                ResultUri("recipient-mismatch", acceptanceHandle),
+                new InvitationAcceptanceNavigation.RecipientMismatch(acceptanceHandle),
             AcceptOrganizationInvitationResult.Invalid =>
                 await CompleteTerminalAsync(acceptanceHandle, cancellationToken),
             AcceptOrganizationInvitationResult.Expired =>
@@ -52,25 +52,20 @@ internal sealed class CompleteInvitationAcceptanceHandler(
         };
     }
 
-    private async Task<string> CompleteAsync(
+    private async Task<InvitationAcceptanceNavigation> CompleteAsync(
         string acceptanceHandle,
         OrganizationMembership membership,
         CancellationToken cancellationToken)
     {
         await pendingAcceptances.RemoveAsync(acceptanceHandle, cancellationToken);
-        return $"/api/o/{Uri.EscapeDataString(membership.Slug)}";
+        return new InvitationAcceptanceNavigation.Organization(membership.Slug);
     }
 
-    private async Task<string> CompleteTerminalAsync(
+    private async Task<InvitationAcceptanceNavigation> CompleteTerminalAsync(
         string acceptanceHandle,
         CancellationToken cancellationToken)
     {
         await pendingAcceptances.RemoveAsync(acceptanceHandle, cancellationToken);
-        return ResultUri("invalid");
+        return new InvitationAcceptanceNavigation.Unavailable();
     }
-
-    private static string ResultUri(string status, string? acceptanceHandle = null) =>
-        acceptanceHandle is null
-            ? $"/invitations/accept/result?status={Uri.EscapeDataString(status)}"
-            : $"/invitations/accept/result?status={Uri.EscapeDataString(status)}&acceptanceHandle={Uri.EscapeDataString(acceptanceHandle)}";
 }

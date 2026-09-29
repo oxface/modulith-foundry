@@ -1,5 +1,3 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Access.Email;
@@ -11,16 +9,11 @@ namespace ModulithFoundry.Modules.Access.Invitations.Email;
 internal sealed partial class InvitationEmailDispatcher(
     AccessDbContext context,
     TimeProvider timeProvider,
-    IDataProtectionProvider dataProtectionProvider,
+    InvitationEmailPayloadCodec payloadCodec,
     IEmailTransport emailTransport,
     ILogger<InvitationEmailDispatcher> logger)
 {
-    private const string DeliveryPayloadPurpose =
-        "ModulithFoundry.Access.InvitationEmailDelivery.v1";
     private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(2);
-
-    private readonly IDataProtector _payloadProtector =
-        dataProtectionProvider.CreateProtector(DeliveryPayloadPurpose);
 
     internal async Task<bool> DispatchNextAsync(CancellationToken cancellationToken)
     {
@@ -72,9 +65,7 @@ internal sealed partial class InvitationEmailDispatcher(
         {
             string protectedPayload = delivery.ProtectedPayload
                 ?? throw new InvalidOperationException("Claimed invitation email has no payload.");
-            InvitationEmailPayload payload = JsonSerializer.Deserialize<InvitationEmailPayload>(
-                _payloadProtector.Unprotect(protectedPayload))
-                ?? throw new InvalidOperationException("Invitation email payload is empty.");
+            InvitationEmailPayload payload = payloadCodec.Unprotect(protectedPayload);
             await emailTransport.SendAsync(
                 InvitationEmailRenderer.Render(payload),
                 cancellationToken);

@@ -1,19 +1,13 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
+using ModulithFoundry.Modules.Access.Invitations.Email;
 
 namespace ModulithFoundry.Modules.Access.Invitations;
 
 internal sealed class InvitationEmailDeliveryFactory(
-    IDataProtectionProvider dataProtectionProvider,
+    InvitationEmailPayloadCodec payloadCodec,
     IOptions<InvitationOptions> options)
 {
-    private const string DeliveryPayloadPurpose =
-        "ModulithFoundry.Access.InvitationEmailDelivery.v1";
-
     private readonly InvitationOptions _options = options.Value;
-    private readonly IDataProtector _payloadProtector =
-        dataProtectionProvider.CreateProtector(DeliveryPayloadPurpose);
 
     internal TimeSpan InvitationLifetime => TimeSpan.FromHours(_options.LifetimeHours);
 
@@ -27,12 +21,12 @@ internal sealed class InvitationEmailDeliveryFactory(
             _options.PublicApplicationUrl
                 ?? throw new InvalidOperationException("Public application URL is not configured."),
             $"/invitations/accept?invitationId={invitation.Id:D}&code={Uri.EscapeDataString(secret)}");
-        string protectedPayload = _payloadProtector.Protect(JsonSerializer.Serialize(
+        string protectedPayload = payloadCodec.Protect(
             new InvitationEmailPayload(
                 invitation.RecipientEmail,
                 organizationName,
                 acceptUrl,
-                invitation.ExpiresAt)));
+                invitation.ExpiresAt));
         return InvitationEmailDelivery.Create(
             Guid.CreateVersion7(createdAt),
             invitation,

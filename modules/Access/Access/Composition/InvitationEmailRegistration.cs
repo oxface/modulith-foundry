@@ -18,6 +18,7 @@ internal static class InvitationEmailRegistration
         AddInvitationOptions(services, configuration);
         AddSmtpOptions(services, configuration);
         services.TryAddScoped<IEmailTransport, SmtpEmailTransport>();
+        services.AddScoped<InvitationEmailPayloadCodec>();
         services.AddScoped<InvitationEmailDispatcher>();
         services.AddHostedService<InvitationEmailDeliveryWorker>();
         return services;

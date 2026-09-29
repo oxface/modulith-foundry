@@ -25,7 +25,7 @@ internal static class InvitationAcceptanceEndpoints
         HttpContext httpContext)
     {
         SetSensitiveResponseHeaders(httpContext);
-        return status == "recipient-mismatch"
+        return InvitationAcceptanceNavigation.IsRecipientMismatch(status)
             ? Results.Problem(
                 statusCode: StatusCodes.Status403Forbidden,
                 title: "The authenticated identity cannot accept this invitation.",
