@@ -97,10 +97,6 @@ internal static class InvitationEndpoints
             invitation.ExpiresAt,
             invitation.CreatedAt);
 
-    private sealed record CreateInvitationRequest(
-        string RecipientEmail,
-        IReadOnlyList<string> RoleIds);
-
     private sealed record InvitationResponse(
         Guid InvitationId,
         string RecipientEmail,

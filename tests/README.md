@@ -3,7 +3,7 @@
 The current test projects map directly to CI lanes:
 
 - `ArchitectureSupport` is a test-only library, not a lane. It discovers the conventional module project pairs, assembly names, and declared `ModuleSchema` values once for the architecture and persistence lanes.
-- `ApplicationTests` is the container-free Fast lane for behavior spanning application-owned collaborators without external I/O. Its authentication tests cover issuer/audience policy and completion of a validated external identity into the linked product User stored in the BFF ticket.
+- `ApplicationTests` is the container-free Fast lane for behavior spanning application-owned collaborators without external I/O. Its authentication tests cover issuer/audience policy and completion of a validated external identity into the linked product User stored in the BFF ticket. Its in-memory ASP.NET Core host verifies the public HTTP failure and request-validation contract without starting the Aspire topology.
 - `ArchitectureTests` is the container-free Fast lane. It checks the declared solution/project graph and compiled dependencies with ArchUnitNET.
 - `PersistenceTests` is the PostgreSQL lane. It uses Testcontainers with PostgreSQL 18.6 for real migration and coordination semantics.
 - `TopologyTests` is the Aspire lane. It uses `DistributedApplicationTestingBuilder` to exercise PostgreSQL, Redis, Keycloak, the finite Migrator, dependency gating, API health, and real OTLP export to a controlled receiver. Its focused identity path drives Keycloak's authorization-code/form-post flow, verifies an opaque Redis-backed session, CSRF-protected logout, JIT identity linking, stale-ticket rejection, fail-closed Redis outage behavior, and absence of seeded secrets or token field names from API log exports.

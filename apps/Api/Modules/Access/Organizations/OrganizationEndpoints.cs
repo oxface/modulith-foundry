@@ -88,8 +88,6 @@ internal static class OrganizationEndpoints
             title: "Invalid organization",
             detail: detail);
 
-    private sealed record CreateOrganizationRequest(string Name, string Slug);
-
     private sealed record OrganizationResponse(
         Guid OrganizationId,
         string Name,

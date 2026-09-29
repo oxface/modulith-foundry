@@ -8,6 +8,21 @@
 
 The deferred Vite frontend will live at `apps/Web`; its module-specific screens remain feature folders inside that application until a real independent frontend package boundary is justified. [`shared/ServiceDefaults`](../shared/ServiceDefaults) contains only shared JSON logging, health, service-discovery, resilience, and OpenTelemetry setup.
 
+## API failure contract
+
+The API uses ASP.NET Core's native Problem Details service. Empty HTTP error results receive a
+Problem Details body, and an unhandled exception outside Development returns a generic `500`
+response with a trace ID while the exception remains in logs and traces. Development retains the
+framework's automatically configured Developer Exception Page; never run a deployed instance with
+the Development environment because that page can expose request and exception details.
+
+Expected application failures remain explicit result variants mapped by the owning endpoint. Do not
+globally translate persistence or domain exceptions into HTTP statuses: the same exception can have
+different meanings for different operations. Minimal API request records use native DataAnnotations
+only for transport shape and size constraints. They are public API-adapter types because .NET 10's
+source-generated validation metadata does not cover the internal request records used here; their
+visibility does not make them module Contracts.
+
 ## Module migrations
 
 The Migrator owns only coordination. It calls each module's persistence-only registration entry point, so future API workers and message consumers cannot accidentally run in the migration job. Each module owns its `DbContext`, schema, history table, and migration files. The declared application order is Access, Inventory, Purchasing, then Sales; the PostgreSQL advisory lock prevents two Migrator processes from applying that sequence concurrently. The session-level lock uses one dedicated, non-pooled connection so it cannot starve the shared EF connection pool.
