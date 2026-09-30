@@ -6,8 +6,19 @@ namespace ModulithFoundry.Modules.Access.Organizations.Queries;
 
 internal sealed class OrganizationMembershipQueries(
     AccessDbContext context,
-    SystemRoleCatalog roleCatalog) : IOrganizationMembershipQueries
+    SystemRoleCatalog roleCatalog) : IOrganizationMembershipQueries, IOrganizationAuthorization
 {
+    public Task<bool> HasPermissionAsync(
+        UserId userId,
+        OrganizationId organizationId,
+        string permissionId,
+        CancellationToken cancellationToken = default) =>
+        HasPermissionAsync(
+            userId.Value,
+            organizationId.Value,
+            permissionId,
+            cancellationToken);
+
     internal async Task<bool> HasPermissionAsync(
         Guid actorUserId,
         Guid organizationId,

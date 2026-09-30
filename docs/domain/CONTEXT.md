@@ -65,12 +65,16 @@ _Avoid_: Saga, orchestrator
 ## Inventory
 
 **Stock Item**:
-A product definition that Inventory recognizes as stockable under a stable SKU and base unit.
+A product definition that Inventory recognizes as stockable under an organization-unique, stable SKU and one immutable base unit.
 _Avoid_: Product catalog entry, sales-order line, supplier item
 
 **Stocking Location**:
-An organization-owned place at which Inventory tracks quantities of Stock Items.
+An organization-owned place, identified by a stable organization-unique code, at which Inventory tracks quantities of Stock Items.
 _Avoid_: Warehouse zone, bin, organization
+
+**Base Unit**:
+The single unit in which Inventory records every quantity for one Stock Item. V1 does not convert between units.
+_Avoid_: Unit price, packaging, unit conversion
 
 **Stock Position**:
 The quantity state of one Stock Item at one stocking location.

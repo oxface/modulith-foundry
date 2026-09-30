@@ -21,6 +21,60 @@ namespace ModulithFoundry.PersistenceTests;
 public sealed class AccessModulePersistenceTests
 {
     [Fact]
+    public async Task OrganizationAuthorization_AssignedProductRole_GrantsOwnedPermission()
+    {
+        await using PostgreSqlContainer postgres = CreatePostgresContainer();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        await using ServiceProvider services = await CreateAccessServicesAsync(
+            postgres.GetConnectionString());
+        UserIdentityLink administrator = await LinkUserAsync(
+            services,
+            "inventory-authorization-administrator",
+            "administrator@example.test");
+        OrganizationMembership organization = await CreateOrganizationAsync(
+            services,
+            administrator.UserId,
+            "Inventory Authorization Organization",
+            "inventory-authorization-organization");
+        OrganizationMember membership = Assert.Single((await ListMembershipAdministrationAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId)).Members);
+
+        bool before;
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            before = await scope.ServiceProvider.GetRequiredService<IOrganizationAuthorization>()
+                .HasPermissionAsync(
+                    administrator.UserId,
+                    organization.OrganizationId,
+                    InventoryPermissionIds.ItemsManage,
+                    TestContext.Current.CancellationToken);
+        }
+
+        Assert.IsType<ReplaceMembershipRolesResult.Updated>((await ReplaceMembershipRolesAsync(
+            services,
+            administrator.UserId,
+            organization.OrganizationId,
+            membership.MembershipId,
+            [SystemRoleIds.OrganizationAdministrator, InventoryRoleIds.Manager])).Result);
+
+        bool after;
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            after = await scope.ServiceProvider.GetRequiredService<IOrganizationAuthorization>()
+                .HasPermissionAsync(
+                    administrator.UserId,
+                    organization.OrganizationId,
+                    InventoryPermissionIds.ItemsManage,
+                    TestContext.Current.CancellationToken);
+        }
+
+        Assert.False(before);
+        Assert.True(after);
+    }
+
+    [Fact]
     public async Task ListMembershipAdministration_ActiveAdministrator_ReturnsMembersAndProductRoles()
     {
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
