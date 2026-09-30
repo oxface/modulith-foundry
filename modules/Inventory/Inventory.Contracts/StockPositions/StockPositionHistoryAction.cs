@@ -1,0 +1,7 @@
+namespace ModulithFoundry.Modules.Inventory.Contracts;
+
+public enum StockPositionHistoryAction
+{
+    Opened = 1,
+    Received = 2,
+}

@@ -10,6 +10,7 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 internal sealed class StockPositionStore(
     InventoryDbContext context,
     StockPositionInlineProjection projection,
+    StockPositionEventReader eventReader,
     TimeProvider timeProvider)
 {
     internal const string StreamType = "inventory.stock-position";
@@ -35,14 +36,16 @@ internal sealed class StockPositionStore(
             return StockPositionAggregate.Empty(Guid.CreateVersion7(timeProvider.GetUtcNow()));
         }
 
-        EventStream stream = await context.EventStreams.SingleAsync(
+        EventStream stream = await context.EventStreams.SingleOrDefaultAsync(
             candidate => candidate.Id == writeModel.StreamId && candidate.StreamType == StreamType,
-            cancellationToken);
+            cancellationToken) ?? throw new StockPositionIntegrityException(
+                writeModel.StreamId, StockPositionIntegrityFailure.StreamMissing, expectedVersion: writeModel.Version);
         if (stream.Version != expectedVersion) { throw new StockPositionConcurrencyException(); }
         if (writeModel.Version < stream.Version)
         {
-            throw new InvalidOperationException(
-                "Stock Position write model is behind its stream; rebuild is required.");
+            throw new StockPositionIntegrityException(
+                stream.Id, StockPositionIntegrityFailure.WriteModelBehind,
+                expectedVersion: stream.Version, observedVersion: writeModel.Version);
         }
 
         if (writeModel.Version > stream.Version) { throw new StockPositionConcurrencyException(); }
@@ -50,34 +53,8 @@ internal sealed class StockPositionStore(
         return StockPositionAggregate.FromState(stream.Id, stream.Version, writeModel.ToState());
     }
 
-    internal async Task<StockPositionAggregate?> LoadLiveAsync(
-        Guid streamId, CancellationToken cancellationToken)
-    {
-        EventStream? stream = await context.EventStreams.AsNoTracking().SingleOrDefaultAsync(
-            candidate => candidate.Id == streamId && candidate.StreamType == StreamType,
-            cancellationToken);
-        if (stream is null) { return null; }
-
-        StoredEvent[] storedEvents = await context.Events.AsNoTracking()
-            .Where(stored => stored.StreamId == stream.Id && stored.StreamVersion <= stream.Version)
-            .OrderBy(stored => stored.StreamVersion).ToArrayAsync(cancellationToken);
-        for (int index = 0; index < storedEvents.Length; index++)
-        {
-            if (storedEvents[index].StreamVersion != index + 1L)
-            {
-                throw new InvalidOperationException("Stock Position stream event versions are not contiguous.");
-            }
-        }
-
-        IStockPositionEvent[] events = [.. storedEvents.Select(StockPositionEventSerializer.Deserialize)];
-        StockPositionAggregate aggregate = StockPositionAggregate.Rehydrate(stream.Id, events);
-        if (aggregate.Version != stream.Version)
-        {
-            throw new InvalidOperationException("Stock Position stream metadata version is inconsistent.");
-        }
-
-        return aggregate;
-    }
+    internal Task<StockPositionAggregate?> LoadLiveAsync(Guid streamId, CancellationToken cancellationToken) =>
+        eventReader.LoadAtVersionAsync(streamId, version: null, cancellationToken);
 
     internal async Task StageAppendAsync(
         OrganizationId organizationId, UserId actorUserId, StockPositionAggregate aggregate,
@@ -103,6 +80,13 @@ internal sealed class StockPositionStore(
         {
             EventStream stream = await context.EventStreams.SingleAsync(
                 candidate => candidate.Id == aggregate.StreamId, cancellationToken);
+            if (recordedAt < stream.UpdatedAt)
+            {
+                throw new StockPositionIntegrityException(
+                    stream.Id, StockPositionIntegrityFailure.RecordedTimeRegression,
+                    expectedVersion: stream.Version);
+            }
+
             stream.Advance(aggregate.ExpectedVersion, aggregate.Version, recordedAt);
         }
 

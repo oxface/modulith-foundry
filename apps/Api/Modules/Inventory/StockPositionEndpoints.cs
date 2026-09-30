@@ -11,28 +11,35 @@ internal static class StockPositionEndpoints
     internal static IEndpointRouteBuilder MapStockPositionEndpoints(
         this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder positions = endpoints.MapGroup("/stock-positions");
-        positions.MapGet("/{locationCode}/{sku}", GetCurrentAsync);
-        positions.MapPost("/{locationCode}/{sku}/receipts", RecordReceiptAsync)
+        endpoints.MapGet("/{locationCode}/{sku}", GetAsync);
+        endpoints.MapPost("/{locationCode}/{sku}/receipts", RecordReceiptAsync)
             .RequireBffAntiforgery();
         return endpoints;
     }
 
-    private static async Task<IResult> GetCurrentAsync(
+    private static async Task<IResult> GetAsync(
         string locationCode,
         string sku,
+        long? version,
+        DateTimeOffset? recordedAt,
         IOrganizationContextAccessor contextAccessor,
         IStockPositions stockPositions,
         CancellationToken cancellationToken)
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
-        GetStockPositionResult result = await stockPositions.GetCurrentAsync(
-            new GetStockPositionQuery(
-                context.UserId,
-                context.OrganizationId,
-                locationCode,
-                sku),
-            cancellationToken);
+        if (version.HasValue && recordedAt.HasValue)
+        {
+            return InvalidStockPosition("version", "Specify either version or recordedAt, not both.");
+        }
+
+        GetStockPositionResult result = version.HasValue
+            ? await stockPositions.GetAtVersionAsync(
+                new(context.UserId, context.OrganizationId, locationCode, sku, version.Value), cancellationToken)
+            : recordedAt.HasValue
+                ? await stockPositions.GetAsOfAsync(
+                    new(context.UserId, context.OrganizationId, locationCode, sku, recordedAt.Value), cancellationToken)
+                : await stockPositions.GetCurrentAsync(
+                    new(context.UserId, context.OrganizationId, locationCode, sku), cancellationToken);
         return result switch
         {
             GetStockPositionResult.Found found => TypedResults.Ok(ToResponse(found.Position)),

@@ -28,7 +28,7 @@ User-facing commands and queries:
 - create or update the minimal Stock Item and Stocking Location reference data;
 - record an initial receipt or later physical quantity increase;
 - append a reasoned correction rather than rewriting event history;
-- get current Stock Position state, recorded-time history, and state as of a recorded instant;
+- get current Stock Position state, state at an exact event version or inclusive recorded instant, and bounded curated business history under current view permission;
 - rebuild and verify the inline current projection through an explicit administrative operation.
 
 In-process module queries:

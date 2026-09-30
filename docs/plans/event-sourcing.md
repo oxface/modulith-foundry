@@ -61,10 +61,21 @@ This note refines the [architecture baseline](architecture-and-delivery.md#8-eve
 ## History, rebuild, and deferred async work
 
 - Corrections append events; do not edit old events. Retirement is a lifecycle fact, not normal history deletion. Privacy erasure is a separate governed operation.
-- Version/as-of reads reconstruct what was recorded, with explicit UTC inclusivity and sequence ordering for equal timestamps. Effective-time/bitemporal semantics are deferred.
+- Version/as-of reads reconstruct currently committed recorded facts, with inclusive UTC cutoffs and stream-version ordering for equal timestamps. Global sequence numbers do not define stream order: EF may reorder event inserts inside one atomic batch. They also do not define commit order. Effective-time/bitemporal semantics and historical SQL transaction snapshots are deferred.
 - Replay/rebuild only derives state: no email, messages, new business decisions, or duplicate audit. Rebuild uses shadow state, verification, cancellation/resume, and a writer-coordinated swap. Required lookup/write models cannot be emptied while affected commands remain enabled.
 - **Async projections are explicitly wanted later.** Begin with one native background worker and a concrete eventual-consistency use case; no leader election or HA daemon framework. The consumer owns initial deployment scale.
 - Competing workers are viable only with durable claiming/checkpoints, atomic progress plus projection effects, replay/idempotency, and ordering/serialization for each affected projected key. Avoid checkpointing past unprocessed work. A PostgreSQL sequence's maximum is not automatically a safe committed-event cursor because concurrent transactions can commit out of sequence. Design those mechanics with the first async use case; extra replicas are unsupported until the relevant proofs pass.
+
+## Temporal reads and curated history contract
+
+- The current-state HTTP route remains `/api/o/{organizationSlug}/inventory/stock-positions/{locationCode}/{sku}`. Optional `version` or `recordedAt` selects historical state; specifying both is invalid. Contract methods separate current, exact-version, and recorded-time queries. Each uses current authorization, not historical grants.
+- Versions are positive event ordinals. A version beyond the captured stream head or a cutoff before opening returns not found. An exact version can select an intermediate event inside a multi-event append batch; it is not a historical transaction snapshot. Replay never accepts pending events, saves changes, audits the old action again, or publishes effects.
+- Recorded timestamps come from the application clock at append, before database commit. An as-of query reads currently committed events recorded at or before its cutoff, normalizes supplied offsets to UTC, and includes all events sharing the boundary timestamp. Database timestamps have microsecond resolution. The implementation does not claim commit-time visibility or bitemporal correctness.
+- New appends must not move recorded time backwards within a stream; clock regression fails before saving rather than inventing a new timestamp. Platform clock synchronization remains an operational requirement. Replay rejects timestamp regression and noncontiguous event versions in its selected prefix.
+- `/history` returns ascending, business-facing opening/receipt entries with version, recorded time, and applicable quantity in the position's base unit. It exposes no raw JSON, event aliases/schema versions, global sequence, or unrestricted metadata. It is not the security audit log.
+- History uses an exclusive `afterVersion` cursor and a `limit` default of 50, capped at 100. Empty/end/beyond-head pages have no next cursor. Each page captures its own committed head; pagination is not a stable snapshot export for integration bootstrap.
+- Stock Position integrity faults carry stream identity, a failure classification, and applicable expected/observed versions. Unknown event identities/versions, malformed required payloads, gaps, and inconsistent required models remain exceptions, not normal business rejection results. Production HTTP uses the existing generic 500 Problem Details with trace ID; operators investigate/repair, and clients receive no internal repair instructions.
+- Literal v1 JSON fixtures cover opening and receipt payloads independently of current CLR names. New versions need retained compatibility fixtures; do not regenerate old fixtures from the current serializer as a shortcut. No artificial v2 schema or generic upcaster is introduced without a real change.
 
 ## Late validation and extraction
 
@@ -80,5 +91,6 @@ The final handoff increment rehearses minimal configuration-driven product scaff
 - [Marten fetch-for-writing](https://martendb.io/scenarios/command_handler_workflow.html) and [pending-event projection](https://martendb.io/events/projections/project-latest)
 - [Marten event upcasting](https://martendb.io/events/versioning#upcasting-advanced-payload-transformations)
 - [Npgsql JSON mapping](https://www.npgsql.org/efcore/mapping/json.html) and [PostgreSQL JSONB indexing](https://www.postgresql.org/docs/current/datatype-json.html#JSON-INDEXING)
+- [PostgreSQL timestamp precision](https://www.postgresql.org/docs/current/datatype-datetime.html) and [Npgsql UTC date/time mapping](https://www.npgsql.org/doc/types/datetime.html)
 
 These references inform the design; no Marten dependency is introduced.

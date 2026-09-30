@@ -44,9 +44,12 @@ public static class InventoryModule
         services.AddScoped<IStockingLocationAdministration, StockingLocationAdministration>();
         services.AddScoped<IStockItemReferences, StockItemReferences>();
         services.AddScoped<StockPositionStore>();
+        services.AddScoped<StockPositionEventReader>();
         services.AddScoped<StockPositionInlineProjection>();
         services.AddScoped<RecordStockReceiptHandler>();
         services.AddScoped<StockPositionQueries>();
+        services.AddScoped<StockPositionTemporalQueries>();
+        services.AddScoped<StockPositionHistoryQueries>();
         services.AddScoped<IStockPositions, StockPositionOperations>();
 
         return services;

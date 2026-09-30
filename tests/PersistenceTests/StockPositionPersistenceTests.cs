@@ -13,7 +13,7 @@ using Testcontainers.PostgreSql;
 
 namespace ModulithFoundry.PersistenceTests;
 
-public sealed class StockPositionPersistenceTests
+public sealed partial class StockPositionPersistenceTests
 {
     [Fact]
     public async Task RecordReceipt_EventHistoryReadUnavailable_UsesInlineWriteState()
@@ -132,8 +132,11 @@ public sealed class StockPositionPersistenceTests
             "UPDATE inventory.stock_position_current SET version = 1", connection);
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => RecordReceiptAsync(
+        StockPositionIntegrityException failure = await Assert.ThrowsAsync<StockPositionIntegrityException>(() => RecordReceiptAsync(
             services, organization, quantity: 1m, expectedVersion: 2));
+        Assert.Equal(StockPositionIntegrityFailure.WriteModelBehind, failure.Failure);
+        Assert.Equal(2, failure.ExpectedVersion);
+        Assert.Equal(1, failure.ObservedVersion);
         Assert.Equal(2, await CountStoredEventsAsync(postgres.GetConnectionString()));
     }
 
@@ -495,7 +498,8 @@ public sealed class StockPositionPersistenceTests
     private static async Task<ServiceProvider> CreateServicesAsync(
         string connectionString,
         OrganizationAccessContext organizationContext,
-        bool migrate = true)
+        bool migrate = true,
+        TimeProvider? timeProvider = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
@@ -505,7 +509,7 @@ public sealed class StockPositionPersistenceTests
         services.AddSingleton<TestOrganizationAuthorization>();
         services.AddSingleton<IOrganizationAuthorization>(provider =>
             provider.GetRequiredService<TestOrganizationAuthorization>());
-        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(timeProvider ?? TimeProvider.System);
         services.AddInventoryModule();
         ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         if (migrate)

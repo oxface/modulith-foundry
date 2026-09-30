@@ -6,7 +6,10 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
 internal static class StockPositionEventSerializer
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        RespectNullableAnnotations = true,
+    };
     private static readonly Dictionary<Type, StoredEventTypeAttribute> ByType = BuildRegistry(
         typeof(IStockPositionEvent).Assembly.GetTypes());
     private static readonly Dictionary<(string Name, int Version), Type> ByIdentity =
@@ -31,12 +34,23 @@ internal static class StockPositionEventSerializer
     {
         if (!ByIdentity.TryGetValue((stored.EventName, stored.SchemaVersion), out Type? type))
         {
-            throw new InvalidOperationException(
-                $"Unknown Stock Position event '{stored.EventName}' schema version {stored.SchemaVersion}.");
+            throw new StockPositionIntegrityException(
+                stored.StreamId, StockPositionIntegrityFailure.UnknownEvent, observedVersion: stored.StreamVersion);
         }
 
-        return (IStockPositionEvent)(stored.Payload.Deserialize(type, SerializerOptions)
-            ?? throw new InvalidOperationException("Stored Stock Position event payload was empty."));
+        try
+        {
+            return (IStockPositionEvent)(stored.Payload.Deserialize(type, SerializerOptions)
+                ?? throw new StockPositionIntegrityException(
+                    stored.StreamId, StockPositionIntegrityFailure.InvalidEventPayload,
+                    observedVersion: stored.StreamVersion));
+        }
+        catch (JsonException exception)
+        {
+            throw new StockPositionIntegrityException(
+                stored.StreamId, StockPositionIntegrityFailure.InvalidEventPayload,
+                observedVersion: stored.StreamVersion, innerException: exception);
+        }
     }
 
     internal static Dictionary<Type, StoredEventTypeAttribute> BuildRegistry(IEnumerable<Type> types)

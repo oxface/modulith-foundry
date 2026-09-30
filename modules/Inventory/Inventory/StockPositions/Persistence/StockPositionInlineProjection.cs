@@ -18,8 +18,10 @@ internal sealed class StockPositionInlineProjection(InventoryDbContext context)
                 position => position.StreamId == streamId, cancellationToken);
             if (current is null || current.Version < expectedVersion)
             {
-                throw new InvalidOperationException(
-                    "Stock Position projection is missing or behind its stream; rebuild is required.");
+                throw new StockPositionIntegrityException(
+                    streamId,
+                    current is null ? StockPositionIntegrityFailure.WriteModelMissing : StockPositionIntegrityFailure.WriteModelBehind,
+                    expectedVersion, current?.Version);
             }
 
             if (current.Version > expectedVersion)

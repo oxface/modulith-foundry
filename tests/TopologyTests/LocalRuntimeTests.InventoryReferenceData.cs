@@ -93,6 +93,50 @@ public sealed partial class LocalRuntimeTests
         Assert.Equal(2, positionJson.RootElement.GetProperty("version").GetInt64());
         Assert.Equal(12.5m, positionJson.RootElement.GetProperty("onHandQuantity").GetDecimal());
 
+        using HttpResponseMessage historical = await client.GetAsync(
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01?version=1", timeout.Token);
+        historical.EnsureSuccessStatusCode();
+        using JsonDocument historicalJson = JsonDocument.Parse(await historical.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(1, historicalJson.RootElement.GetProperty("version").GetInt64());
+        Assert.Equal(0m, historicalJson.RootElement.GetProperty("onHandQuantity").GetDecimal());
+
+        using HttpResponseMessage history = await client.GetAsync(
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/history?limit=1", timeout.Token);
+        history.EnsureSuccessStatusCode();
+        string historyBody = await history.Content.ReadAsStringAsync(timeout.Token);
+        using JsonDocument historyJson = JsonDocument.Parse(historyBody);
+        JsonElement firstEntry = Assert.Single(historyJson.RootElement.GetProperty("entries").EnumerateArray());
+        Assert.Equal("opened", firstEntry.GetProperty("action").GetString());
+        Assert.Equal(1, historyJson.RootElement.GetProperty("nextAfterVersion").GetInt64());
+        Assert.DoesNotContain("payload", historyBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("metadata", historyBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("schemaVersion", historyBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("inventory.stock-position.opened", historyBody, StringComparison.Ordinal);
+
+        using HttpResponseMessage historyTail = await client.GetAsync(
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/history?afterVersion=1&limit=1", timeout.Token);
+        historyTail.EnsureSuccessStatusCode();
+        using JsonDocument tailJson = JsonDocument.Parse(await historyTail.Content.ReadAsStringAsync(timeout.Token));
+        JsonElement lastEntry = Assert.Single(tailJson.RootElement.GetProperty("entries").EnumerateArray());
+        Assert.Equal("received", lastEntry.GetProperty("action").GetString());
+        Assert.Equal(12.5m, lastEntry.GetProperty("quantity").GetDecimal());
+        Assert.Equal(JsonValueKind.Null, tailJson.RootElement.GetProperty("nextAfterVersion").ValueKind);
+
+        string recordedAt = Uri.EscapeDataString(firstEntry.GetProperty("recordedAt").GetString()!);
+        using HttpResponseMessage asOf = await client.GetAsync(
+            $"/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01?recordedAt={recordedAt}", timeout.Token);
+        asOf.EnsureSuccessStatusCode();
+        using JsonDocument asOfJson = JsonDocument.Parse(await asOf.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(2, asOfJson.RootElement.GetProperty("version").GetInt64());
+        Assert.Equal(12.5m, asOfJson.RootElement.GetProperty("onHandQuantity").GetDecimal());
+
+        using HttpResponseMessage ambiguous = await client.GetAsync(
+            $"/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01?version=1&recordedAt={recordedAt}", timeout.Token);
+        await AssertProblemAsync(ambiguous, HttpStatusCode.BadRequest, timeout.Token);
+        using HttpResponseMessage oversized = await client.GetAsync(
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/history?limit=101", timeout.Token);
+        await AssertProblemAsync(oversized, HttpStatusCode.BadRequest, timeout.Token);
+
         using HttpResponseMessage staleReceipt = await SendCommandAsync(
             client,
             HttpMethod.Post,
@@ -138,5 +182,8 @@ public sealed partial class LocalRuntimeTests
             new { sku = "denied-01", description = "Denied item", baseUnitCode = "EA" },
             timeout.Token);
         await AssertProblemAsync(denied, HttpStatusCode.Forbidden, timeout.Token);
+        using HttpResponseMessage deniedHistory = await client.GetAsync(
+            "/api/o/inventory-denied/inventory/stock-positions/main/bolt-01/history", timeout.Token);
+        await AssertProblemAsync(deniedHistory, HttpStatusCode.Forbidden, timeout.Token);
     }
 }

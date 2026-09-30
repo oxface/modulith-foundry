@@ -26,6 +26,7 @@ Use pragmatic CQRS inside each module: writes and reads may share the module's d
 - Query classes project read models directly and do not hydrate aggregates merely to display data. Name a cohesive query surface `{Subject}Queries` and place it under `Queries`; split it only when its size or distinct read models justify more files.
 - Contracts expose explicit capability-oriented operations and read models. Do not introduce a generic command bus, mediator, marker interfaces, or a separate read store without an implemented need.
 - Capability methods return operation-specific discriminated results for expected outcomes. Internal handlers may use implementation-local exceptions to protect domain construction, but expected failures do not escape through Contracts.
+- Persisted-state and event-store integrity faults use specific module-local exceptions with safe diagnostic identity/reason/version fields; they are not expected business rejection results or automatic-retry requests. Production HTTP returns the existing generic 500 Problem Details with trace ID. Keep `InvalidOperationException` for programming misuse and composition failures; do not globally classify every such exception as data corruption.
 - Application handlers coordinate persistence and domain behavior. Business invariants remain on aggregates, value objects, or a domain service/policy when no one aggregate naturally owns the rule.
 
 ## Naming vocabulary

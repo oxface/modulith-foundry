@@ -183,7 +183,7 @@ The first increment creates the canonical repository commands for these lanes. A
 - Demonstrate one explicit old-version transformation only if a real schema change is needed; otherwise keep the extension point absent.
 - Add a curated Stock Position history representation distinct from raw JSON and security audit.
 
-**Acceptance:** fixed-clock and database integration tests prove boundary timestamps, same-timestamp sequence ordering, historical determinism, fixture compatibility after namespace refactors, and replay without domain/integration event dispatch.
+**Acceptance:** fixed-clock and database integration tests prove inclusive boundary timestamps, same-timestamp stream-version ordering independent of global sequence allocation, historical determinism, fixture compatibility after namespace refactors, and replay without domain/integration event dispatch. Expected query failures remain results; corrupt persisted history and inconsistent required write models raise structured module-local integrity exceptions through the existing generic HTTP 500 handling.
 
 ### Increment 3.4 — Correction and projection rebuild proof
 
