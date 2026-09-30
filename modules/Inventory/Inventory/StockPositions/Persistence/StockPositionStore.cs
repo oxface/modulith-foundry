@@ -12,7 +12,7 @@ internal sealed class StockPositionStore(
     StockPositionInlineProjection projection,
     TimeProvider timeProvider)
 {
-    internal const string IdentityConstraint = "ux_stock_position_stream_identity";
+    internal const string StreamType = "inventory.stock-position";
 
     internal async Task<StockPositionAggregate> LoadForWritingAsync(
         Guid stockItemId, Guid stockingLocationId, long expectedVersion,
@@ -24,18 +24,39 @@ internal sealed class StockPositionStore(
                 "expectedVersion", "Expected version cannot be negative.");
         }
 
-        EventStream? stream = await context.EventStreams.SingleOrDefaultAsync(
-            candidate => candidate.StreamType == EventStream.StockPositionStreamType
-                && candidate.StockItemId == stockItemId
-                && candidate.StockingLocationId == stockingLocationId,
-            cancellationToken);
-        if (stream is null)
+        StockPositionWriteModel? writeModel = await context.StockPositionWriteModels.AsNoTracking()
+            .SingleOrDefaultAsync(
+                candidate => candidate.StockItemId == stockItemId
+                    && candidate.StockingLocationId == stockingLocationId,
+                cancellationToken);
+        if (writeModel is null)
         {
             if (expectedVersion != 0) { throw new StockPositionConcurrencyException(); }
             return StockPositionAggregate.Empty(Guid.CreateVersion7(timeProvider.GetUtcNow()));
         }
 
+        EventStream stream = await context.EventStreams.SingleAsync(
+            candidate => candidate.Id == writeModel.StreamId && candidate.StreamType == StreamType,
+            cancellationToken);
         if (stream.Version != expectedVersion) { throw new StockPositionConcurrencyException(); }
+        if (writeModel.Version < stream.Version)
+        {
+            throw new InvalidOperationException(
+                "Stock Position write model is behind its stream; rebuild is required.");
+        }
+
+        if (writeModel.Version > stream.Version) { throw new StockPositionConcurrencyException(); }
+
+        return StockPositionAggregate.FromState(stream.Id, stream.Version, writeModel.ToState());
+    }
+
+    internal async Task<StockPositionAggregate?> LoadLiveAsync(
+        Guid streamId, CancellationToken cancellationToken)
+    {
+        EventStream? stream = await context.EventStreams.AsNoTracking().SingleOrDefaultAsync(
+            candidate => candidate.Id == streamId && candidate.StreamType == StreamType,
+            cancellationToken);
+        if (stream is null) { return null; }
 
         StoredEvent[] storedEvents = await context.Events.AsNoTracking()
             .Where(stored => stored.StreamId == stream.Id && stored.StreamVersion <= stream.Version)
@@ -64,8 +85,11 @@ internal sealed class StockPositionStore(
     {
         ArgumentOutOfRangeException.ThrowIfEqual(organizationId.Value, Guid.Empty);
         ArgumentOutOfRangeException.ThrowIfEqual(actorUserId.Value, Guid.Empty);
-        StockPositionState state = aggregate.State
-            ?? throw new InvalidOperationException("Cannot append an empty Stock Position.");
+        if (aggregate.State is null)
+        {
+            throw new InvalidOperationException("Cannot append an empty Stock Position.");
+        }
+
         string? traceId = Activity.Current?.TraceId.ToString();
         var metadata = new StockPositionEventMetadata(
             organizationId.Value, actorUserId.Value, traceId, CausationId: null, traceId);
@@ -73,8 +97,7 @@ internal sealed class StockPositionStore(
         if (aggregate.ExpectedVersion == 0)
         {
             context.EventStreams.Add(EventStream.Open(
-                aggregate.StreamId, organizationId.Value, state.StockItemId,
-                state.StockingLocationId, aggregate.Version, recordedAt));
+                aggregate.StreamId, organizationId.Value, StreamType, aggregate.Version, recordedAt));
         }
         else
         {
@@ -103,6 +126,6 @@ internal sealed class StockPositionStore(
         || exception.InnerException is PostgresException
         {
             SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: IdentityConstraint or "ux_events_stream_version" or "ux_stock_position_current_identity",
+            ConstraintName: StockPositionWriteModelConfiguration.IdentityConstraint or "ux_events_stream_version",
         };
 }

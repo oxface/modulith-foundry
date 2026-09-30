@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
-internal sealed class StockPositionCurrentConfiguration :
-    IEntityTypeConfiguration<StockPositionCurrent>
+internal sealed class StockPositionWriteModelConfiguration :
+    IEntityTypeConfiguration<StockPositionWriteModel>
 {
-    public void Configure(EntityTypeBuilder<StockPositionCurrent> position)
+    internal const string IdentityConstraint = "ux_stock_position_current_identity";
+
+    public void Configure(EntityTypeBuilder<StockPositionWriteModel> position)
     {
         position.ToTable("stock_position_current", table =>
         {
@@ -36,7 +38,7 @@ internal sealed class StockPositionCurrentConfiguration :
         position.Property(entity => entity.AvailableQuantity)
             .HasColumnName("available_quantity")
             .HasPrecision(19, 6);
-        position.Property(entity => entity.Version).HasColumnName("version");
+        position.Property(entity => entity.Version).HasColumnName("version").IsConcurrencyToken();
         position.Property(entity => entity.UpdatedAt).HasColumnName("updated_at");
         position.HasIndex(entity => new
         {
@@ -45,10 +47,10 @@ internal sealed class StockPositionCurrentConfiguration :
             entity.StockItemId,
         })
             .IsUnique()
-            .HasDatabaseName("ux_stock_position_current_identity");
+            .HasDatabaseName(IdentityConstraint);
         position.HasOne<EventStream>()
             .WithOne()
-            .HasForeignKey<StockPositionCurrent>(entity => entity.StreamId)
+            .HasForeignKey<StockPositionWriteModel>(entity => entity.StreamId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("fk_stock_position_current_event_streams_stream_id");
     }

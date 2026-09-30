@@ -2,14 +2,14 @@ using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
-internal sealed class StockPositionCurrent : IOrganizationOwned
+internal sealed class StockPositionWriteModel : IOrganizationOwned
 {
-    private StockPositionCurrent()
+    private StockPositionWriteModel()
     {
         BaseUnitCode = null!;
     }
 
-    private StockPositionCurrent(
+    private StockPositionWriteModel(
         Guid streamId,
         Guid organizationId,
         Guid stockItemId,
@@ -57,7 +57,7 @@ internal sealed class StockPositionCurrent : IOrganizationOwned
         new(StockItemId, StockingLocationId, BaseUnitCode,
             Quantity.FromStored(OnHandQuantity), Quantity.FromStored(ReservedQuantity));
 
-    internal static StockPositionCurrent Create(
+    internal static StockPositionWriteModel Create(
         Guid streamId,
         Guid organizationId,
         StockPositionState state,

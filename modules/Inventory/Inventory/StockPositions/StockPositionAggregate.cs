@@ -25,6 +25,14 @@ internal sealed class StockPositionAggregate
 
     internal static StockPositionAggregate Empty(Guid streamId) => new(streamId, 0, state: null);
 
+    internal static StockPositionAggregate FromState(
+        Guid streamId, long version, StockPositionState state)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(version);
+        ArgumentNullException.ThrowIfNull(state);
+        return new(streamId, version, state);
+    }
+
     internal static StockPositionAggregate Rehydrate(
         Guid streamId,
         IReadOnlyList<IStockPositionEvent> events)
@@ -55,7 +63,7 @@ internal sealed class StockPositionAggregate
         StockPositionState? candidate = State;
         foreach (IStockPositionEvent @event in events)
         {
-            candidate = StockPositionDecider.Evolve(candidate, @event);
+            candidate = StockPositionEvolution.Evolve(candidate, @event);
         }
 
         StockPositionPolicy.Validate(candidate);
@@ -66,7 +74,7 @@ internal sealed class StockPositionAggregate
 
     private void ApplyHistorical(IStockPositionEvent @event)
     {
-        State = StockPositionDecider.Evolve(State, @event);
+        State = StockPositionEvolution.Evolve(State, @event);
         Version++;
     }
 }

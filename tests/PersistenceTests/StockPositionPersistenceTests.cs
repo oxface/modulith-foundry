@@ -6,6 +6,8 @@ using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Inventory.Persistence;
+using ModulithFoundry.Modules.Inventory.StockPositions;
+using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -14,7 +16,7 @@ namespace ModulithFoundry.PersistenceTests;
 public sealed class StockPositionPersistenceTests
 {
     [Fact]
-    public async Task StreamIdentity_MigrationRoundTripWithoutProjection_PreservesExistingStream()
+    public async Task RecordReceipt_EventHistoryReadUnavailable_UsesInlineWriteState()
     {
         await using PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
@@ -25,24 +27,90 @@ public sealed class StockPositionPersistenceTests
         Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
             services, organization, quantity: 10m, expectedVersion: 0));
 
+        await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new NpgsqlCommand(
+            """
+            CREATE ROLE stock_position_writer LOGIN PASSWORD 'test-only-writer';
+            GRANT USAGE ON SCHEMA inventory TO stock_position_writer;
+            GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA inventory TO stock_position_writer;
+            GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA inventory TO stock_position_writer;
+            REVOKE SELECT ON inventory.events FROM stock_position_writer;
+            GRANT SELECT (global_sequence) ON inventory.events TO stock_position_writer;
+            """, connection);
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        var writerConnection = new NpgsqlConnectionStringBuilder(postgres.GetConnectionString())
+        {
+            Username = "stock_position_writer",
+            Password = "test-only-writer",
+        };
+        await using ServiceProvider writer = await CreateServicesAsync(
+            writerConnection.ConnectionString, organization, migrate: false);
+
+        StockPositionView recorded = Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(writer, organization, quantity: 2m, expectedVersion: 2)).Position;
+
+        Assert.Equal(12m, recorded.OnHandQuantity);
+        Assert.Equal(3, recorded.Version);
+        Assert.Equal(3, await CountStoredEventsAsync(postgres.GetConnectionString()));
+    }
+
+    [Fact]
+    public async Task WriteModelLookup_MigrationRoundTrip_PreservesStreamIdentityAndState()
+    {
+        await using PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        OrganizationAccessContext organization = CreateOrganizationContext();
+        await using ServiceProvider services = await CreateServicesAsync(
+            postgres.GetConnectionString(), organization);
+        await CreateReferenceDataAsync(services, organization);
+        StockPositionView original = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
+            services, organization, quantity: 10m, expectedVersion: 0)).Position;
+
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
             InventoryDbContext context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
             IMigrator migrator = context.GetService<IMigrator>();
             await migrator.MigrateAsync(
-                "20260930122522_SeparateStockPositionStreamIdentity", TestContext.Current.CancellationToken);
-            await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
-            await using var command = new NpgsqlCommand(
-                "DELETE FROM inventory.stock_position_current", connection);
-            await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+                "20260930131247_MoveStockPositionIdentityIntoStream", TestContext.Current.CancellationToken);
             await migrator.MigrateAsync(cancellationToken: TestContext.Current.CancellationToken);
         }
 
         Assert.IsType<RecordStockReceiptResult.VersionConflict>(await RecordReceiptAsync(
             services, organization, quantity: 1m, expectedVersion: 0));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => RecordReceiptAsync(
-            services, organization, quantity: 1m, expectedVersion: 2));
+        StockPositionView appended = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
+            services, organization, quantity: 1m, expectedVersion: 2)).Position;
+        Assert.Equal(original.StockPositionId, appended.StockPositionId);
+        Assert.Equal(11m, appended.OnHandQuantity);
+        Assert.Equal(3, await CountStoredEventsAsync(postgres.GetConnectionString()));
+    }
+
+    [Fact]
+    public async Task WriteModelLookup_MigrationWithMissingWriteModel_RequiresRepair()
+    {
+        await using PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        OrganizationAccessContext organization = CreateOrganizationContext();
+        await using ServiceProvider services = await CreateServicesAsync(
+            postgres.GetConnectionString(), organization);
+        await CreateReferenceDataAsync(services, organization);
+        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
+            services, organization, quantity: 10m, expectedVersion: 0));
+
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        InventoryDbContext context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        IMigrator migrator = context.GetService<IMigrator>();
+        await migrator.MigrateAsync(
+            "20260930131247_MoveStockPositionIdentityIntoStream", TestContext.Current.CancellationToken);
+        await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new NpgsqlCommand("DELETE FROM inventory.stock_position_current", connection);
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+
+        PostgresException failure = await Assert.ThrowsAsync<PostgresException>(() =>
+            migrator.MigrateAsync(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("Repair Stock Position write models", failure.MessageText, StringComparison.Ordinal);
         Assert.Equal(2, await CountStoredEventsAsync(postgres.GetConnectionString()));
     }
 
@@ -70,7 +138,7 @@ public sealed class StockPositionPersistenceTests
     }
 
     [Fact]
-    public async Task RecordReceipt_MissingProjection_DoesNotReopenExistingStream()
+    public async Task RecordReceipt_MissingWriteModelWithKnownVersion_RejectsAppend()
     {
         await using PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
@@ -78,8 +146,8 @@ public sealed class StockPositionPersistenceTests
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(), organization);
         await CreateReferenceDataAsync(services, organization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 10m, expectedVersion: 0));
+        StockPositionView recorded = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
+            services, organization, quantity: 10m, expectedVersion: 0)).Position;
 
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -88,8 +156,15 @@ public sealed class StockPositionPersistenceTests
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
         Assert.IsType<RecordStockReceiptResult.VersionConflict>(await RecordReceiptAsync(
-            services, organization, quantity: 1m, expectedVersion: 0));
+            services, organization, quantity: 1m, expectedVersion: 2));
         Assert.Equal(2, await CountStoredEventsAsync(postgres.GetConnectionString()));
+
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        StockPositionAggregate? live = await scope.ServiceProvider.GetRequiredService<StockPositionStore>()
+            .LoadLiveAsync(recorded.StockPositionId.Value, TestContext.Current.CancellationToken);
+        Assert.NotNull(live);
+        Assert.Equal(10m, live.State!.OnHand.Value);
+        Assert.Empty(live.UncommittedEvents);
     }
 
     [Fact]
@@ -200,7 +275,7 @@ public sealed class StockPositionPersistenceTests
     }
 
     [Fact]
-    public async Task RecordReceipt_PersistsStableEventEnvelopeAndRehydratesDeterministically()
+    public async Task RecordReceipt_PersistsStableEventEnvelopeAndSupportsExplicitLiveReplay()
     {
         await using PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
@@ -224,6 +299,16 @@ public sealed class StockPositionPersistenceTests
 
         Assert.Equal(3, rehydrated.Version);
         Assert.Equal(12m, rehydrated.OnHandQuantity);
+
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            StockPositionAggregate? live = await scope.ServiceProvider.GetRequiredService<StockPositionStore>()
+                .LoadLiveAsync(rehydrated.StockPositionId.Value, TestContext.Current.CancellationToken);
+            Assert.NotNull(live);
+            Assert.Equal(12m, live.State!.OnHand.Value);
+            Assert.Equal(3, live.ExpectedVersion);
+            Assert.Empty(live.UncommittedEvents);
+        }
 
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -308,11 +393,11 @@ public sealed class StockPositionPersistenceTests
             postgres.GetConnectionString(),
             firstOrganization);
         await CreateReferenceDataAsync(services, firstOrganization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
+        StockPositionView firstPosition = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
             services,
             firstOrganization,
             quantity: 5m,
-            expectedVersion: 0));
+            expectedVersion: 0)).Position;
 
         OrganizationAccessContext secondOrganization = CreateOrganizationContext();
         SetOrganizationContext(services, secondOrganization);
@@ -334,6 +419,8 @@ public sealed class StockPositionPersistenceTests
                         "bolt-01"),
                     TestContext.Current.CancellationToken);
             Assert.IsType<GetStockPositionResult.NotFound>(result);
+            Assert.Null(await scope.ServiceProvider.GetRequiredService<StockPositionStore>()
+                .LoadLiveAsync(firstPosition.StockPositionId.Value, TestContext.Current.CancellationToken));
         }
 
         Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
@@ -407,7 +494,8 @@ public sealed class StockPositionPersistenceTests
 
     private static async Task<ServiceProvider> CreateServicesAsync(
         string connectionString,
-        OrganizationAccessContext organizationContext)
+        OrganizationAccessContext organizationContext,
+        bool migrate = true)
     {
         var services = new ServiceCollection();
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
@@ -420,7 +508,10 @@ public sealed class StockPositionPersistenceTests
         services.AddSingleton(TimeProvider.System);
         services.AddInventoryModule();
         ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        await provider.MigrateInventoryAsync(TestContext.Current.CancellationToken);
+        if (migrate)
+        {
+            await provider.MigrateInventoryAsync(TestContext.Current.CancellationToken);
+        }
         return provider;
     }
 

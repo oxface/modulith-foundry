@@ -167,6 +167,7 @@ The first increment creates the canonical repository commands for these lanes. A
 
 - Implement the minimum EF Core-backed event stream/metadata tables inside `InventoryDbContext` with stable event alias/schema version, JSONB payload, event/stream IDs, stream version, recorded time, tenant, and global sequence.
 - Implement the Stock Position state/decider wrapper, deterministic evolution, uncommitted events, expected-version append, and inline current projection.
+- Keep decision and evolution responsibilities separate. Normal command loading uses the complete inline write model with stream-version verification; explicit live replay uses retained history. Keep stream headers domain-neutral and enforce Stock Position business-key uniqueness through its required write model. Projection-loss repair and writer-safe rebuild remain operational requirements, not an independent identity index.
 - Add receipt behavior sufficient to establish positive on-hand stock. Corrections remain in Increment 3.4.
 
 **Acceptance:** domain/PostgreSQL tests prove deterministic hydration, optimistic conflict, unique event IDs, atomic stream/projection rollback, constrained decimals, no cross-tenant stream access, and no assembly-qualified type name as canonical discriminator.

@@ -16,8 +16,9 @@ The `inventory` PostgreSQL schema is authoritative. No other module reads its ta
 
 Stock Position streams are retained as immutable business history for the life of the Stock Position in v1. Published outbox payloads and inbox receipts use bounded operational retention; audit/export/redaction requirements remain compliance-driven rather than inferred from the event store.
 Ending an event-sourced aggregate is a domain lifecycle transition recorded by an appended event,
-not deletion of its stream. Current-state projections may omit ended aggregates while replay still
-reconstructs their terminal state. Any future privacy erasure or destructive sanitization is a
+not deletion of its stream. View-specific projections may omit ended aggregates while replay still
+reconstructs their terminal state; the required Stock Position write model retains identity for
+business-key lookup. Any future privacy erasure or destructive sanitization is a
 separate, explicitly governed retention operation rather than an ordinary domain command.
 
 ## Interface
@@ -66,7 +67,7 @@ Inventory exposes the stable `inventory-manager` role identifier from Inventory.
 
 ## Explicit exclusions
 
-- General event-sourcing framework, snapshots, generic upcasters, async projection framework, or multi-stream transaction abstraction.
+- General event-sourcing framework, separate hydration-checkpoint snapshots, generic upcasters, async projection framework, or multi-stream transaction abstraction.
 - Warehouse zones/bins, picking, transfers, costing, lot/serial tracking, and units-of-measure conversion.
 - Exposing private stream JSON as the product activity timeline or consumer-replay interface.
 - Reading Sales or Purchasing tables.

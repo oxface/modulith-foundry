@@ -4,8 +4,6 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
 internal sealed class EventStream : IOrganizationOwned
 {
-    internal const string StockPositionStreamType = "inventory.stock-position";
-
     private EventStream()
     {
         StreamType = null!;
@@ -14,16 +12,12 @@ internal sealed class EventStream : IOrganizationOwned
     private EventStream(
         Guid id,
         Guid organizationId,
-        Guid stockItemId,
-        Guid stockingLocationId,
         string streamType,
         long version,
         DateTimeOffset createdAt)
     {
         Id = id;
         OrganizationId = organizationId;
-        StockItemId = stockItemId;
-        StockingLocationId = stockingLocationId;
         StreamType = streamType;
         Version = version;
         CreatedAt = createdAt;
@@ -33,10 +27,6 @@ internal sealed class EventStream : IOrganizationOwned
     internal Guid Id { get; private set; }
 
     public Guid OrganizationId { get; private set; }
-
-    internal Guid StockItemId { get; private set; }
-
-    internal Guid StockingLocationId { get; private set; }
 
     internal string StreamType { get; private set; }
 
@@ -49,12 +39,10 @@ internal sealed class EventStream : IOrganizationOwned
     internal static EventStream Open(
         Guid id,
         Guid organizationId,
-        Guid stockItemId,
-        Guid stockingLocationId,
+        string streamType,
         long version,
         DateTimeOffset createdAt) =>
-        new(id, organizationId, stockItemId, stockingLocationId,
-            StockPositionStreamType, version, createdAt);
+        new(id, organizationId, streamType, version, createdAt);
 
     internal void Advance(long expectedVersion, long newVersion, DateTimeOffset updatedAt)
     {

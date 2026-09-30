@@ -11,10 +11,10 @@ internal sealed class StockPositionInlineProjection(InventoryDbContext context)
         IReadOnlyList<IStockPositionEvent> events, DateTimeOffset recordedAt,
         CancellationToken cancellationToken)
     {
-        StockPositionCurrent? current = null;
+        StockPositionWriteModel? current = null;
         if (expectedVersion > 0)
         {
-            current = await context.StockPositionCurrent.SingleOrDefaultAsync(
+            current = await context.StockPositionWriteModels.SingleOrDefaultAsync(
                 position => position.StreamId == streamId, cancellationToken);
             if (current is null || current.Version < expectedVersion)
             {
@@ -31,7 +31,7 @@ internal sealed class StockPositionInlineProjection(InventoryDbContext context)
         StockPositionState? state = current?.ToState();
         foreach (IStockPositionEvent @event in events)
         {
-            state = StockPositionDecider.Evolve(state, @event);
+            state = StockPositionEvolution.Evolve(state, @event);
         }
 
         if (state is null)
@@ -42,7 +42,7 @@ internal sealed class StockPositionInlineProjection(InventoryDbContext context)
         long version = expectedVersion + events.Count;
         if (current is null)
         {
-            context.StockPositionCurrent.Add(StockPositionCurrent.Create(
+            context.StockPositionWriteModels.Add(StockPositionWriteModel.Create(
                 streamId, organizationId, state, version, recordedAt));
         }
         else

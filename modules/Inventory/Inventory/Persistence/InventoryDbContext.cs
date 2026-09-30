@@ -25,7 +25,7 @@ internal sealed class InventoryDbContext(
 
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();
 
-    internal DbSet<StockPositionCurrent> StockPositionCurrent => Set<StockPositionCurrent>();
+    internal DbSet<StockPositionWriteModel> StockPositionWriteModels => Set<StockPositionWriteModel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

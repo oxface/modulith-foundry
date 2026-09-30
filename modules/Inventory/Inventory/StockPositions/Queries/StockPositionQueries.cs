@@ -39,7 +39,7 @@ internal sealed class StockPositionQueries(
         }
 
         StockPositionView? position = await (
-            from current in context.StockPositionCurrent.AsNoTracking()
+            from current in context.StockPositionWriteModels.AsNoTracking()
             join item in context.StockItems.AsNoTracking()
                 on current.StockItemId equals item.Id
             join location in context.StockingLocations.AsNoTracking()
