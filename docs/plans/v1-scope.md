@@ -22,6 +22,7 @@ This scope is a current implementation baseline, not a preservation mandate. Bef
 | Tenant isolation | URL organization slug, verified request tenant context, required discriminator, scoped indexes, query filters, write validation, and cross-tenant tests. |
 | Sales workflow | A minimal Sales Order path sufficient to submit/confirm, start fulfilment, observe reservation/shortage state, cancel, and audit the outcome. |
 | Inventory proof | Inventory-owned minimal Stock Items and Stocking Locations plus one event-sourced Stock Position per organization/location/item. It uses constrained decimal quantities in one immutable base unit, child Reservations, non-negative stock invariants, optimistic append, deterministic hydration through the same evolution entry point, an inline current-state projection, recorded-time state/history queries, immutable correction events, and only the event evolution mechanisms exercised by its persisted fixtures. |
+| Late event-sourcing validation | Increment 8.1 adds a second concrete event-sourced aggregate, preferably in another module, to test distinct decision-state and multiple-inline-view needs before extracting libraries. Its owning charter and domain are chosen then; it does not convert the first workflow's other aggregates implicitly. |
 | Durable fulfilment | RabbitMQ plus Rebus transport adapters, one isolated input/error endpoint per asynchronous consumer module, broker fan-out for integration events, direct routing for integration commands, module-owned EF inbox/outbox/process/deadline records, line-level idempotency, bounded technical retries, and idempotent Reservation Release compensation. |
 | Purchasing participation | Create and observe a Replenishment Requirement from a real shortage. Purchase-order lifecycle depth is limited to what the accepted first workflow exercises. |
 | Audit and activity | Per-module audit for accepted changes and security-significant denials; one curated Sales Order activity timeline. Raw event JSON is not a product timeline. |
@@ -31,6 +32,7 @@ This scope is a current implementation baseline, not a preservation mandate. Bef
 | Tests | Domain/application tests, architecture tests, PostgreSQL/Testcontainers integration tests, RabbitMQ failure tests, HTTP API tests, and only the browser smoke needed to prove BFF login and the critical workflow. |
 | Deployment | One application image, migration job, cheapest feasible Azure private-pilot path, secrets/identity/storage appropriate to that environment, cost ceilings, smoke test, backup/restore, and rollback evidence. |
 | Extraction support | Consumer-owned ports, versioned integration contracts, snapshot-plus-tail guidance, compatibility fixtures, and a documented migration playbook. No service extraction is performed in v1. |
+| Product scaffolding | After second-aggregate proof and focused library/sample separation, rehearse bounded configuration-driven creation of a real product repository and deploy it. Naming is the initial configuration; untested provider/persistence options and a broad extensible generator remain excluded. |
 
 ## Reference scenario capability coverage
 
@@ -56,7 +58,7 @@ Detailed ERP policy is not an architecture-review gate. The reference implementa
 
 | Item | V1 proof boundary |
 | --- | --- |
-| Self-built event sourcing | Keep it inside Inventory and one aggregate family. Adopt it only after concurrency, replay, inline-projection rollback, schema evolution fixture, and as-of reconstruction tests pass. |
+| Self-built event sourcing | Start inside Inventory with one aggregate family and require concurrency, replay, inline-projection rollback, schema evolution fixture, and as-of reconstruction tests. A second concrete aggregate is explicitly scheduled in Increment 8.1 before library extraction. |
 | Inbox/outbox/process infrastructure | Extract shared EF mechanics only after at least two real module consumers expose identical needs. Business process state and transitions remain concrete. |
 | Azure Service Bus | Run a focused real-Standard-namespace compatibility suite before Azure release; do not add the emulator to the default local topology. |
 | Entra External ID | Run issuer/audience/login/logout conformance against the Azure environment; product authorization remains unchanged. |
@@ -75,8 +77,8 @@ Detailed ERP policy is not an architecture-review gate. The reference implementa
 | SupportActor, impersonation, privileged access management | A real support workflow has an owner, approval/audit requirements, and a deployment environment that needs it. |
 | Machine-to-machine identity | A real external client or extracted service must authenticate independently. Internal module calls and workflows do not qualify. |
 | Product data cache in Redis | Measurement identifies a read path whose source, staleness, invalidation, tenant keying, and size policy are known. Redis remains justified for BFF tickets. |
-| Aggregate snapshots | Measured Stock Position hydration latency or stream length breaches an agreed target. New-consumer snapshot-plus-tail is a separate integration concern and remains documented. |
-| Async projection framework | A real projection is allowed to lag and inline projection cost is measured as unacceptable. |
+| Separate hydration-checkpoint snapshots | Measured stream length/hydration cost justifies periodic checkpoints. Aggregate-shaped inline write models are recommended now; new-consumer snapshot-plus-tail remains a separate integration concern. |
+| Async projections | Explicitly wanted later with a concrete eventually consistent view. Start with one background worker, no leader election, and consumer-owned deployment scale. Competing workers require durable progress/claiming, per-view-key ordering, atomic effects/checkpoints, and idempotency proofs; do not implement a generic daemon now. |
 | Multi-stream event-store transaction abstraction | A named invariant genuinely requires atomic appends across multiple Stock Position streams. Line-level reservation is chosen to avoid assuming this. |
 | Generic event upcaster framework | A persisted event schema actually changes and a second version must be read. V1 keeps explicit stable names/versions and compatibility fixtures. |
 | Centralized audit search/export, tamper chains, redaction workflow | Compliance or operator discovery defines retention, evidence, search, immutability, and subject-data requirements. |
@@ -89,11 +91,11 @@ Detailed ERP policy is not an architecture-review gate. The reference implementa
 | Kubernetes, AKS, k3s, Helm/Kustomize, and Flux | The application is complete and deployed through the cheaper baseline, then a named operational reason justifies Kubernetes. |
 | Public Azure edge/WAF/private endpoint topology | The deployment becomes public or its threat model/SLO requires the protected edge; the private pilot uses bounded application scaling and restricted access. |
 | Actual module-to-service extraction | A module has an independent scaling, release, security, or ownership driver. V1 provides guidance and seams only. |
-| Generic scaffold generator/framework | A second product copy/rename exposes repeated, error-prone steps that documentation and agent assistance cannot handle reliably. |
+| Broad wizard / extensible generator / provider matrix | The final configured-scaffolding rehearsal demonstrates a real consumer need and exercised alternative implementations. A bounded naming/configuration script is already planned; generic generation infrastructure is not. |
 | Separate Catalog module | Product behavior beyond a stockable item reference appears: non-stocked products, variants, merchandising, hierarchy, independently owned rich product content, or another capability with a distinct lifecycle. |
 | AI/MAF integration | A product feature has a defined user outcome, data boundary, evaluation method, and cost/safety budget. |
 | Full browser suite | The real product frontend has behavior that HTTP/application tests cannot cover. V1 keeps one critical BFF journey smoke test. |
 
 ## Explicitly removed from the v1 critical path
 
-The following may not block scaffolding, the first workflow, or the first deployment: shared cross-module transactions, RLS, OpenFGA, Rebus sagas, distributed authorization caching, custom-role editing, support impersonation, general notifications, aggregate snapshots, async projections, centralized audit, attachment runtime resources without an attachment use case, Kubernetes/Flux, actual service extraction, a generator, and AI features.
+The following may not block the first workflow or first deployment: shared cross-module transactions, RLS, OpenFGA, Rebus sagas, distributed authorization caching, custom-role editing, support impersonation, general notifications, separate hydration-checkpoint snapshots, async projections, centralized audit, attachment runtime resources without an attachment use case, Kubernetes/Flux, actual service extraction, a broad generator, and AI features. The late second-aggregate/library/configured-scaffolding increments remain scheduled before the final product handoff.

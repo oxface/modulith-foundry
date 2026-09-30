@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="../../apps/Api/ModulithFoundry.Api.csproj" />
     <ProjectReference Include="../../modules/Access/Access.Contracts/Access.Contracts.csproj" />
+    <ProjectReference Include="../../modules/Inventory/Inventory/Inventory.csproj" />
   </ItemGroup>
 
   <ItemGroup>

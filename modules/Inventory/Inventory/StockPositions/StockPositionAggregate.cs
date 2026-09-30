@@ -1,0 +1,72 @@
+using ModulithFoundry.Modules.Inventory.StockPositions.Events;
+
+namespace ModulithFoundry.Modules.Inventory.StockPositions;
+
+internal sealed class StockPositionAggregate
+{
+    private readonly List<IStockPositionEvent> uncommittedEvents = [];
+
+    private StockPositionAggregate(Guid streamId, long version, StockPositionState? state)
+    {
+        StreamId = streamId;
+        Version = version;
+        State = state;
+    }
+
+    internal Guid StreamId { get; }
+
+    internal long ExpectedVersion => Version - uncommittedEvents.Count;
+
+    internal long Version { get; private set; }
+
+    internal StockPositionState? State { get; private set; }
+
+    internal IReadOnlyList<IStockPositionEvent> UncommittedEvents => uncommittedEvents;
+
+    internal static StockPositionAggregate Empty(Guid streamId) => new(streamId, 0, state: null);
+
+    internal static StockPositionAggregate Rehydrate(
+        Guid streamId,
+        IReadOnlyList<IStockPositionEvent> events)
+    {
+        var aggregate = Empty(streamId);
+        foreach (IStockPositionEvent @event in events)
+        {
+            aggregate.ApplyHistorical(@event);
+        }
+
+        return aggregate;
+    }
+
+    internal void RecordReceipt(
+        Guid stockItemId,
+        Guid stockingLocationId,
+        string baseUnitCode,
+        decimal quantity)
+    {
+        Quantity validated = Quantity.Positive(quantity);
+        IReadOnlyList<IStockPositionEvent> events = StockPositionDecider.DecideReceipt(
+            State, stockItemId, stockingLocationId, baseUnitCode, validated);
+        AcceptDecision(events);
+    }
+
+    internal void AcceptDecision(IReadOnlyList<IStockPositionEvent> events)
+    {
+        StockPositionState? candidate = State;
+        foreach (IStockPositionEvent @event in events)
+        {
+            candidate = StockPositionDecider.Evolve(candidate, @event);
+        }
+
+        StockPositionPolicy.Validate(candidate);
+        State = candidate;
+        uncommittedEvents.AddRange(events);
+        Version += events.Count;
+    }
+
+    private void ApplyHistorical(IStockPositionEvent @event)
+    {
+        State = StockPositionDecider.Evolve(State, @event);
+        Version++;
+    }
+}

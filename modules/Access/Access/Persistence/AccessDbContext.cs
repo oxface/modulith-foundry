@@ -1,8 +1,8 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.Invitations;
 using ModulithFoundry.Modules.Access.Organizations;
+using ModulithFoundry.Persistence;
 
 namespace ModulithFoundry.Modules.Access.Persistence;
 
@@ -35,35 +35,13 @@ internal sealed class AccessDbContext(
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AccessDbContext).Assembly);
-        ApplyOrganizationFilters(modelBuilder);
+        modelBuilder.ApplyOwnershipFilters<IOrganizationOwned>(
+            OrganizationScopeFilter,
+            entity => CurrentOrganizationId.HasValue
+                && entity.OrganizationId == CurrentOrganizationId);
     }
 
     private Guid? CurrentOrganizationId =>
         organizationContextAccessor.OrganizationContext?.OrganizationId.Value;
 
-    private void ApplyOrganizationFilters(ModelBuilder modelBuilder)
-    {
-        foreach (Type entityType in modelBuilder.Model.GetEntityTypes()
-            .Select(metadata => metadata.ClrType)
-            .Where(typeof(IOrganizationOwned).IsAssignableFrom))
-        {
-            ParameterExpression entity = Expression.Parameter(entityType, "entity");
-            MemberExpression currentOrganizationId = Expression.Property(
-                Expression.Constant(this),
-                nameof(CurrentOrganizationId));
-            BinaryExpression filter = Expression.AndAlso(
-                Expression.Property(
-                    currentOrganizationId,
-                    nameof(Nullable<Guid>.HasValue)),
-                Expression.Equal(
-                    Expression.Convert(
-                        Expression.Property(entity, nameof(IOrganizationOwned.OrganizationId)),
-                        typeof(Guid?)),
-                    currentOrganizationId));
-
-            modelBuilder.Entity(entityType).HasQueryFilter(
-                OrganizationScopeFilter,
-                Expression.Lambda(filter, entity));
-        }
-    }
 }

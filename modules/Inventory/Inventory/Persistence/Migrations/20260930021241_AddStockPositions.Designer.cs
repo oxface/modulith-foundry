@@ -3,6 +3,7 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930021241_AddStockPositions")]
+    partial class AddStockPositions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -206,14 +209,6 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
-                    b.Property<Guid>("StockItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("stock_item_id");
-
-                    b.Property<Guid>("StockingLocationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("stocking_location_id");
-
                     b.Property<string>("StreamType")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -234,10 +229,6 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
 
                     b.HasIndex("OrganizationId", "StreamType")
                         .HasDatabaseName("ix_event_streams_organization_type");
-
-                    b.HasIndex("OrganizationId", "StreamType", "StockingLocationId", "StockItemId")
-                        .IsUnique()
-                        .HasDatabaseName("ux_stock_position_stream_identity");
 
                     b.ToTable("event_streams", "inventory");
                 });

@@ -296,7 +296,7 @@ The reference implementation enforces discriminator tenancy through required ten
 
 ### Gate G1 — Event-sourcing decision — **Decided for the reference proof**
 
-Event-source one Inventory aggregate family: a Stock Position identified by organization, stocking location, and SKU. This is a deliberate architecture-capability proof rather than a claim that every ERP stock model requires event sourcing. It must demonstrate optimistic concurrency, deterministic hydration, inline projection atomicity, recorded-time reconstruction, immutable correction history, and event-schema evolution. Sales, Access, Purchasing, and other Inventory models remain state-stored unless a later named use case independently justifies event sourcing.
+Begin with one Inventory aggregate family: a Stock Position identified by organization, stocking location, and SKU. This is a deliberate architecture-capability proof rather than a claim that every ERP stock model requires event sourcing. It must demonstrate optimistic concurrency, deterministic hydration, inline projection atomicity, recorded-time reconstruction, immutable correction history, and event-schema evolution. Sales, Access, Purchasing, and other Inventory models remain state-stored during the first workflow. A second concrete event-sourced aggregate, preferably in another module, is explicitly scheduled in Increment 8.1 before library extraction; its domain and owning charter are selected then.
 
 V1 reconstructs what the system had recorded at an event-store position or UTC recorded timestamp. Global position orders equal timestamps. Effective-time/bitemporal history, retroactively effective events, and rewriting past business truth are deferred.
 
@@ -314,16 +314,16 @@ Implement the event store through EF Core in `InventoryDbContext` so stream upda
 
 Within the owning module schema:
 
-- `streams`: stream ID/type and current version;
+- `streams`: domain-neutral tenant, stream ID/type, current version, and timestamps; Stock Item/Location fields do not belong on the technical header;
 - `events`: globally ordered position, event ID, stream ID/version, stable event name, schema version, recorded time, JSON payload, and metadata;
 - unique constraints on event ID and `(stream_id, stream_version)`;
 - append with optimistic expected-version checking;
 - immutable event records; ordinary corrections append explicit correction events and never update or delete prior events;
-- aggregate removal or retirement appends a lifecycle event and retains the stream; current-state projections may omit the ended aggregate, while privacy erasure or destructive sanitization remains a separately governed retention process;
+- aggregate removal or retirement appends a lifecycle event and retains the stream; view-specific projections may omit the ended aggregate, but a required write model used for identity lookup retains its retirement identity. Privacy erasure or destructive sanitization remains a separately governed retention process;
 - event serializer registry with explicit persisted names, never raw CLR assembly-qualified names;
 - metadata for correlation, causation, actor, tenant (if applicable), and trace context;
 - payload classification so secrets and unnecessary personal data are never stored;
-- no snapshots, snapshot tables, or snapshot abstraction until measured stream length or hydration time breaches an agreed target.
+- no separate periodic hydration-checkpoint snapshots or snapshot abstraction until measured stream length or hydration time breaches an agreed target; an aggregate-shaped inline write model is allowed and recommended by default.
 
 The Stock Position uses one evolution entry point for both paths:
 
@@ -338,9 +338,13 @@ Do not discover or recursively dispatch domain events from EF Core `SaveChanges`
 
 Inline projections owned by that module update in the same PostgreSQL transaction as the append. Projection handlers must be deterministic. A rebuild creates shadow projection tables/checkpoints and swaps only after validation; it must not mutate the event log.
 
+The recommended load-for-writing path uses a complete aggregate-shaped inline write model and captures/verifies the stream version. Live reconstruction uses the same pure write-state evolution for history, verification, and rebuild. The aggregate does not retain original state for persistence staging. Multiple inline views are allowed when actual needs justify them; each owns its state and may ignore known irrelevant events. Projection shapes need not mirror the aggregate. Ordinary reads return committed data; pending-event preview is explicit, and required inline updates commit with the append. Missing/lagging required models need repair before affected writes; concurrent advancement is a version conflict. The business-key lookup's dependency on a required projection and JSONB write-model storage are proposals awaiting their own confirmation/proof, not reasons to add domain fields to the stream header. The [consolidated event-sourcing direction](event-sourcing.md) records utility seams, upcasting, deferred async workers, and late extraction proofs.
+
 Expose recorded-time state and a curated business history through Inventory queries/endpoints. Never expose raw event JSON, CLR type names, schema machinery, or unrestricted metadata as the product timeline.
 
 Use stable persisted event names and explicit version-specific readers. V1 includes one credible older-version fixture that hydrates under the current code, but no generic upcaster framework. Event payloads and metadata use opaque product identifiers and exclude secrets, email addresses, and unnecessary mutable display data.
+
+Integration messages are explicitly published by application code; no automatic domain-event mapper is planned. A future publisher stages outgoing messages in the owning transaction's outbox, not directly on the broker. Async projections are wanted later, initially with a single native background worker and no leader-election framework; competing replicas require ordering, durable progress/claiming, and idempotency proofs before support is claimed.
 
 Required tests include concurrent expected-version failure, atomic append plus inline projection, explicit compatibility fixtures for every persisted event version, deterministic replay, recorded-time reconstruction, failed projection rollback, correction-event history, curated-history mapping, and rebuild equivalence.
 
@@ -609,11 +613,11 @@ Do not write manifests yet. If a post-pilot decision selects Kubernetes and the 
 
 ### Phase 7 — Product extraction
 
-- Deliver Slice 8 against a concrete second repository: execute the reviewed copy/rename or agent-assisted checklist, replace reference names/behavior, scan durable identifiers deliberately, run all tests, and deploy through the same path.
+- Deliver Slice 8: first prove a second concrete event-sourced aggregate, preferably in another module, then extract demonstrated technical mechanics while retaining reference business behavior as sample code. Finally execute bounded configuration-driven scaffolding and the reviewed copy/rename or agent-assisted checklist against a concrete second repository; scan durable identifiers, run all tests, and deploy through the same path.
 
 **Exit:** a second repository builds, tests, starts locally, and deploys without changes to a reusable foundry framework.
 
-Only after this second use should repeated, error-prone steps be considered for a generator.
+A naming/configuration script may serve the final handoff. A broad wizard, provider matrix, or extensible generator requires an actual consumer need and exercised alternatives; it is not a prerequisite for the working reference application.
 
 ## 15. Technology-selection posture
 

@@ -15,6 +15,10 @@ using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.ChangeStockItem
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.CreateStockItem;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Queries;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.SetStockItemActive;
+using ModulithFoundry.Modules.Inventory.StockPositions;
+using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
+using ModulithFoundry.Modules.Inventory.StockPositions.Queries;
+using ModulithFoundry.Modules.Inventory.StockPositions.RecordStockReceipt;
 using Npgsql;
 
 namespace ModulithFoundry.Modules.Inventory.Composition;
@@ -23,6 +27,7 @@ public static class InventoryModule
 {
     public static IServiceCollection AddInventoryModule(this IServiceCollection services)
     {
+        StockPositionEventSerializer.ValidateRegistry();
         services.AddInventoryPersistence();
         services.AddSingleton(InventoryAuthorizationManifest.Instance);
         services.TryAddSingleton(TimeProvider.System);
@@ -38,6 +43,11 @@ public static class InventoryModule
         services.AddScoped<IStockItemAdministration, StockItemAdministration>();
         services.AddScoped<IStockingLocationAdministration, StockingLocationAdministration>();
         services.AddScoped<IStockItemReferences, StockItemReferences>();
+        services.AddScoped<StockPositionStore>();
+        services.AddScoped<StockPositionInlineProjection>();
+        services.AddScoped<RecordStockReceiptHandler>();
+        services.AddScoped<StockPositionQueries>();
+        services.AddScoped<IStockPositions, StockPositionOperations>();
 
         return services;
     }

@@ -196,6 +196,15 @@ The first increment creates the canonical repository commands for these lanes. A
 
 **Acceptance:** PostgreSQL tests inject a projection failure and cancellation, resume without double effects, compare rebuilt/current state, reject corrupt/unknown events clearly, and prove the rebuild emits no messages or audit duplicates.
 
+### Post-3.4 event-sourcing seam review
+
+Before durable messaging builds on Stock Position, review the implemented load-for-writing,
+event identity/codec, temporal hydration, metadata, inline projection, and rebuild mechanics.
+Identify concrete duplication and substitution needs; retain Inventory business policy and
+projection definitions in Inventory. Record candidates now, but defer extraction to the explicit
+second-aggregate validation and extraction increments in Slice 8. The second aggregate must have
+coherent domain behavior and demonstrate distinct state/projection needs, not be a renamed clone.
+
 ## Slice 4 — Sales order and approval
 
 ### Increment 4.1 — Customer and draft Sales Order
@@ -368,16 +377,41 @@ The first increment creates the canonical repository commands for these lanes. A
 
 ## Slice 8 — Reference-to-product handoff
 
-### Increment 8.1 — Copy/rename rehearsal
+### Increment 8.1 — Second event-sourced aggregate proof
+
+**Outcome:** another concrete aggregate, preferably in a different module, tests whether the Inventory event-sourcing seams work outside Stock Position.
+
+**Work:**
+
+- Select the aggregate and update its owning charter at this increment; do not silently convert Sales/Access/Purchasing models during earlier slices.
+- Implement real decisions, a distinct decision-state shape, an aggregate-shaped inline write model, and an additional justified inline view through explicit C#/EF code.
+- Repeat the hydration/evolution, tenant isolation, event compatibility, concurrent append, and multi-projection rollback proofs.
+- Identify duplication in load/append, serialization/upcasting, metadata, projection coordination, and recorded-time hydration before choosing abstractions.
+
+**Acceptance:** both aggregate implementations work with their own module schema/transactions and no copied Inventory policy; failure tests demonstrate atomic updates of all required inline views. This is a planned capability proof, not a reason to event-source every aggregate.
+
+### Increment 8.2 — Focused library and sample separation
+
+**Outcome:** the two implementations identify reusable event-sourcing infrastructure; reference business behavior remains a sample.
+
+**Work:**
+
+- Extract only the technical mechanics concretely shared by both implementations; retain domain deciders/reducers, projection definitions, authorization, and transaction ownership in their modules.
+- Review explicit projector registration/preview/rebuild seams without introducing code generation, generic repositories, or automatic domain-to-integration-event dispatch.
+- Keep async projections recorded as later work rather than implementing a generic daemon as part of extraction.
+
+**Acceptance:** both real implementations pass their unchanged behavioral proofs using the extracted mechanics; the library has no Inventory-specific fields, schema names, or module Contracts dependency. If a proposed abstraction does not remove meaningful duplication, omit it.
+
+### Increment 8.3 — Configured scaffolding and product rehearsal
 
 **Outcome:** the reference implementation can produce a second repository without depending on a reusable foundry runtime.
 
 **Work:**
 
-- Write and execute a documented copy/rename or agent-assisted checklist against a concrete second repository selected at that time.
+- Write and execute a minimal configuration-driven scaffolding process plus copy/rename or agent-assisted checklist against a concrete second repository selected at that time. Product/namespace naming is the initial configuration; additional options require an exercised implementation and compatibility tests.
 - Replace example product/module/domain names as required, remove reference-only behavior, retain validated structural conventions, and scan for old namespaces/schema names/event aliases/queue names.
 - Build, test, start, migrate, and deploy the second repository through the same path.
-- Create a generator only if this rehearsal demonstrates repeated error-prone mechanics that documentation and agent assistance cannot handle reliably.
+- A bounded configuration script is sufficient. Choose an interactive wizard only if the actual consumer workflow needs it; do not build a generic extensible generator or untested provider/persistence matrix.
 
 **Acceptance:** the second repository passes its own CI, starts locally, and deploys without a runtime dependency on `modulith-foundry`. Persisted identifiers that must remain compatible are deliberately mapped rather than blindly renamed.
 

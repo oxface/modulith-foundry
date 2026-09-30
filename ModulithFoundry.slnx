@@ -21,6 +21,7 @@
     <Project Path="modules/Sales/Sales/Sales.csproj" />
   </Folder>
   <Folder Name="/shared/">
+    <Project Path="shared/Persistence/ModulithFoundry.Persistence.csproj" />
     <Project Path="shared/ServiceDefaults/ModulithFoundry.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/tests/">

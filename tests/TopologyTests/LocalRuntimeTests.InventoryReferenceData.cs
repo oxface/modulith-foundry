@@ -68,6 +68,40 @@ public sealed partial class LocalRuntimeTests
             timeout.Token);
         Assert.Equal(HttpStatusCode.Created, location.StatusCode);
 
+        using HttpResponseMessage receipt = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/receipts",
+            csrfToken,
+            new { quantity = 12.5m, expectedVersion = 0 },
+            timeout.Token);
+        receipt.EnsureSuccessStatusCode();
+        using JsonDocument receiptJson = JsonDocument.Parse(
+            await receipt.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(2, receiptJson.RootElement.GetProperty("version").GetInt64());
+        Assert.Equal(12.5m, receiptJson.RootElement.GetProperty("onHandQuantity").GetDecimal());
+
+        using HttpResponseMessage position = await client.GetAsync(
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01",
+            timeout.Token);
+        position.EnsureSuccessStatusCode();
+        using JsonDocument positionJson = JsonDocument.Parse(
+            await position.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(
+            receiptJson.RootElement.GetProperty("stockPositionId").GetGuid(),
+            positionJson.RootElement.GetProperty("stockPositionId").GetGuid());
+        Assert.Equal(2, positionJson.RootElement.GetProperty("version").GetInt64());
+        Assert.Equal(12.5m, positionJson.RootElement.GetProperty("onHandQuantity").GetDecimal());
+
+        using HttpResponseMessage staleReceipt = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/receipts",
+            csrfToken,
+            new { quantity = 1m, expectedVersion = 0 },
+            timeout.Token);
+        await AssertProblemAsync(staleReceipt, HttpStatusCode.Conflict, timeout.Token);
+
         using HttpResponseMessage items = await client.GetAsync(
             "/api/o/inventory-catalog/inventory/items",
             timeout.Token);

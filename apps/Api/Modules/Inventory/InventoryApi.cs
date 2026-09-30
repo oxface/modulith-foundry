@@ -33,6 +33,8 @@ internal static class InventoryApi
         locations.MapPost("/{code}/deactivate", DeactivateStockingLocationAsync)
             .RequireBffAntiforgery();
 
+        inventory.MapStockPositionEndpoints();
+
         return endpoints;
     }
 

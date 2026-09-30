@@ -3,6 +3,8 @@ using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems;
+using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
+using ModulithFoundry.Persistence;
 
 namespace ModulithFoundry.Modules.Inventory.Persistence;
 
@@ -19,22 +21,20 @@ internal sealed class InventoryDbContext(
 
     internal DbSet<InventoryAuditEntry> AuditEntries => Set<InventoryAuditEntry>();
 
+    internal DbSet<EventStream> EventStreams => Set<EventStream>();
+
+    internal DbSet<StoredEvent> Events => Set<StoredEvent>();
+
+    internal DbSet<StockPositionCurrent> StockPositionCurrent => Set<StockPositionCurrent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(InventoryDbContext).Assembly);
-        modelBuilder.Entity<StockItem>().HasQueryFilter(
+        modelBuilder.ApplyOwnershipFilters<IOrganizationOwned>(
             OrganizationScopeFilter,
-            item => CurrentOrganizationId.HasValue
-                && item.OrganizationId == CurrentOrganizationId);
-        modelBuilder.Entity<StockingLocation>().HasQueryFilter(
-            OrganizationScopeFilter,
-            location => CurrentOrganizationId.HasValue
-                && location.OrganizationId == CurrentOrganizationId);
-        modelBuilder.Entity<InventoryAuditEntry>().HasQueryFilter(
-            OrganizationScopeFilter,
-            audit => CurrentOrganizationId.HasValue
-                && audit.OrganizationId == CurrentOrganizationId);
+            entity => CurrentOrganizationId.HasValue
+                && entity.OrganizationId == CurrentOrganizationId);
     }
 
     private Guid? CurrentOrganizationId =>

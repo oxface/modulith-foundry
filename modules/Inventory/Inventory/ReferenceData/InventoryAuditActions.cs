@@ -14,4 +14,6 @@ internal static class InventoryAuditActions
     internal const string StockingLocationRenameDenied = "stocking-location.rename-denied";
     internal const string StockingLocationStatusChanged = "stocking-location.status-changed";
     internal const string StockingLocationStatusChangeDenied = "stocking-location.status-change-denied";
+    internal const string StockReceiptRecorded = "stock-position.receipt-recorded";
+    internal const string StockReceiptRecordDenied = "stock-position.receipt-record-denied";
 }
