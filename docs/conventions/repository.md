@@ -8,6 +8,8 @@ Keep a pull request within a normal, single-reviewer scope: the repository owner
 
 A v1 slice is a planning and acceptance unit, not necessarily one pull request. Deliver a large slice through several self-contained vertical increments when that improves reviewability.
 
+During the remaining implementation slices, follow the temporary [pattern-focused review workflow](pattern-review.md) when classifying changes, staging files, and preparing an owner-review handoff.
+
 ## Commit approval gate
 
 The repository owner personally approves every commit before it is created. Agents and other contributors may edit files, run checks, and prepare a proposed change set, but must not run `git commit` until the owner explicitly approves that exact change set.

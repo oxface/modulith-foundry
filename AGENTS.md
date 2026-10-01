@@ -6,6 +6,10 @@ Before choosing change scope, preparing a pull request, or committing, read and 
 
 Every commit requires the repository owner's explicit approval of the exact change set. Editing, testing, plan approval, or approval of an earlier commit does not authorize `git commit`.
 
+## Temporary pattern-focused review
+
+This project's sample domain demonstrates modular-monolith capabilities; domain feature completeness is not the goal. During the remaining implementation slices, automatically stage routine reuse of approved patterns and leave review-worthy or mixed files wholly unstaged. Before classifying or staging changes, read [docs/conventions/pattern-review.md](docs/conventions/pattern-review.md) for the registry, mandatory review boundaries, and handoff requirements. This workflow ends when library extraction and sample creation begin.
+
 ## Durable context
 
 - Read [docs/plans/architecture-and-delivery.md](docs/plans/architecture-and-delivery.md) before architecture or dependency work.
