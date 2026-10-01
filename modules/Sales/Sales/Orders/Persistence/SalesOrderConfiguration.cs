@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Customers;
 
 namespace ModulithFoundry.Modules.Sales.Orders.Persistence;
@@ -20,6 +21,17 @@ internal sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOr
             .HasColumnName("total_amount")
             .HasPrecision(19, 2);
         order.Property(entity => entity.CreatedAt).HasColumnName("created_at");
+        order
+            .Property(entity => entity.Status)
+            .HasColumnName("status")
+            .HasMaxLength(32)
+            .HasConversion(
+                value => SalesOrderStatusValues.ToValue(value),
+                value => SalesOrderStatusValues.FromValue(value)
+            );
+        order.Property(entity => entity.Version).HasColumnName("version").IsConcurrencyToken();
+        order.Property(entity => entity.SubmittedBy).HasColumnName("submitted_by");
+        order.Property(entity => entity.SubmittedAt).HasColumnName("submitted_at");
         order
             .HasIndex(entity => new { entity.OrganizationId, entity.OrderNumber })
             .IsUnique()

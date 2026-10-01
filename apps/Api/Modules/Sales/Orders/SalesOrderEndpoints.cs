@@ -15,6 +15,10 @@ internal static class SalesOrderEndpoints
         RouteGroupBuilder orders = sales.MapGroup("/orders");
         orders.MapPost("", CreateDraftAsync).RequireBffAntiforgery();
         orders.MapGet("/{orderNumber:long}", GetAsync);
+        orders
+            .MapPost("/{orderNumber:long}/submit", SalesOrderSubmissionEndpoint.HandleAsync)
+            .RequireBffAntiforgery();
+        orders.MapGet("/{orderNumber:long}/activity", SalesOrderActivityEndpoint.HandleAsync);
         return sales;
     }
 
@@ -51,7 +55,7 @@ internal static class SalesOrderEndpoints
         {
             CreateDraftSalesOrderResult.Created created => TypedResults.Created(
                 $"/api/o/{Uri.EscapeDataString(context.OrganizationSlug)}/sales/orders/{created.Order.OrderNumber.ToString(CultureInfo.InvariantCulture)}",
-                ToResponse(created.Order)
+                SalesOrderResponses.ToResponse(created.Order)
             ),
             CreateDraftSalesOrderResult.Invalid invalid => Results.Problem(
                 statusCode: StatusCodes.Status400BadRequest,
@@ -95,33 +99,14 @@ internal static class SalesOrderEndpoints
         );
         return result switch
         {
-            GetSalesOrderResult.Found found => TypedResults.Ok(ToResponse(found.Order)),
+            GetSalesOrderResult.Found found => TypedResults.Ok(
+                SalesOrderResponses.ToResponse(found.Order)
+            ),
             GetSalesOrderResult.NotFound => Results.NotFound(),
             GetSalesOrderResult.PermissionDenied => Results.Forbid(),
             _ => throw new UnreachableException(),
         };
     }
-
-    private static SalesOrderResponse ToResponse(SalesOrderView order) =>
-        new(
-            order.SalesOrderId.Value,
-            order.OrderNumber,
-            order.CustomerId.Value,
-            order.Currency,
-            order.TotalAmount,
-            [
-                .. order.Lines.Select(line => new SalesOrderLineResponse(
-                    line.LineNumber,
-                    line.StockItemId.Value,
-                    line.Sku,
-                    line.Description,
-                    line.BaseUnitCode,
-                    line.Quantity,
-                    line.UnitPrice,
-                    line.LineAmount
-                )),
-            ]
-        );
 
     private sealed record CreateDraftRequest(
         string CustomerCode,
@@ -133,25 +118,5 @@ internal static class SalesOrderEndpoints
         Guid StockItemId,
         decimal Quantity,
         decimal UnitPrice
-    );
-
-    private sealed record SalesOrderResponse(
-        Guid SalesOrderId,
-        long OrderNumber,
-        Guid CustomerId,
-        string Currency,
-        decimal TotalAmount,
-        IReadOnlyList<SalesOrderLineResponse> Lines
-    );
-
-    private sealed record SalesOrderLineResponse(
-        int LineNumber,
-        Guid StockItemId,
-        string Sku,
-        string Description,
-        string BaseUnitCode,
-        decimal Quantity,
-        decimal UnitPrice,
-        decimal LineAmount
     );
 }

@@ -4,6 +4,7 @@ using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Authorization;
 using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Customers;
+using ModulithFoundry.Modules.Sales.Orders.Activity;
 using ModulithFoundry.Modules.Sales.Orders.Persistence;
 using ModulithFoundry.Modules.Sales.Persistence;
 
@@ -136,6 +137,14 @@ internal sealed class CreateDraftSalesOrderHandler(
         }
 
         context.SalesOrders.Add(order);
+        context.OrderActivity.Add(
+            SalesOrderActivity.Record(
+                order,
+                command.ActorUserId.Value,
+                SalesOrderActivityKind.Created,
+                now
+            )
+        );
         context.AuditEntries.Add(
             SalesAuditEntry.Succeeded(
                 command.OrganizationId.Value,

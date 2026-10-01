@@ -9,7 +9,7 @@ using Testcontainers.PostgreSql;
 
 namespace ModulithFoundry.PersistenceTests;
 
-public sealed class SalesOrderPersistenceTests
+public sealed partial class SalesOrderPersistenceTests
 {
     [Fact]
     public async Task CreateDraft_ValidLines_PersistsImmutableSnapshotsAndRoundedAmounts()

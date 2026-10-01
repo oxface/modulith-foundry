@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.Testing;
@@ -15,7 +16,7 @@ public sealed partial class LocalRuntimeTests
     ];
 
     [Fact]
-    public async Task SalesOrders_AuthenticatedClerk_CreatesDraftAndRetainsItemSnapshot()
+    public async Task SalesOrders_AuthenticatedClerk_SubmitsDraftAndReadsCuratedActivity()
     {
         using var timeout = new CancellationTokenSource(StartupTimeout);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
@@ -136,6 +137,76 @@ public sealed partial class LocalRuntimeTests
             foundJson.RootElement.GetProperty("lines")[0].GetProperty("description").GetString()
         );
 
+        Assert.Equal("draft", foundJson.RootElement.GetProperty("status").GetString());
+        Assert.Equal(1, foundJson.RootElement.GetProperty("version").GetInt64());
+        using HttpResponseMessage noCsrf = await client.PostAsJsonAsync(
+            salesUrl + "/orders/1/submit",
+            new { expectedVersion = 1 },
+            timeout.Token
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, noCsrf.StatusCode);
+        using HttpResponseMessage invalidVersion = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            salesUrl + "/orders/1/submit",
+            csrf,
+            new { expectedVersion = 0 },
+            timeout.Token
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, invalidVersion.StatusCode);
+        using HttpResponseMessage submitted = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            salesUrl + "/orders/1/submit",
+            csrf,
+            new { expectedVersion = 1 },
+            timeout.Token
+        );
+        submitted.EnsureSuccessStatusCode();
+        using JsonDocument submittedJson = JsonDocument.Parse(
+            await submitted.Content.ReadAsStringAsync(timeout.Token)
+        );
+        Assert.Equal(
+            "awaiting-approval",
+            submittedJson.RootElement.GetProperty("status").GetString()
+        );
+        Assert.Equal(2, submittedJson.RootElement.GetProperty("version").GetInt64());
+        Assert.NotEqual(Guid.Empty, submittedJson.RootElement.GetProperty("submittedBy").GetGuid());
+        Assert.NotNull(submittedJson.RootElement.GetProperty("submittedAt").GetString());
+        using HttpResponseMessage stale = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            salesUrl + "/orders/1/submit",
+            csrf,
+            new { expectedVersion = 1 },
+            timeout.Token
+        );
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.Equal("application/problem+json", stale.Content.Headers.ContentType?.MediaType);
+        using HttpResponseMessage notDraft = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            salesUrl + "/orders/1/submit",
+            csrf,
+            new { expectedVersion = 2 },
+            timeout.Token
+        );
+        Assert.Equal(HttpStatusCode.Conflict, notDraft.StatusCode);
+        using HttpResponseMessage activity = await client.GetAsync(
+            salesUrl + "/orders/1/activity",
+            timeout.Token
+        );
+        activity.EnsureSuccessStatusCode();
+        using JsonDocument activityJson = JsonDocument.Parse(
+            await activity.Content.ReadAsStringAsync(timeout.Token)
+        );
+        Assert.Equal(
+            ["created", "submitted"],
+            activityJson
+                .RootElement.EnumerateArray()
+                .Select(entry => entry.GetProperty("kind").GetString())
+        );
+
         using HttpResponseMessage invalid = await SendCommandAsync(
             client,
             HttpMethod.Post,
@@ -220,5 +291,19 @@ public sealed partial class LocalRuntimeTests
             timeout.Token
         );
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        using HttpResponseMessage deniedSubmit = await SendCommandAsync(
+            client,
+            HttpMethod.Post,
+            salesUrl + "/orders/1/submit",
+            csrf,
+            new { expectedVersion = 2 },
+            timeout.Token
+        );
+        Assert.Equal(HttpStatusCode.Forbidden, deniedSubmit.StatusCode);
+        using HttpResponseMessage deniedActivity = await client.GetAsync(
+            salesUrl + "/orders/1/activity",
+            timeout.Token
+        );
+        Assert.Equal(HttpStatusCode.Forbidden, deniedActivity.StatusCode);
     }
 }

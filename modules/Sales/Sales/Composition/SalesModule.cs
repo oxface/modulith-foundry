@@ -11,6 +11,7 @@ using ModulithFoundry.Modules.Sales.Orders;
 using ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.Persistence;
 using ModulithFoundry.Modules.Sales.Orders.Queries;
+using ModulithFoundry.Modules.Sales.Orders.SubmitSalesOrder;
 using ModulithFoundry.Modules.Sales.Persistence;
 using Npgsql;
 
@@ -29,6 +30,7 @@ public static class SalesModule
         services.AddScoped<ICustomerAdministration, CustomerAdministration>();
         services.AddScoped<SalesOrderNumberAllocator>();
         services.AddScoped<CreateDraftSalesOrderHandler>();
+        services.AddScoped<SubmitSalesOrderHandler>();
         services.AddScoped<SalesOrderQueries>();
         services.AddScoped<ISalesOrderOperations, SalesOrderOperations>();
 

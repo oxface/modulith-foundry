@@ -2,14 +2,28 @@ using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.Queries;
+using ModulithFoundry.Modules.Sales.Orders.SubmitSalesOrder;
 
 namespace ModulithFoundry.Modules.Sales.Orders;
 
 internal sealed class SalesOrderOperations(
     CreateDraftSalesOrderHandler create,
-    SalesOrderQueries queries
+    SalesOrderQueries queries,
+    SubmitSalesOrderHandler submit
 ) : ISalesOrderOperations
 {
+    public Task<SubmitSalesOrderResult> SubmitAsync(
+        SubmitSalesOrderCommand command,
+        CancellationToken cancellationToken = default
+    ) => submit.HandleAsync(command, cancellationToken);
+
+    public Task<GetSalesOrderActivityResult> GetActivityAsync(
+        UserId actorUserId,
+        OrganizationId organizationId,
+        long orderNumber,
+        CancellationToken cancellationToken = default
+    ) => queries.GetActivityAsync(actorUserId, organizationId, orderNumber, cancellationToken);
+
     public Task<CreateDraftSalesOrderResult> CreateDraftAsync(
         CreateDraftSalesOrderCommand command,
         CancellationToken cancellationToken = default

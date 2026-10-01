@@ -8,6 +8,7 @@ These conventions keep module code navigable without introducing a mediator, gen
 - Group a growing Contracts project into capability folders such as `Identity`, `Invitations`, and `Organizations`; folders need not fragment the Contracts namespace.
 - Closely coupled internal implementation details may share their owner's file when separating them would make navigation worse. Generated files and deliberately grouped exception types are exempt.
 - Name a file containing part of a partial type `{Type}.{Concern}.cs`.
+- Do not split ordinary application/endpoint classes into partial files just to reduce file size. Prefer cohesive separate classes with explicit entry points; shared mappings belong in an actual mapping class, not private methods reached through another partial file. Partial types require a concrete reason, such as generated code or a deliberately grouped test fixture.
 - Give every enum member an explicit numeric value starting at `1`. Value `0` is reserved as an invalid/uninitialized state, including when the enum is persisted as text today.
 
 ## Composition and HTTP adapters

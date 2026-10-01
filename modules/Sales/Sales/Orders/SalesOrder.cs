@@ -1,4 +1,5 @@
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Sales.Contracts;
 
 namespace ModulithFoundry.Modules.Sales.Orders;
 
@@ -35,7 +36,25 @@ internal sealed class SalesOrder : IOrganizationOwned
     internal string Currency { get; private set; }
     internal decimal TotalAmount { get; private set; }
     internal DateTimeOffset CreatedAt { get; private set; }
+    internal SalesOrderStatus Status { get; private set; } = SalesOrderStatus.Draft;
+    internal long Version { get; private set; } = 1;
+    internal Guid? SubmittedBy { get; private set; }
+    internal DateTimeOffset? SubmittedAt { get; private set; }
     internal IReadOnlyCollection<SalesOrderLine> Lines => _lines;
+
+    internal bool TrySubmit(Guid actorUserId, DateTimeOffset submittedAt)
+    {
+        if (Status != SalesOrderStatus.Draft)
+        {
+            return false;
+        }
+
+        Status = SalesOrderStatus.AwaitingApproval;
+        SubmittedBy = actorUserId;
+        SubmittedAt = submittedAt;
+        Version++;
+        return true;
+    }
 
     internal static SalesOrder CreateDraft(
         Guid id,

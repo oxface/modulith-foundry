@@ -1,3 +1,5 @@
+using ModulithFoundry.Modules.Access.Contracts;
+
 namespace ModulithFoundry.Modules.Sales.Contracts;
 
 public sealed record SalesOrderView(
@@ -6,5 +8,9 @@ public sealed record SalesOrderView(
     CustomerId CustomerId,
     string Currency,
     decimal TotalAmount,
-    IReadOnlyList<SalesOrderLineView> Lines
+    IReadOnlyList<SalesOrderLineView> Lines,
+    SalesOrderStatus Status,
+    long Version,
+    UserId? SubmittedBy,
+    DateTimeOffset? SubmittedAt
 );

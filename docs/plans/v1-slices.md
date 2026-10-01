@@ -247,6 +247,12 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** tests prove authority assignment isolation, unauthorized authority changes, invalid state transitions, same-person denial, changed/suspended membership, limit/currency failure, concurrent approvals, audit of denials without leaking sensitive payloads, and atomic approved-order/process creation.
 
+**Review-sized delivery:**
+
+- **4.2a — Submission and curated activity:** transition a draft to awaiting approval through an explicit command; retain submitter and submission time; use an explicit expected order version and EF optimistic concurrency; commit the transition, activity and success audit together. Expose an organization-scoped, permission-checked activity query rather than raw audit/event payloads. PostgreSQL proofs cover invalid transitions, stale/concurrent commands, actor/tenant/permission denial and rollback; the topology lane covers the authenticated HTTP path. No authority, approval, fulfilment process or broker in this checkpoint.
+- **4.2b — Sales Approval Authority:** manage and query Sales-owned amount/currency authority for a particular Membership tenure; enforce Sales management permission and current organization membership through Access Contracts. Prove organization isolation, validation, concurrent changes and atomic authority/audit persistence. No order approval in this checkpoint.
+- **4.2c — Approval and initial fulfilment state:** approve an awaiting order with current authorization and Sales authority, separation of duties and concurrency enforcement. Commit the approval, curated activity, audit and initial concrete fulfilment process state atomically. No broker until Slice 5.
+
 ## Slice 5 — Durable fulfilment
 
 ### Increment 5.1 — Inventory durable reservation endpoint

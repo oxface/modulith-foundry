@@ -4,6 +4,8 @@ internal static class SalesAuditActions
 {
     internal const string CustomerCreated = "customer.created";
     internal const string OrderCreated = "sales-order.created";
+    internal const string OrderSubmitted = "sales-order.submitted";
+    internal const string OrderSubmitDenied = "sales-order.submit-denied";
     internal const string OrderCreateDenied = "sales-order.create-denied";
     internal const string CustomerCreateDenied = "customer.create-denied";
 }
