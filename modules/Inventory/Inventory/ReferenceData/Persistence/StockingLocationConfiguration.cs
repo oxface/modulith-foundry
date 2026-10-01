@@ -17,10 +17,12 @@ internal sealed class StockingLocationConfiguration : IEntityTypeConfiguration<S
         location.Property(entity => entity.IsActive).HasColumnName("is_active");
         location.Property(entity => entity.CreatedAt).HasColumnName("created_at");
         location.Property(entity => entity.UpdatedAt).HasColumnName("updated_at");
-        location.HasIndex(entity => new { entity.OrganizationId, entity.Code })
+        location
+            .HasIndex(entity => new { entity.OrganizationId, entity.Code })
             .IsUnique()
             .HasDatabaseName("ux_stocking_locations_organization_code");
-        location.HasIndex(entity => new { entity.OrganizationId, entity.IsActive })
+        location
+            .HasIndex(entity => new { entity.OrganizationId, entity.IsActive })
             .HasDatabaseName("ix_stocking_locations_organization_active");
     }
 }

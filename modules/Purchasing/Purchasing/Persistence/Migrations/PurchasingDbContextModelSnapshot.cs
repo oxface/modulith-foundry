@@ -17,7 +17,10 @@ internal sealed class PurchasingDbContextModelSnapshot : ModelSnapshot
             .HasAnnotation("ProductVersion", "10.0.12")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-        modelBuilder.HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+        modelBuilder.HasAnnotation(
+            "Npgsql:ValueGenerationStrategy",
+            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+        );
 #pragma warning restore 612, 618
     }
 }

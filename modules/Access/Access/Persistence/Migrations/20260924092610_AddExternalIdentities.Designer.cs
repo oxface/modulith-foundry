@@ -26,7 +26,9 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53,24 +55,23 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("subject");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                    b.Property<Guid>("UserId").HasColumnType("uuid").HasColumnName("user_id");
 
-                    b.HasKey("Id")
-                        .HasName("pk_external_identities");
+                    b.HasKey("Id").HasName("pk_external_identities");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_external_identities_user_id");
+                    b.HasIndex("UserId").HasDatabaseName("ix_external_identities_user_id");
 
                     b.HasIndex("Issuer", "Subject")
                         .IsUnique()
                         .HasDatabaseName("ux_external_identities_issuer_subject");
 
                     b.ToTable("external_identities", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Persistence.User", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Persistence.User",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,13 +96,15 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_users");
+                    b.HasKey("Id").HasName("pk_users");
 
                     b.ToTable("users", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord",
+                b =>
                 {
                     b.HasOne("ModulithFoundry.Modules.Access.Persistence.User", "User")
                         .WithMany()
@@ -111,7 +114,8 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasConstraintName("fk_external_identities_users_user_id");
 
                     b.Navigation("User");
-                });
+                }
+            );
 #pragma warning restore 612, 618
         }
     }

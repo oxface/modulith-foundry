@@ -47,7 +47,13 @@ jobs:
         run: dotnet tool restore
 
       - name: Verify formatting
-        run: dotnet format ModulithFoundry.slnx --verify-no-changes --no-restore
+        run: dotnet csharpier check . --include-generated
+
+      - name: Verify code style
+        run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
+
+      - name: Verify analyzers
+        run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
 
       - name: Build
         run: dotnet build ModulithFoundry.slnx --no-restore

@@ -15,7 +15,8 @@ internal sealed class StockingLocation : IOrganizationOwned
         Guid organizationId,
         string code,
         string name,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -45,13 +46,15 @@ internal sealed class StockingLocation : IOrganizationOwned
         Guid organizationId,
         string code,
         string name,
-        DateTimeOffset createdAt) =>
+        DateTimeOffset createdAt
+    ) =>
         new(
             id,
             organizationId,
             InventoryCode.Normalize(code, "code", 64),
             InventoryCode.NormalizeText(name, "name", 200),
-            createdAt);
+            createdAt
+        );
 
     internal bool Rename(string name, DateTimeOffset changedAt)
     {

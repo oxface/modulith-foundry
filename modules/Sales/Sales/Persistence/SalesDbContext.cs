@@ -10,7 +10,8 @@ namespace ModulithFoundry.Modules.Sales.Persistence;
 
 internal sealed class SalesDbContext(
     DbContextOptions<SalesDbContext> options,
-    IOrganizationContextAccessor organizationContextAccessor) : DbContext(options)
+    IOrganizationContextAccessor organizationContextAccessor
+) : DbContext(options)
 {
     internal const string Schema = "sales";
     internal const string OrganizationScopeFilter = "OrganizationScope";
@@ -24,9 +25,13 @@ internal sealed class SalesDbContext(
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SalesDbContext).Assembly);
-        modelBuilder.ApplyOwnershipFilters<IOrganizationOwned>(OrganizationScopeFilter,
-            entity => CurrentOrganizationId.HasValue && entity.OrganizationId == CurrentOrganizationId);
+        modelBuilder.ApplyOwnershipFilters<IOrganizationOwned>(
+            OrganizationScopeFilter,
+            entity =>
+                CurrentOrganizationId.HasValue && entity.OrganizationId == CurrentOrganizationId
+        );
     }
 
-    private Guid? CurrentOrganizationId => organizationContextAccessor.OrganizationContext?.OrganizationId.Value;
+    private Guid? CurrentOrganizationId =>
+        organizationContextAccessor.OrganizationContext?.OrganizationId.Value;
 }

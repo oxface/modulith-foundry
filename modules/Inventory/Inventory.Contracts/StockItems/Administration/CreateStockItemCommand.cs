@@ -7,4 +7,5 @@ public sealed record CreateStockItemCommand(
     OrganizationId OrganizationId,
     string Sku,
     string Description,
-    string BaseUnitCode);
+    string BaseUnitCode
+);

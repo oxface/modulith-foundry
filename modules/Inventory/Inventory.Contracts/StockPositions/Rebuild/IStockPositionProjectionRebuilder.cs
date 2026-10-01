@@ -8,5 +8,8 @@ public interface IStockPositionProjectionRebuilder
     /// Failure or cancellation before commit leaves the serving model unchanged.
     /// Retry in a fresh scope replays from the beginning; no durable progress is kept.
     /// </remarks>
-    Task<StockPositionRebuildResult> RebuildAsync(RebuildStockPositionProjectionCommand command, CancellationToken cancellationToken = default);
+    Task<StockPositionRebuildResult> RebuildAsync(
+        RebuildStockPositionProjectionCommand command,
+        CancellationToken cancellationToken = default
+    );
 }

@@ -16,38 +16,45 @@ internal sealed class RedisPendingInvitationAcceptanceStore
     public RedisPendingInvitationAcceptanceStore(
         IConnectionMultiplexer connection,
         IDataProtectionProvider dataProtectionProvider,
-        IHostEnvironment environment)
+        IHostEnvironment environment
+    )
     {
         keyPrefix = RedisKeyNamespace.Create(environment, "pending-invitation-acceptance");
         redis = connection.GetDatabase();
         protector = dataProtectionProvider.CreateProtector(
-            "ModulithFoundry.Api.Access.PendingInvitationAcceptance.v1");
+            "ModulithFoundry.Api.Access.PendingInvitationAcceptance.v1"
+        );
     }
 
     internal async Task<string> CreateAsync(
         PendingInvitationAcceptance pendingAcceptance,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(pendingAcceptance);
 
         string acceptanceHandle = RandomNumberGenerator.GetHexString(32);
         byte[] payload = JsonSerializer.SerializeToUtf8Bytes(pendingAcceptance);
         byte[] protectedPayload = protector.Protect(payload);
-        await redis.StringSetAsync(Key(acceptanceHandle), protectedPayload, Lifetime)
+        await redis
+            .StringSetAsync(Key(acceptanceHandle), protectedPayload, Lifetime)
             .WaitAsync(cancellationToken);
         return acceptanceHandle;
     }
 
     internal async Task<PendingInvitationAcceptance?> RetrieveAsync(
         string acceptanceHandle,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (!IsValidHandle(acceptanceHandle))
         {
             return null;
         }
 
-        RedisValue stored = await redis.StringGetAsync(Key(acceptanceHandle)).WaitAsync(cancellationToken);
+        RedisValue stored = await redis
+            .StringGetAsync(Key(acceptanceHandle))
+            .WaitAsync(cancellationToken);
         if (stored.IsNull)
         {
             return null;
@@ -56,7 +63,8 @@ internal sealed class RedisPendingInvitationAcceptanceStore
         try
         {
             return JsonSerializer.Deserialize<PendingInvitationAcceptance>(
-                protector.Unprotect((byte[])stored!));
+                protector.Unprotect((byte[])stored!)
+            );
         }
         catch (Exception exception) when (exception is CryptographicException or JsonException)
         {

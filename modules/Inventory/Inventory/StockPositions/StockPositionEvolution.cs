@@ -6,7 +6,8 @@ internal static class StockPositionEvolution
 {
     internal static StockPositionState Evolve(
         StockPositionState? state,
-        IStockPositionEvent @event) =>
+        IStockPositionEvent @event
+    ) =>
         @event switch
         {
             StockPositionOpened opened when state is null => Open(opened),
@@ -19,12 +20,18 @@ internal static class StockPositionEvolution
                 OnHand = Quantity.Restore(corrected.OnHandQuantity),
             },
             _ => throw new InvalidOperationException(
-                $"Event '{@event.GetType().Name}' is invalid for the current Stock Position state."),
+                $"Event '{@event.GetType().Name}' is invalid for the current Stock Position state."
+            ),
         };
 
     private static StockPositionState Open(StockPositionOpened opened)
     {
-        return new(opened.StockItemId, opened.StockingLocationId, opened.BaseUnitCode,
-            Quantity.Restore(0m), Quantity.Restore(0m));
+        return new(
+            opened.StockItemId,
+            opened.StockingLocationId,
+            opened.BaseUnitCode,
+            Quantity.Restore(0m),
+            Quantity.Restore(0m)
+        );
     }
 }

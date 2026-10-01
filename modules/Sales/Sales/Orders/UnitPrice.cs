@@ -13,7 +13,10 @@ internal readonly record struct UnitPrice
     {
         if (value < 0m || value > 999_999_999_999_999.9999m || decimal.Round(value, 4) != value)
         {
-            throw new InvalidSalesOrderInputException("unitPrice", "Unit price must be non-negative and fit 15 integer and 4 fractional digits.");
+            throw new InvalidSalesOrderInputException(
+                "unitPrice",
+                "Unit price must be non-negative and fit 15 integer and 4 fractional digits."
+            );
         }
 
         return new(value);

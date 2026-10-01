@@ -10,5 +10,6 @@ internal static class MembershipQueryExtensions
     internal static IQueryable<Membership> Current(this IQueryable<Membership> memberships) =>
         memberships.Where(membership =>
             membership.Status == MembershipStatus.Active
-            || membership.Status == MembershipStatus.Suspended);
+            || membership.Status == MembershipStatus.Suspended
+        );
 }

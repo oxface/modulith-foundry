@@ -5,15 +5,18 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions;
 internal static class StockPositionDecider
 {
     internal static IReadOnlyList<IStockPositionEvent> DecideCorrection(
-        StockPositionState state, Quantity onHand, StockCorrectionReason reason) =>
-        state.OnHand == onHand ? [] : [new StockQuantityCorrected(onHand.Value, reason.Value)];
+        StockPositionState state,
+        Quantity onHand,
+        StockCorrectionReason reason
+    ) => state.OnHand == onHand ? [] : [new StockQuantityCorrected(onHand.Value, reason.Value)];
 
     internal static IReadOnlyList<IStockPositionEvent> DecideReceipt(
         StockPositionState? state,
         Guid stockItemId,
         Guid stockingLocationId,
         string baseUnitCode,
-        Quantity quantity)
+        Quantity quantity
+    )
     {
         if (state is null)
         {
@@ -27,11 +30,15 @@ internal static class StockPositionDecider
             ];
         }
 
-        if (state.StockItemId != stockItemId
+        if (
+            state.StockItemId != stockItemId
             || state.StockingLocationId != stockingLocationId
-            || !string.Equals(state.BaseUnitCode, baseUnitCode, StringComparison.Ordinal))
+            || !string.Equals(state.BaseUnitCode, baseUnitCode, StringComparison.Ordinal)
+        )
         {
-            throw new InvalidOperationException("Stock Position identity does not match its reference data.");
+            throw new InvalidOperationException(
+                "Stock Position identity does not match its reference data."
+            );
         }
 
         _ = state.OnHand.Add(quantity);

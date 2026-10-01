@@ -6,4 +6,5 @@ public sealed record GetStockPositionQuery(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     string StockingLocationCode,
-    string Sku);
+    string Sku
+);

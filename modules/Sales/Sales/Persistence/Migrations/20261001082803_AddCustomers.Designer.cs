@@ -27,11 +27,11 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Sales.Audit.SalesAuditEntry", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Sales.Audit.SalesAuditEntry",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("Action")
                         .IsRequired()
@@ -76,9 +76,7 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("source_module");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subject_id");
+                    b.Property<Guid>("SubjectId").HasColumnType("uuid").HasColumnName("subject_id");
 
                     b.Property<string>("SubjectType")
                         .IsRequired()
@@ -86,20 +84,20 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("subject_type");
 
-                    b.HasKey("Id")
-                        .HasName("pk_audit_entries");
+                    b.HasKey("Id").HasName("pk_audit_entries");
 
                     b.HasIndex("OrganizationId", "OccurredAt")
                         .HasDatabaseName("ix_audit_entries_organization_occurred_at");
 
                     b.ToTable("audit_entries", "sales");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Sales.Customers.Customer", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Sales.Customers.Customer",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -121,15 +119,15 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
-                    b.HasKey("Id")
-                        .HasName("pk_customers");
+                    b.HasKey("Id").HasName("pk_customers");
 
                     b.HasIndex("OrganizationId", "Code")
                         .IsUnique()
                         .HasDatabaseName("ux_customers_organization_code");
 
                     b.ToTable("customers", "sales");
-                });
+                }
+            );
 #pragma warning restore 612, 618
         }
     }

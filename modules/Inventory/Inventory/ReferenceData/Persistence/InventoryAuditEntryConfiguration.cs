@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ModulithFoundry.Modules.Inventory.ReferenceData.Persistence;
 
-internal sealed class InventoryAuditEntryConfiguration :
-    IEntityTypeConfiguration<InventoryAuditEntry>
+internal sealed class InventoryAuditEntryConfiguration
+    : IEntityTypeConfiguration<InventoryAuditEntry>
 {
     public void Configure(EntityTypeBuilder<InventoryAuditEntry> audit)
     {
@@ -14,15 +14,22 @@ internal sealed class InventoryAuditEntryConfiguration :
         audit.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
         audit.Property(entity => entity.ActorUserId).HasColumnName("actor_user_id");
         audit.Property(entity => entity.Action).HasColumnName("action").HasMaxLength(100);
-        audit.Property(entity => entity.SubjectType).HasColumnName("subject_type").HasMaxLength(100);
+        audit
+            .Property(entity => entity.SubjectType)
+            .HasColumnName("subject_type")
+            .HasMaxLength(100);
         audit.Property(entity => entity.SubjectId).HasColumnName("subject_id");
         audit.Property(entity => entity.Outcome).HasColumnName("outcome").HasMaxLength(32);
         audit.Property(entity => entity.ReasonCode).HasColumnName("reason_code").HasMaxLength(100);
-        audit.Property(entity => entity.SourceModule).HasColumnName("source_module").HasMaxLength(100);
+        audit
+            .Property(entity => entity.SourceModule)
+            .HasColumnName("source_module")
+            .HasMaxLength(100);
         audit.Property(entity => entity.SchemaVersion).HasColumnName("schema_version");
         audit.Property(entity => entity.Details).HasColumnName("details").HasColumnType("jsonb");
         audit.Property(entity => entity.OccurredAt).HasColumnName("occurred_at");
-        audit.HasIndex(entity => new { entity.OrganizationId, entity.OccurredAt })
+        audit
+            .HasIndex(entity => new { entity.OrganizationId, entity.OccurredAt })
             .HasDatabaseName("ix_audit_entries_organization_occurred_at");
     }
 }

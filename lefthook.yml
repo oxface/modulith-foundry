@@ -1,8 +1,14 @@
 pre-commit:
   jobs:
-    - name: dotnet-format
+    - name: csharpier
+      glob: "*.{cs,csx,config,csproj,props,targets,slnx,xml}"
+      run: dotnet csharpier check . --include-generated
+    - name: dotnet-style
       glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet format ModulithFoundry.slnx --verify-no-changes --no-restore
+      run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
+    - name: dotnet-analyzers
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-restore

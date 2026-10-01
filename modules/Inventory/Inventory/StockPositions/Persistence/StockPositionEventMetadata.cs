@@ -7,9 +7,12 @@ internal sealed record StockPositionEventMetadata(
     Guid ActorUserId,
     string? CorrelationId,
     string? CausationId,
-    string? TraceId)
+    string? TraceId
+)
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions SerializerOptions = new(
+        JsonSerializerDefaults.Web
+    );
 
     internal JsonElement ToJson() => JsonSerializer.SerializeToElement(this, SerializerOptions);
 }

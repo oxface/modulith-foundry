@@ -16,20 +16,23 @@ internal sealed partial class AcceptInvitations : Migration
             schema: "access",
             table: "invitations",
             type: "timestamp with time zone",
-            nullable: true);
+            nullable: true
+        );
 
         migrationBuilder.AddColumn<Guid>(
             name: "accepted_by_user_id",
             schema: "access",
             table: "invitations",
             type: "uuid",
-            nullable: true);
+            nullable: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ix_invitations_accepted_by_user_id",
             schema: "access",
             table: "invitations",
-            column: "accepted_by_user_id");
+            column: "accepted_by_user_id"
+        );
 
         migrationBuilder.AddForeignKey(
             name: "fk_invitations_users_accepted_by_user_id",
@@ -39,7 +42,8 @@ internal sealed partial class AcceptInvitations : Migration
             principalSchema: "access",
             principalTable: "users",
             principalColumn: "id",
-            onDelete: ReferentialAction.Restrict);
+            onDelete: ReferentialAction.Restrict
+        );
     }
 
     /// <inheritdoc />
@@ -48,21 +52,21 @@ internal sealed partial class AcceptInvitations : Migration
         migrationBuilder.DropForeignKey(
             name: "fk_invitations_users_accepted_by_user_id",
             schema: "access",
-            table: "invitations");
+            table: "invitations"
+        );
 
         migrationBuilder.DropIndex(
             name: "ix_invitations_accepted_by_user_id",
             schema: "access",
-            table: "invitations");
+            table: "invitations"
+        );
 
-        migrationBuilder.DropColumn(
-            name: "accepted_at",
-            schema: "access",
-            table: "invitations");
+        migrationBuilder.DropColumn(name: "accepted_at", schema: "access", table: "invitations");
 
         migrationBuilder.DropColumn(
             name: "accepted_by_user_id",
             schema: "access",
-            table: "invitations");
+            table: "invitations"
+        );
     }
 }

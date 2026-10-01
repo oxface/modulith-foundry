@@ -8,7 +8,8 @@ namespace ModulithFoundry.Modules.Access.Persistence;
 
 internal sealed class AccessDbContext(
     DbContextOptions<AccessDbContext> options,
-    IOrganizationContextAccessor organizationContextAccessor) : DbContext(options)
+    IOrganizationContextAccessor organizationContextAccessor
+) : DbContext(options)
 {
     internal const string Schema = "access";
     internal const string OrganizationScopeFilter = "OrganizationScope";
@@ -37,11 +38,11 @@ internal sealed class AccessDbContext(
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AccessDbContext).Assembly);
         modelBuilder.ApplyOwnershipFilters<IOrganizationOwned>(
             OrganizationScopeFilter,
-            entity => CurrentOrganizationId.HasValue
-                && entity.OrganizationId == CurrentOrganizationId);
+            entity =>
+                CurrentOrganizationId.HasValue && entity.OrganizationId == CurrentOrganizationId
+        );
     }
 
     private Guid? CurrentOrganizationId =>
         organizationContextAccessor.OrganizationContext?.OrganizationId.Value;
-
 }

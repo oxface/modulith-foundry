@@ -7,26 +7,38 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 internal sealed class StockPositionInlineProjection(InventoryDbContext context)
 {
     internal async Task StageAsync(
-        Guid organizationId, Guid streamId, long expectedVersion,
-        IReadOnlyList<IStockPositionEvent> events, DateTimeOffset recordedAt,
-        CancellationToken cancellationToken)
+        Guid organizationId,
+        Guid streamId,
+        long expectedVersion,
+        IReadOnlyList<IStockPositionEvent> events,
+        DateTimeOffset recordedAt,
+        CancellationToken cancellationToken
+    )
     {
         StockPositionWriteModel? current = null;
         if (expectedVersion > 0)
         {
             current = await context.StockPositionWriteModels.SingleOrDefaultAsync(
-                position => position.StreamId == streamId, cancellationToken);
+                position => position.StreamId == streamId,
+                cancellationToken
+            );
             if (current is null || current.Version < expectedVersion)
             {
                 throw new StockPositionIntegrityException(
                     streamId,
-                    current is null ? StockPositionIntegrityFailure.WriteModelMissing : StockPositionIntegrityFailure.WriteModelBehind,
-                    expectedVersion, current?.Version);
+                    current is null
+                        ? StockPositionIntegrityFailure.WriteModelMissing
+                        : StockPositionIntegrityFailure.WriteModelBehind,
+                    expectedVersion,
+                    current?.Version
+                );
             }
 
             if (current.Version > expectedVersion)
             {
-                throw new DbUpdateConcurrencyException("Stock Position projection has advanced concurrently.");
+                throw new DbUpdateConcurrencyException(
+                    "Stock Position projection has advanced concurrently."
+                );
             }
         }
 
@@ -44,8 +56,9 @@ internal sealed class StockPositionInlineProjection(InventoryDbContext context)
         long version = expectedVersion + events.Count;
         if (current is null)
         {
-            context.StockPositionWriteModels.Add(StockPositionWriteModel.Create(
-                streamId, organizationId, state, version, recordedAt));
+            context.StockPositionWriteModels.Add(
+                StockPositionWriteModel.Create(streamId, organizationId, state, version, recordedAt)
+            );
         }
         else
         {

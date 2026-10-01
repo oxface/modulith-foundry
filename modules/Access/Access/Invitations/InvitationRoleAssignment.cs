@@ -25,6 +25,6 @@ internal sealed class InvitationRoleAssignment : IOrganizationOwned
     internal static InvitationRoleAssignment Create(
         Guid invitationId,
         Guid organizationId,
-        string roleId) =>
-        new(invitationId, organizationId, roleId);
+        string roleId
+    ) => new(invitationId, organizationId, roleId);
 }

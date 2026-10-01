@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Access.Contracts;
 
 public abstract record ChangeMembershipStatusResult
 {
-    private ChangeMembershipStatusResult()
-    {
-    }
+    private ChangeMembershipStatusResult() { }
 
     public sealed record Changed(MembershipId MembershipId, MembershipStatus Status)
         : ChangeMembershipStatusResult;
@@ -14,7 +12,8 @@ public abstract record ChangeMembershipStatusResult
 
     public sealed record InvalidTransition(
         MembershipStatus CurrentStatus,
-        MembershipStatus RequestedStatus) : ChangeMembershipStatusResult;
+        MembershipStatus RequestedStatus
+    ) : ChangeMembershipStatusResult;
 
     public sealed record NotFound : ChangeMembershipStatusResult;
 

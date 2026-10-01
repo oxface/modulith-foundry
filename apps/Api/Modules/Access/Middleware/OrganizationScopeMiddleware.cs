@@ -9,7 +9,8 @@ internal sealed class OrganizationScopeMiddleware(RequestDelegate next)
     public async Task InvokeAsync(
         HttpContext httpContext,
         OrganizationContextAccessor contextAccessor,
-        IOrganizationQueries organizationQueries)
+        IOrganizationQueries organizationQueries
+    )
     {
         Endpoint? endpoint = httpContext.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<OrganizationScopeMetadata>() is null)
@@ -18,8 +19,7 @@ internal sealed class OrganizationScopeMiddleware(RequestDelegate next)
             return;
         }
 
-        string? organizationSlug =
-            httpContext.Request.RouteValues["organizationSlug"] as string;
+        string? organizationSlug = httpContext.Request.RouteValues["organizationSlug"] as string;
         if (string.IsNullOrWhiteSpace(organizationSlug))
         {
             httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -31,7 +31,8 @@ internal sealed class OrganizationScopeMiddleware(RequestDelegate next)
             await organizationQueries.ResolveAccessAsync(
                 currentUser.UserId,
                 organizationSlug,
-                httpContext.RequestAborted);
+                httpContext.RequestAborted
+            );
         if (organizationContext is null)
         {
             httpContext.Response.StatusCode = StatusCodes.Status404NotFound;

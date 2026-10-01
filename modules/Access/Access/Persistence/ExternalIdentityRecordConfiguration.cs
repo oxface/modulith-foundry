@@ -15,14 +15,18 @@ internal sealed class ExternalIdentityRecordConfiguration
         identity.Property(entity => entity.Subject).HasColumnName("subject").HasMaxLength(255);
         identity.Property(entity => entity.UserId).HasColumnName("user_id");
         identity.Property(entity => entity.LinkedAt).HasColumnName("linked_at");
-        identity.Property(entity => entity.LastAuthenticatedAt)
+        identity
+            .Property(entity => entity.LastAuthenticatedAt)
             .HasColumnName("last_authenticated_at");
-        identity.HasIndex(entity => new { entity.Issuer, entity.Subject })
+        identity
+            .HasIndex(entity => new { entity.Issuer, entity.Subject })
             .IsUnique()
             .HasDatabaseName(ExternalIdentityRecord.IssuerSubjectConstraint);
-        identity.HasIndex(entity => entity.UserId)
+        identity
+            .HasIndex(entity => entity.UserId)
             .HasDatabaseName("ix_external_identities_user_id");
-        identity.HasOne(entity => entity.User)
+        identity
+            .HasOne(entity => entity.User)
             .WithMany()
             .HasForeignKey(entity => entity.UserId)
             .OnDelete(DeleteBehavior.Restrict)

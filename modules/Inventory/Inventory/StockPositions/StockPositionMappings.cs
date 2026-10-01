@@ -9,9 +9,11 @@ internal static class StockPositionMappings
     internal static StockPositionView ToView(
         this StockPositionAggregate aggregate,
         StockItem item,
-        StockingLocation location)
+        StockingLocation location
+    )
     {
-        StockPositionState state = aggregate.State
+        StockPositionState state =
+            aggregate.State
             ?? throw new InvalidOperationException("Cannot map an empty Stock Position.");
         return new StockPositionView(
             new StockPositionId(aggregate.StreamId),
@@ -23,6 +25,7 @@ internal static class StockPositionMappings
             state.OnHand.Value,
             state.Reserved.Value,
             state.Available.Value,
-            aggregate.Version);
+            aggregate.Version
+        );
     }
 }

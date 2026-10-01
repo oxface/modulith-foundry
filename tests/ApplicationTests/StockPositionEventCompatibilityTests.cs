@@ -19,8 +19,14 @@ public sealed class StockPositionEventCompatibilityTests
 
         StockPositionAggregate aggregate = StockPositionAggregate.Rehydrate(streamId, events);
 
-        Assert.Equal(Guid.Parse("11111111-1111-1111-1111-111111111111"), aggregate.State!.StockItemId);
-        Assert.Equal(Guid.Parse("22222222-2222-2222-2222-222222222222"), aggregate.State.StockingLocationId);
+        Assert.Equal(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            aggregate.State!.StockItemId
+        );
+        Assert.Equal(
+            Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            aggregate.State.StockingLocationId
+        );
         Assert.Equal("EA", aggregate.State.BaseUnitCode);
         Assert.Equal(10.125m, aggregate.State.OnHand.Value);
         Assert.Equal(2, aggregate.Version);
@@ -28,29 +34,79 @@ public sealed class StockPositionEventCompatibilityTests
     }
 
     [Theory]
-    [InlineData("inventory.stock-position.quantity-corrected", 1, "{\"onHandQuantity\":7.5}",
-        (int)StockPositionIntegrityFailure.InvalidEventPayload)]
-    [InlineData("inventory.stock-position.quantity-corrected", 1, "{\"onHandQuantity\":7.5,\"reason\":null}",
-        (int)StockPositionIntegrityFailure.InvalidEventPayload)]
-    [InlineData("inventory.stock-position.received", 99, "{\"quantity\": 1}", (int)StockPositionIntegrityFailure.UnknownEvent)]
-    [InlineData("old.clr.namespace.StockReceived", 1, "{\"quantity\": 1}", (int)StockPositionIntegrityFailure.UnknownEvent)]
-    [InlineData("inventory.stock-position.received", 1, "{}", (int)StockPositionIntegrityFailure.InvalidEventPayload)]
-    [InlineData("inventory.stock-position.received", 1, "null", (int)StockPositionIntegrityFailure.InvalidEventPayload)]
-    [InlineData("inventory.stock-position.received", 1, "{\"quantity\": \"bad\"}", (int)StockPositionIntegrityFailure.InvalidEventPayload)]
-    [InlineData("inventory.stock-position.opened", 1,
+    [InlineData(
+        "inventory.stock-position.quantity-corrected",
+        1,
+        "{\"onHandQuantity\":7.5}",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
+    [InlineData(
+        "inventory.stock-position.quantity-corrected",
+        1,
+        "{\"onHandQuantity\":7.5,\"reason\":null}",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
+    [InlineData(
+        "inventory.stock-position.received",
+        99,
+        "{\"quantity\": 1}",
+        (int)StockPositionIntegrityFailure.UnknownEvent
+    )]
+    [InlineData(
+        "old.clr.namespace.StockReceived",
+        1,
+        "{\"quantity\": 1}",
+        (int)StockPositionIntegrityFailure.UnknownEvent
+    )]
+    [InlineData(
+        "inventory.stock-position.received",
+        1,
+        "{}",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
+    [InlineData(
+        "inventory.stock-position.received",
+        1,
+        "null",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
+    [InlineData(
+        "inventory.stock-position.received",
+        1,
+        "{\"quantity\": \"bad\"}",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
+    [InlineData(
+        "inventory.stock-position.opened",
+        1,
         "{\"stockItemId\":\"11111111-1111-1111-1111-111111111111\",\"stockingLocationId\":\"22222222-2222-2222-2222-222222222222\",\"baseUnitCode\":null}",
-        (int)StockPositionIntegrityFailure.InvalidEventPayload)]
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
     public void Deserialize_UnsupportedOrMalformedEnvelope_RaisesIntegrityFault(
-        string eventName, int schemaVersion, string payload, int expectedFailure)
+        string eventName,
+        int schemaVersion,
+        string payload,
+        int expectedFailure
+    )
     {
         Guid streamId = Guid.NewGuid();
         using JsonDocument document = JsonDocument.Parse(payload);
         StoredEvent stored = StoredEvent.Create(
-            Guid.NewGuid(), Guid.NewGuid(), streamId, 2, eventName, schemaVersion,
-            DateTimeOffset.UtcNow, document.RootElement.Clone(), default);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            streamId,
+            2,
+            eventName,
+            schemaVersion,
+            DateTimeOffset.UtcNow,
+            document.RootElement.Clone(),
+            default
+        );
 
-        StockPositionIntegrityException failure = Assert.Throws<StockPositionIntegrityException>(() =>
-            StockPositionEventSerializer.Deserialize(stored));
+        StockPositionIntegrityException failure = Assert.Throws<StockPositionIntegrityException>(
+            () =>
+                StockPositionEventSerializer.Deserialize(stored)
+        );
 
         Assert.Equal(streamId, failure.StreamId);
         Assert.Equal(2, failure.ObservedVersion);
@@ -61,12 +117,14 @@ public sealed class StockPositionEventCompatibilityTests
     public void ReadPersistedCorrectionFixture_ReconcilesQuantityWithoutPendingEvents()
     {
         Guid streamId = Guid.NewGuid();
-        StockPositionAggregate aggregate = StockPositionAggregate.Rehydrate(streamId,
-        [
-            ReadFixture("opened.v1.json", streamId, version: 1),
-            ReadFixture("received.v1.json", streamId, version: 2),
-            ReadFixture("quantity-corrected.v1.json", streamId, version: 3),
-        ]);
+        StockPositionAggregate aggregate = StockPositionAggregate.Rehydrate(
+            streamId,
+            [
+                ReadFixture("opened.v1.json", streamId, version: 1),
+                ReadFixture("received.v1.json", streamId, version: 2),
+                ReadFixture("quantity-corrected.v1.json", streamId, version: 3),
+            ]
+        );
 
         Assert.Equal(7.5m, aggregate.State!.OnHand.Value);
         Assert.Equal(7.5m, aggregate.State.Available.Value);
@@ -76,13 +134,24 @@ public sealed class StockPositionEventCompatibilityTests
 
     private static IStockPositionEvent ReadFixture(string fileName, Guid streamId, long version)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "StockPositionEvents", fileName);
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "Fixtures",
+            "StockPositionEvents",
+            fileName
+        );
         using JsonDocument fixture = JsonDocument.Parse(File.ReadAllText(path));
         StoredEvent stored = StoredEvent.Create(
-            Guid.NewGuid(), Guid.NewGuid(), streamId, version,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            streamId,
+            version,
             fixture.RootElement.GetProperty("eventName").GetString()!,
-            fixture.RootElement.GetProperty("schemaVersion").GetInt32(), DateTimeOffset.UtcNow,
-            fixture.RootElement.GetProperty("payload").Clone(), default);
+            fixture.RootElement.GetProperty("schemaVersion").GetInt32(),
+            DateTimeOffset.UtcNow,
+            fixture.RootElement.GetProperty("payload").Clone(),
+            default
+        );
         return StockPositionEventSerializer.Deserialize(stored);
     }
 }

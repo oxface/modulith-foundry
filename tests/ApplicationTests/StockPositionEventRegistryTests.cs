@@ -9,14 +9,19 @@ public sealed class StockPositionEventRegistryTests
     public void BuildRegistry_EventWithoutIdentity_Fails()
     {
         Assert.Throws<InvalidOperationException>(() =>
-            StockPositionEventSerializer.BuildRegistry([typeof(MissingIdentity)]));
+            StockPositionEventSerializer.BuildRegistry([typeof(MissingIdentity)])
+        );
     }
 
     [Fact]
     public void BuildRegistry_DuplicateDurableIdentity_Fails()
     {
         Assert.Throws<InvalidOperationException>(() =>
-            StockPositionEventSerializer.BuildRegistry([typeof(FirstEvent), typeof(ConflictingEvent)]));
+            StockPositionEventSerializer.BuildRegistry([
+                typeof(FirstEvent),
+                typeof(ConflictingEvent),
+            ])
+        );
     }
 
     private sealed record MissingIdentity : IStockPositionEvent;

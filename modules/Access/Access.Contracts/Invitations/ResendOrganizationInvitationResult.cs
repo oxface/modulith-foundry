@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Access.Contracts;
 
 public abstract record ResendOrganizationInvitationResult
 {
-    private ResendOrganizationInvitationResult()
-    {
-    }
+    private ResendOrganizationInvitationResult() { }
 
     public sealed record Resent(OrganizationInvitation Invitation)
         : ResendOrganizationInvitationResult;

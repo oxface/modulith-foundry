@@ -27,11 +27,11 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.ReferenceData.InventoryAuditEntry", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.ReferenceData.InventoryAuditEntry",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("Action")
                         .IsRequired()
@@ -76,9 +76,7 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("source_module");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subject_id");
+                    b.Property<Guid>("SubjectId").HasColumnType("uuid").HasColumnName("subject_id");
 
                     b.Property<string>("SubjectType")
                         .IsRequired()
@@ -86,20 +84,20 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("subject_type");
 
-                    b.HasKey("Id")
-                        .HasName("pk_audit_entries");
+                    b.HasKey("Id").HasName("pk_audit_entries");
 
                     b.HasIndex("OrganizationId", "OccurredAt")
                         .HasDatabaseName("ix_audit_entries_organization_occurred_at");
 
                     b.ToTable("audit_entries", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.StockItem", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.StockItem",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("BaseUnitCode")
                         .IsRequired()
@@ -135,8 +133,7 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_stock_items");
+                    b.HasKey("Id").HasName("pk_stock_items");
 
                     b.HasIndex("OrganizationId", "IsActive")
                         .HasDatabaseName("ix_stock_items_organization_active");
@@ -146,13 +143,14 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasDatabaseName("ux_stock_items_organization_sku");
 
                     b.ToTable("stock_items", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.StockingLocation", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.StockingLocation",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -182,8 +180,7 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_stocking_locations");
+                    b.HasKey("Id").HasName("pk_stocking_locations");
 
                     b.HasIndex("OrganizationId", "Code")
                         .IsUnique()
@@ -193,7 +190,8 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasDatabaseName("ix_stocking_locations_organization_active");
 
                     b.ToTable("stocking_locations", "inventory");
-                });
+                }
+            );
 #pragma warning restore 612, 618
         }
     }

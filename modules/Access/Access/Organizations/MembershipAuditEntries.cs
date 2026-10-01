@@ -9,7 +9,8 @@ internal static class MembershipAuditEntries
         Membership membership,
         Guid actorUserId,
         MembershipStatus previousStatus,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.Create(
             Guid.CreateVersion7(occurredAt),
             membership.OrganizationId,
@@ -25,7 +26,8 @@ internal static class MembershipAuditEntries
             },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 
     internal static AccessAuditEntry StatusChangeDenied(
         Guid organizationId,
@@ -33,7 +35,8 @@ internal static class MembershipAuditEntries
         Guid actorUserId,
         MembershipStatus requestedStatus,
         string reasonCode,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.CreateDenied(
             Guid.CreateVersion7(occurredAt),
             organizationId,
@@ -43,20 +46,19 @@ internal static class MembershipAuditEntries
             membershipId,
             reasonCode,
             schemaVersion: 1,
-            new
-            {
-                requestedStatus = MembershipStatusValues.ToValue(requestedStatus),
-            },
+            new { requestedStatus = MembershipStatusValues.ToValue(requestedStatus) },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 
     internal static AccessAuditEntry RolesReplaced(
         Membership membership,
         Guid actorUserId,
         IReadOnlyCollection<string> previousRoleIds,
         IReadOnlyCollection<string> currentRoleIds,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.Create(
             Guid.CreateVersion7(occurredAt),
             membership.OrganizationId,
@@ -65,14 +67,11 @@ internal static class MembershipAuditEntries
             "membership",
             membership.Id,
             schemaVersion: 1,
-            new
-            {
-                previousRoleIds,
-                currentRoleIds,
-            },
+            new { previousRoleIds, currentRoleIds },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 
     internal static AccessAuditEntry RoleReplacementDenied(
         Guid organizationId,
@@ -80,7 +79,8 @@ internal static class MembershipAuditEntries
         Guid actorUserId,
         string reasonCode,
         IReadOnlyCollection<string> requestedRoleIds,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.CreateDenied(
             Guid.CreateVersion7(occurredAt),
             organizationId,
@@ -90,11 +90,9 @@ internal static class MembershipAuditEntries
             membershipId,
             reasonCode,
             schemaVersion: 1,
-            new
-            {
-                requestedRoleIds,
-            },
+            new { requestedRoleIds },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 }

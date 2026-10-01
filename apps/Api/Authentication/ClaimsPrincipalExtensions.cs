@@ -10,13 +10,16 @@ internal static class ClaimsPrincipalExtensions
         string userIdClaim = principal.GetRequiredClaimValue(ProductClaims.UserId);
         if (!Guid.TryParse(userIdClaim, out Guid userId))
         {
-            throw new InvalidOperationException("Authenticated principal has an invalid product User ID.");
+            throw new InvalidOperationException(
+                "Authenticated principal has an invalid product User ID."
+            );
         }
 
         return new CurrentUser(
             new UserId(userId),
             principal.FindFirstValue(ProductClaims.Email),
-            principal.FindFirstValue(ProductClaims.DisplayName));
+            principal.FindFirstValue(ProductClaims.DisplayName)
+        );
     }
 
     internal static string GetRequiredClaimValue(this ClaimsPrincipal principal, string type)
@@ -26,6 +29,8 @@ internal static class ClaimsPrincipalExtensions
 
         return principal.FindFirstValue(type) is { Length: > 0 } value
             ? value
-            : throw new InvalidOperationException($"Authenticated principal has no '{type}' claim.");
+            : throw new InvalidOperationException(
+                $"Authenticated principal has no '{type}' claim."
+            );
     }
 }

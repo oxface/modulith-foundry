@@ -15,7 +15,8 @@ internal sealed class InvitationEmailDelivery : IOrganizationOwned
         Guid invitationId,
         int invitationGeneration,
         string protectedPayload,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -54,14 +55,16 @@ internal sealed class InvitationEmailDelivery : IOrganizationOwned
         Guid id,
         Invitation invitation,
         string protectedPayload,
-        DateTimeOffset createdAt) =>
+        DateTimeOffset createdAt
+    ) =>
         new(
             id,
             invitation.OrganizationId,
             invitation.Id,
             invitation.Generation,
             protectedPayload,
-            createdAt);
+            createdAt
+        );
 
     internal void Supersede(DateTimeOffset supersededAt)
     {

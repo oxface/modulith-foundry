@@ -19,7 +19,8 @@ internal sealed class StoredEvent : IOrganizationOwned
         int schemaVersion,
         DateTimeOffset recordedAt,
         JsonElement payload,
-        JsonElement metadata)
+        JsonElement metadata
+    )
     {
         EventId = eventId;
         OrganizationId = organizationId;
@@ -61,7 +62,8 @@ internal sealed class StoredEvent : IOrganizationOwned
         int schemaVersion,
         DateTimeOffset recordedAt,
         JsonElement payload,
-        JsonElement metadata) =>
+        JsonElement metadata
+    ) =>
         new(
             eventId,
             organizationId,
@@ -71,5 +73,6 @@ internal sealed class StoredEvent : IOrganizationOwned
             schemaVersion,
             recordedAt,
             payload,
-            metadata);
+            metadata
+        );
 }

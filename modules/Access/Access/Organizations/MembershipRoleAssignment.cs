@@ -13,7 +13,8 @@ internal sealed class MembershipRoleAssignment : IOrganizationOwned
         Guid membershipId,
         Guid organizationId,
         string roleId,
-        DateTimeOffset assignedAt)
+        DateTimeOffset assignedAt
+    )
     {
         MembershipId = membershipId;
         RoleId = roleId;
@@ -33,6 +34,6 @@ internal sealed class MembershipRoleAssignment : IOrganizationOwned
         Guid membershipId,
         Guid organizationId,
         string roleId,
-        DateTimeOffset assignedAt) =>
-        new(membershipId, organizationId, roleId, assignedAt);
+        DateTimeOffset assignedAt
+    ) => new(membershipId, organizationId, roleId, assignedAt);
 }

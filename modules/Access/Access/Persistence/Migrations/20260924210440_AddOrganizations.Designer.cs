@@ -27,7 +27,9 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.AccessAuditEntry", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.AccessAuditEntry",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -82,9 +84,7 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("source_module");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subject_id");
+                    b.Property<Guid>("SubjectId").HasColumnType("uuid").HasColumnName("subject_id");
 
                     b.Property<string>("SubjectType")
                         .IsRequired()
@@ -97,19 +97,20 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("trace_id");
 
-                    b.HasKey("Id")
-                        .HasName("pk_audit_entries");
+                    b.HasKey("Id").HasName("pk_audit_entries");
 
-                    b.HasIndex("ActorUserId")
-                        .HasDatabaseName("ix_audit_entries_actor_user_id");
+                    b.HasIndex("ActorUserId").HasDatabaseName("ix_audit_entries_actor_user_id");
 
                     b.HasIndex("OrganizationId", "OccurredAt")
                         .HasDatabaseName("ix_audit_entries_organization_occurred_at");
 
                     b.ToTable("audit_entries", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.Membership", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.Membership",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -130,24 +131,23 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("status");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                    b.Property<Guid>("UserId").HasColumnType("uuid").HasColumnName("user_id");
 
-                    b.HasKey("Id")
-                        .HasName("pk_memberships");
+                    b.HasKey("Id").HasName("pk_memberships");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_memberships_user_id");
+                    b.HasIndex("UserId").HasDatabaseName("ix_memberships_user_id");
 
                     b.HasIndex("OrganizationId", "UserId")
                         .IsUnique()
                         .HasDatabaseName("ux_memberships_organization_user");
 
                     b.ToTable("memberships", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.MembershipRoleAssignment", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.MembershipRoleAssignment",
+                b =>
                 {
                     b.Property<Guid>("MembershipId")
                         .HasColumnType("uuid")
@@ -162,13 +162,15 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("assigned_at");
 
-                    b.HasKey("MembershipId", "RoleId")
-                        .HasName("pk_membership_role_assignments");
+                    b.HasKey("MembershipId", "RoleId").HasName("pk_membership_role_assignments");
 
                     b.ToTable("membership_role_assignments", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.Organization", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.Organization",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -191,17 +193,17 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("character varying(63)")
                         .HasColumnName("slug");
 
-                    b.HasKey("Id")
-                        .HasName("pk_organizations");
+                    b.HasKey("Id").HasName("pk_organizations");
 
-                    b.HasIndex("Slug")
-                        .IsUnique()
-                        .HasDatabaseName("ux_organizations_slug");
+                    b.HasIndex("Slug").IsUnique().HasDatabaseName("ux_organizations_slug");
 
                     b.ToTable("organizations", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -228,24 +230,23 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("subject");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                    b.Property<Guid>("UserId").HasColumnType("uuid").HasColumnName("user_id");
 
-                    b.HasKey("Id")
-                        .HasName("pk_external_identities");
+                    b.HasKey("Id").HasName("pk_external_identities");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_external_identities_user_id");
+                    b.HasIndex("UserId").HasDatabaseName("ix_external_identities_user_id");
 
                     b.HasIndex("Issuer", "Subject")
                         .IsUnique()
                         .HasDatabaseName("ux_external_identities_issuer_subject");
 
                     b.ToTable("external_identities", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Persistence.User", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Persistence.User",
+                b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -270,13 +271,15 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_users");
+                    b.HasKey("Id").HasName("pk_users");
 
                     b.ToTable("users", "access");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.AccessAuditEntry", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.AccessAuditEntry",
+                b =>
                 {
                     b.HasOne("ModulithFoundry.Modules.Access.Persistence.User", null)
                         .WithMany()
@@ -291,9 +294,12 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_audit_entries_organizations_organization_id");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.Membership", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.Membership",
+                b =>
                 {
                     b.HasOne("ModulithFoundry.Modules.Access.Organizations.Organization", null)
                         .WithMany()
@@ -308,9 +314,12 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_memberships_users_user_id");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.MembershipRoleAssignment", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.MembershipRoleAssignment",
+                b =>
                 {
                     b.HasOne("ModulithFoundry.Modules.Access.Organizations.Membership", null)
                         .WithMany("RoleAssignments")
@@ -318,9 +327,12 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_membership_roles_memberships_membership_id");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Persistence.ExternalIdentityRecord",
+                b =>
                 {
                     b.HasOne("ModulithFoundry.Modules.Access.Persistence.User", "User")
                         .WithMany()
@@ -330,12 +342,16 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations
                         .HasConstraintName("fk_external_identities_users_user_id");
 
                     b.Navigation("User");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Access.Organizations.Membership", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Access.Organizations.Membership",
+                b =>
                 {
                     b.Navigation("RoleAssignments");
-                });
+                }
+            );
 #pragma warning restore 612, 618
         }
     }

@@ -6,4 +6,5 @@ public sealed record OrganizationAccessContext(
     MembershipId MembershipId,
     string OrganizationName,
     string OrganizationSlug,
-    IReadOnlyList<string> RoleIds);
+    IReadOnlyList<string> RoleIds
+);

@@ -23,7 +23,8 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
         string outcome,
         string? reasonCode,
         JsonElement details,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -70,7 +71,8 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
         string subjectType,
         Guid subjectId,
         object details,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         new(
             Guid.CreateVersion7(occurredAt),
             organizationId,
@@ -81,14 +83,16 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
             SalesAuditOutcomes.Succeeded,
             reasonCode: null,
             JsonSerializer.SerializeToElement(details),
-            occurredAt);
+            occurredAt
+        );
 
     internal static SalesAuditEntry PermissionDenied(
         Guid organizationId,
         Guid actorUserId,
         string action,
         string subjectType,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         new(
             Guid.CreateVersion7(occurredAt),
             organizationId,
@@ -99,5 +103,6 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
             SalesAuditOutcomes.Denied,
             SalesAuditReasonCodes.PermissionDenied,
             JsonSerializer.SerializeToElement(new { }),
-            occurredAt);
+            occurredAt
+        );
 }

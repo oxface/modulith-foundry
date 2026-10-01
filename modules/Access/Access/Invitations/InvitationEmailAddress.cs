@@ -14,9 +14,11 @@ internal readonly record struct InvitationEmailAddress
     internal static bool TryCreate(string? proposed, out InvitationEmailAddress email)
     {
         string candidate = proposed?.Trim() ?? string.Empty;
-        if (candidate.Length > 320
+        if (
+            candidate.Length > 320
             || !MailAddress.TryCreate(candidate, out MailAddress? parsed)
-            || !string.Equals(candidate, parsed.Address, StringComparison.OrdinalIgnoreCase))
+            || !string.Equals(candidate, parsed.Address, StringComparison.OrdinalIgnoreCase)
+        )
         {
             email = default;
             return false;

@@ -15,11 +15,19 @@ indent_style = space
 indent_size = 2
 
 [*.cs]
+# CSharpier owns layout; keep semantic code-style and analyzer rules enabled.
+max_line_length = 100
+dotnet_diagnostic.IDE0055.severity = none
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 csharp_new_line_before_open_brace = all
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_primary_constructors = false:suggestion
+
+[*.{config,csproj,props,slnx,targets,xml}]
+indent_style = space
+indent_size = 2
+max_line_length = 100
 
 [tests/**/*.cs]
 # Test names optimize behavior readability rather than public API shape.

@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Access.Persistence;
 
 internal sealed class User
 {
-    private User()
-    {
-    }
+    private User() { }
 
     internal User(Guid id, string? email, string? displayName, DateTimeOffset createdAt)
     {

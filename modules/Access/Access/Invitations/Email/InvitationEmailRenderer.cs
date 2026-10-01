@@ -1,6 +1,5 @@
 using System.Text.Encodings.Web;
 using ModulithFoundry.Modules.Access.Email;
-
 using ModulithFoundry.Modules.Access.ExtensionPoints;
 
 namespace ModulithFoundry.Modules.Access.Invitations.Email;
@@ -11,7 +10,10 @@ internal static class InvitationEmailRenderer
     {
         string organizationName = HtmlEncoder.Default.Encode(payload.OrganizationName);
         string acceptUrl = HtmlEncoder.Default.Encode(payload.AcceptUrl.AbsoluteUri);
-        string expiresAt = payload.ExpiresAt.ToString("u", System.Globalization.CultureInfo.InvariantCulture);
+        string expiresAt = payload.ExpiresAt.ToString(
+            "u",
+            System.Globalization.CultureInfo.InvariantCulture
+        );
 
         return new EmailMessage(
             payload.RecipientEmail,
@@ -33,6 +35,7 @@ internal static class InvitationEmailRenderer
                 <p>This invitation expires at {expiresAt}.</p>
               </body>
             </html>
-            """);
+            """
+        );
     }
 }

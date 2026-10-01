@@ -6,4 +6,5 @@ public sealed record ChangeStockItemDescriptionCommand(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     string Sku,
-    string Description);
+    string Description
+);

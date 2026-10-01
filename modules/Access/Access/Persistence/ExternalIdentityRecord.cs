@@ -16,7 +16,8 @@ internal sealed class ExternalIdentityRecord
         string issuer,
         string subject,
         User user,
-        DateTimeOffset authenticatedAt)
+        DateTimeOffset authenticatedAt
+    )
     {
         Id = id;
         Issuer = issuer;

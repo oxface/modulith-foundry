@@ -7,11 +7,13 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.ChangeStock
 internal sealed class ChangeStockItemDescriptionHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<ChangeStockItemDescriptionResult> HandleAsync(
         ChangeStockItemDescriptionCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -19,18 +21,24 @@ internal sealed class ChangeStockItemDescriptionHandler(
             return new ChangeStockItemDescriptionResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.ItemsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockItemDescriptionChangeDenied,
-                InventoryAuditSubjectTypes.StockItem,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockItemDescriptionChangeDenied,
+                    InventoryAuditSubjectTypes.StockItem,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new ChangeStockItemDescriptionResult.PermissionDenied();
         }
@@ -47,7 +55,8 @@ internal sealed class ChangeStockItemDescriptionHandler(
 
         StockItem? item = await context.StockItems.SingleOrDefaultAsync(
             candidate => candidate.Sku == sku,
-            cancellationToken);
+            cancellationToken
+        );
         if (item is null)
         {
             return new ChangeStockItemDescriptionResult.NotFound();
@@ -66,14 +75,17 @@ internal sealed class ChangeStockItemDescriptionHandler(
             return new ChangeStockItemDescriptionResult.Invalid(exception.Field, exception.Message);
         }
 
-        context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-            item.OrganizationId,
-            command.ActorUserId.Value,
-            InventoryAuditActions.StockItemDescriptionChanged,
-            InventoryAuditSubjectTypes.StockItem,
-            item.Id,
-            new { item.Sku, item.Description },
-            now));
+        context.AuditEntries.Add(
+            InventoryAuditEntry.Succeeded(
+                item.OrganizationId,
+                command.ActorUserId.Value,
+                InventoryAuditActions.StockItemDescriptionChanged,
+                InventoryAuditSubjectTypes.StockItem,
+                item.Id,
+                new { item.Sku, item.Description },
+                now
+            )
+        );
         await context.SaveChangesAsync(cancellationToken);
         return new ChangeStockItemDescriptionResult.Changed(item.ToView());
     }

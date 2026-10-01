@@ -8,20 +8,21 @@ namespace ModulithFoundry.Modules.Access.Invitations;
 internal sealed class OrganizationInvitationOperations(
     CreateInvitationHandler createInvitation,
     ResendInvitationHandler resendInvitation,
-    AcceptInvitationHandler acceptInvitation) : IOrganizationInvitationOperations
+    AcceptInvitationHandler acceptInvitation
+) : IOrganizationInvitationOperations
 {
     public Task<CreateOrganizationInvitationResult> CreateInvitationAsync(
         CreateOrganizationInvitationCommand command,
-        CancellationToken cancellationToken = default) =>
-        createInvitation.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => createInvitation.HandleAsync(command, cancellationToken);
 
     public Task<ResendOrganizationInvitationResult> ResendInvitationAsync(
         ResendOrganizationInvitationCommand command,
-        CancellationToken cancellationToken = default) =>
-        resendInvitation.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => resendInvitation.HandleAsync(command, cancellationToken);
 
     public Task<AcceptOrganizationInvitationResult> AcceptInvitationAsync(
         AcceptOrganizationInvitationCommand command,
-        CancellationToken cancellationToken = default) =>
-        acceptInvitation.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => acceptInvitation.HandleAsync(command, cancellationToken);
 }

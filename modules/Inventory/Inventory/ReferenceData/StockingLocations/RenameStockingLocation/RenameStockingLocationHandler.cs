@@ -7,11 +7,13 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.Rena
 internal sealed class RenameStockingLocationHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<RenameStockingLocationResult> HandleAsync(
         RenameStockingLocationCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -19,18 +21,24 @@ internal sealed class RenameStockingLocationHandler(
             return new RenameStockingLocationResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.LocationsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockingLocationRenameDenied,
-                InventoryAuditSubjectTypes.StockingLocation,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockingLocationRenameDenied,
+                    InventoryAuditSubjectTypes.StockingLocation,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new RenameStockingLocationResult.PermissionDenied();
         }
@@ -47,7 +55,8 @@ internal sealed class RenameStockingLocationHandler(
 
         StockingLocation? location = await context.StockingLocations.SingleOrDefaultAsync(
             candidate => candidate.Code == code,
-            cancellationToken);
+            cancellationToken
+        );
         if (location is null)
         {
             return new RenameStockingLocationResult.NotFound();
@@ -66,14 +75,17 @@ internal sealed class RenameStockingLocationHandler(
             return new RenameStockingLocationResult.Invalid(exception.Field, exception.Message);
         }
 
-        context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-            location.OrganizationId,
-            command.ActorUserId.Value,
-            InventoryAuditActions.StockingLocationRenamed,
-            InventoryAuditSubjectTypes.StockingLocation,
-            location.Id,
-            new { location.Code, location.Name },
-            now));
+        context.AuditEntries.Add(
+            InventoryAuditEntry.Succeeded(
+                location.OrganizationId,
+                command.ActorUserId.Value,
+                InventoryAuditActions.StockingLocationRenamed,
+                InventoryAuditSubjectTypes.StockingLocation,
+                location.Id,
+                new { location.Code, location.Name },
+                now
+            )
+        );
         await context.SaveChangesAsync(cancellationToken);
         return new RenameStockingLocationResult.Renamed(location.ToView());
     }

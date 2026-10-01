@@ -12,7 +12,9 @@ internal readonly record struct StockCorrectionReason
         if (normalized.Length is < 1 or > 200 || normalized.Any(char.IsControl))
         {
             throw new InvalidStockPositionValueException(
-                "reason", "Correction reason must contain 1 to 200 characters without control characters.");
+                "reason",
+                "Correction reason must contain 1 to 200 characters without control characters."
+            );
         }
 
         return new(normalized);

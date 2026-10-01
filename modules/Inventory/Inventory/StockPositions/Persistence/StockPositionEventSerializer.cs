@@ -6,14 +6,20 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
 internal static class StockPositionEventSerializer
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
+    private static readonly JsonSerializerOptions SerializerOptions = new(
+        JsonSerializerDefaults.Web
+    )
     {
         RespectNullableAnnotations = true,
     };
     private static readonly Dictionary<Type, StoredEventTypeAttribute> ByType = BuildRegistry(
-        typeof(IStockPositionEvent).Assembly.GetTypes());
+        typeof(IStockPositionEvent).Assembly.GetTypes()
+    );
     private static readonly Dictionary<(string Name, int Version), Type> ByIdentity =
-        ByType.ToDictionary(entry => (entry.Value.Name, entry.Value.SchemaVersion), entry => entry.Key);
+        ByType.ToDictionary(
+            entry => (entry.Value.Name, entry.Value.SchemaVersion),
+            entry => entry.Key
+        );
 
     internal static void ValidateRegistry() => _ = ByIdentity.Count;
 
@@ -27,7 +33,8 @@ internal static class StockPositionEventSerializer
         return new SerializedStockPositionEvent(
             identity.Name,
             identity.SchemaVersion,
-            JsonSerializer.SerializeToElement(@event, @event.GetType(), SerializerOptions));
+            JsonSerializer.SerializeToElement(@event, @event.GetType(), SerializerOptions)
+        );
     }
 
     internal static IStockPositionEvent Deserialize(StoredEvent stored)
@@ -35,37 +42,60 @@ internal static class StockPositionEventSerializer
         if (!ByIdentity.TryGetValue((stored.EventName, stored.SchemaVersion), out Type? type))
         {
             throw new StockPositionIntegrityException(
-                stored.StreamId, StockPositionIntegrityFailure.UnknownEvent, observedVersion: stored.StreamVersion);
+                stored.StreamId,
+                StockPositionIntegrityFailure.UnknownEvent,
+                observedVersion: stored.StreamVersion
+            );
         }
 
         try
         {
-            return (IStockPositionEvent)(stored.Payload.Deserialize(type, SerializerOptions)
+            return (IStockPositionEvent)(
+                stored.Payload.Deserialize(type, SerializerOptions)
                 ?? throw new StockPositionIntegrityException(
-                    stored.StreamId, StockPositionIntegrityFailure.InvalidEventPayload,
-                    observedVersion: stored.StreamVersion));
+                    stored.StreamId,
+                    StockPositionIntegrityFailure.InvalidEventPayload,
+                    observedVersion: stored.StreamVersion
+                )
+            );
         }
         catch (JsonException exception)
         {
             throw new StockPositionIntegrityException(
-                stored.StreamId, StockPositionIntegrityFailure.InvalidEventPayload,
-                observedVersion: stored.StreamVersion, innerException: exception);
+                stored.StreamId,
+                StockPositionIntegrityFailure.InvalidEventPayload,
+                observedVersion: stored.StreamVersion,
+                innerException: exception
+            );
         }
     }
 
-    internal static Dictionary<Type, StoredEventTypeAttribute> BuildRegistry(IEnumerable<Type> types)
+    internal static Dictionary<Type, StoredEventTypeAttribute> BuildRegistry(
+        IEnumerable<Type> types
+    )
     {
         var registry = new Dictionary<Type, StoredEventTypeAttribute>();
         var identities = new HashSet<(string Name, int Version)>();
-        foreach (Type type in types
-                     .Where(type => !type.IsAbstract && typeof(IStockPositionEvent).IsAssignableFrom(type)))
+        foreach (
+            Type type in types.Where(type =>
+                !type.IsAbstract && typeof(IStockPositionEvent).IsAssignableFrom(type)
+            )
+        )
         {
-            StoredEventTypeAttribute identity = type.GetCustomAttribute<StoredEventTypeAttribute>()
-                ?? throw new InvalidOperationException($"Event '{type.Name}' has no durable identity.");
-            if (string.IsNullOrWhiteSpace(identity.Name) || identity.SchemaVersion < 1
-                || !identities.Add((identity.Name, identity.SchemaVersion)))
+            StoredEventTypeAttribute identity =
+                type.GetCustomAttribute<StoredEventTypeAttribute>()
+                ?? throw new InvalidOperationException(
+                    $"Event '{type.Name}' has no durable identity."
+                );
+            if (
+                string.IsNullOrWhiteSpace(identity.Name)
+                || identity.SchemaVersion < 1
+                || !identities.Add((identity.Name, identity.SchemaVersion))
+            )
             {
-                throw new InvalidOperationException($"Event '{type.Name}' has an invalid or duplicate durable identity.");
+                throw new InvalidOperationException(
+                    $"Event '{type.Name}' has an invalid or duplicate durable identity."
+                );
             }
 
             registry.Add(type, identity);
@@ -78,4 +108,5 @@ internal static class StockPositionEventSerializer
 internal sealed record SerializedStockPositionEvent(
     string EventName,
     int SchemaVersion,
-    JsonElement Payload);
+    JsonElement Payload
+);

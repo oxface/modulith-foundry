@@ -5,4 +5,5 @@ public sealed record StockPositionHistoryEntry(
     DateTimeOffset RecordedAt,
     StockPositionHistoryAction Action,
     decimal? Quantity,
-    string? Reason = null);
+    string? Reason = null
+);

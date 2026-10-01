@@ -62,20 +62,32 @@ public static class InventoryModule
 
     public static IServiceCollection AddInventoryPersistence(this IServiceCollection services)
     {
-        services.TryAddScoped<IOrganizationContextAccessor, UnresolvedOrganizationContextAccessor>();
-        services.AddDbContext<InventoryDbContext>((serviceProvider, options) =>
-            options.UseNpgsql(serviceProvider.GetRequiredService<NpgsqlDataSource>(), postgres =>
-            {
-                postgres.MigrationsAssembly(typeof(InventoryModule).Assembly.FullName);
-                postgres.MigrationsHistoryTable("__EFMigrationsHistory", InventoryDbContext.Schema);
-            }));
+        services.TryAddScoped<
+            IOrganizationContextAccessor,
+            UnresolvedOrganizationContextAccessor
+        >();
+        services.AddDbContext<InventoryDbContext>(
+            (serviceProvider, options) =>
+                options.UseNpgsql(
+                    serviceProvider.GetRequiredService<NpgsqlDataSource>(),
+                    postgres =>
+                    {
+                        postgres.MigrationsAssembly(typeof(InventoryModule).Assembly.FullName);
+                        postgres.MigrationsHistoryTable(
+                            "__EFMigrationsHistory",
+                            InventoryDbContext.Schema
+                        );
+                    }
+                )
+        );
 
         return services;
     }
 
     public static async Task MigrateInventoryAsync(
         this IServiceProvider services,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();

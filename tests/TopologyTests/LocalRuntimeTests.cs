@@ -13,15 +13,18 @@ public sealed partial class LocalRuntimeTests
     public async Task LocalRuntime_RepeatedLifecycle_ProvidesHealthyApiAfterMigrations()
     {
         await using OtlpTestReceiver telemetry = await OtlpTestReceiver.StartAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         for (var iteration = 0; iteration < 2; iteration++)
         {
             using var timeout = new CancellationTokenSource(StartupTimeout);
             IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
                 randomizePorts: false,
-                timeout.Token);
-            builder.CreateResourceBuilder<ProjectResource>("api")
+                timeout.Token
+            );
+            builder
+                .CreateResourceBuilder<ProjectResource>("api")
                 .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", telemetry.Endpoint.ToString())
                 .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf");
             Task telemetryExport = telemetry.ExpectNextLogExportAsync(timeout.Token);
@@ -32,13 +35,17 @@ public sealed partial class LocalRuntimeTests
             await app.ResourceNotifications.WaitForResourceAsync(
                 "migrator",
                 KnownResourceStates.Finished,
-                timeout.Token);
+                timeout.Token
+            );
             await app.ResourceNotifications.WaitForResourceHealthyAsync("api", timeout.Token);
 
-            Assert.True(app.ResourceNotifications.TryGetCurrentState("api", out ResourceEvent? api));
+            Assert.True(
+                app.ResourceNotifications.TryGetCurrentState("api", out ResourceEvent? api)
+            );
             Assert.Contains(
                 api.Snapshot.EnvironmentVariables,
-                environment => environment.Name == "OTEL_EXPORTER_OTLP_ENDPOINT");
+                environment => environment.Name == "OTEL_EXPORTER_OTLP_ENDPOINT"
+            );
 
             using HttpClient client = app.CreateHttpClient("api");
             using HttpResponseMessage readiness = await client.GetAsync("/health", timeout.Token);
@@ -56,12 +63,15 @@ public sealed partial class LocalRuntimeTests
         using var timeout = new CancellationTokenSource(StartupTimeout);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
             randomizePorts: true,
-            timeout.Token);
+            timeout.Token
+        );
 
-        builder.CreateResourceBuilder<ProjectResource>("migrator")
+        builder
+            .CreateResourceBuilder<ProjectResource>("migrator")
             .WithEnvironment(
                 "ConnectionStrings__database",
-                "Host=127.0.0.1;Port=1;Database=invalid;Username=invalid;Password=invalid;Timeout=1");
+                "Host=127.0.0.1;Port=1;Database=invalid;Username=invalid;Password=invalid;Timeout=1"
+            );
 
         await using DistributedApplication app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
@@ -69,9 +79,12 @@ public sealed partial class LocalRuntimeTests
         await app.ResourceNotifications.WaitForResourceAsync(
             "migrator",
             KnownResourceStates.Finished,
-            timeout.Token);
+            timeout.Token
+        );
 
-        Assert.True(app.ResourceNotifications.TryGetCurrentState("migrator", out ResourceEvent? migrator));
+        Assert.True(
+            app.ResourceNotifications.TryGetCurrentState("migrator", out ResourceEvent? migrator)
+        );
         Assert.NotEqual(0, migrator.Snapshot.ExitCode);
         Assert.True(app.ResourceNotifications.TryGetCurrentState("api", out ResourceEvent? api));
         Assert.NotEqual(KnownResourceStates.Running, api.Snapshot.State?.Text);
@@ -84,12 +97,15 @@ public sealed partial class LocalRuntimeTests
         using var timeout = new CancellationTokenSource(StartupTimeout);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
             randomizePorts: true,
-            timeout.Token);
+            timeout.Token
+        );
 
-        builder.CreateResourceBuilder<ProjectResource>("api")
+        builder
+            .CreateResourceBuilder<ProjectResource>("api")
             .WithEnvironment(
                 "ConnectionStrings__database",
-                "Host=127.0.0.1;Port=1;Database=invalid;Username=invalid;Password=invalid;Timeout=1;Command Timeout=1");
+                "Host=127.0.0.1;Port=1;Database=invalid;Username=invalid;Password=invalid;Timeout=1;Command Timeout=1"
+            );
 
         await using DistributedApplication app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
@@ -97,11 +113,13 @@ public sealed partial class LocalRuntimeTests
         await app.ResourceNotifications.WaitForResourceAsync(
             "migrator",
             KnownResourceStates.Finished,
-            timeout.Token);
+            timeout.Token
+        );
         await app.ResourceNotifications.WaitForResourceAsync(
             "api",
             KnownResourceStates.Running,
-            timeout.Token);
+            timeout.Token
+        );
 
         using HttpClient client = app.CreateHttpClient("api");
         using HttpResponseMessage readiness = await client.GetAsync("/health", timeout.Token);
@@ -113,11 +131,13 @@ public sealed partial class LocalRuntimeTests
 
     private static async Task<IDistributedApplicationTestingBuilder> CreateBuilderAsync(
         bool randomizePorts,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         IDistributedApplicationTestingBuilder builder =
             await DistributedApplicationTestingBuilder.CreateAsync<Projects.ModulithFoundry_AppHost>(
-                cancellationToken);
+                cancellationToken
+            );
 
         builder.Configuration["Parameters:postgres-password"] = "topology-test-password";
         builder.Configuration["Parameters:keycloak-password"] = "topology-keycloak-password";
@@ -127,10 +147,12 @@ public sealed partial class LocalRuntimeTests
 
         foreach (IResource resource in builder.Resources)
         {
-            foreach (ContainerMountAnnotation volume in resource.Annotations
-                         .OfType<ContainerMountAnnotation>()
-                         .Where(static mount => mount.Type == ContainerMountType.Volume)
-                         .ToArray())
+            foreach (
+                ContainerMountAnnotation volume in resource
+                    .Annotations.OfType<ContainerMountAnnotation>()
+                    .Where(static mount => mount.Type == ContainerMountType.Volume)
+                    .ToArray()
+            )
             {
                 resource.Annotations.Remove(volume);
             }

@@ -13,43 +13,60 @@ internal sealed class CreateInvitationHandler(
     InvitationQueries invitationQueries,
     InvitationEmailDeliveryFactory deliveryFactory,
     SystemRoleCatalog roleCatalog,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<CreateOrganizationInvitationResult> HandleAsync(
         CreateOrganizationInvitationCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (!InvitationEmailAddress.TryCreate(command.RecipientEmail, out InvitationEmailAddress email))
+        if (
+            !InvitationEmailAddress.TryCreate(
+                command.RecipientEmail,
+                out InvitationEmailAddress email
+            )
+        )
         {
             return new CreateOrganizationInvitationResult.InvalidEmail(
-                "An invitation recipient must be a valid email address.");
+                "An invitation recipient must be a valid email address."
+            );
         }
 
-        string[] roleIds = [.. command.RoleIds
-            .Where(static roleId => !string.IsNullOrWhiteSpace(roleId))
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)];
+        string[] roleIds =
+        [
+            .. command
+                .RoleIds.Where(static roleId => !string.IsNullOrWhiteSpace(roleId))
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
         string[] invalidRoleIds = [.. roleIds.Where(roleId => !roleCatalog.Contains(roleId))];
         if (roleIds.Length == 0 || invalidRoleIds.Length > 0)
         {
             return new CreateOrganizationInvitationResult.InvalidRoles(invalidRoleIds);
         }
 
-        if (!await membershipQueries.HasPermissionAsync(
-            command.ActorUserId.Value,
-            command.OrganizationId.Value,
-            AccessPermissionIds.MembersManage,
-            cancellationToken))
+        if (
+            !await membershipQueries.HasPermissionAsync(
+                command.ActorUserId.Value,
+                command.OrganizationId.Value,
+                AccessPermissionIds.MembersManage,
+                cancellationToken
+            )
+        )
         {
             return new CreateOrganizationInvitationResult.PermissionDenied();
         }
 
-        if (await membershipQueries.HasCurrentMembershipForEmailAsync(
-            command.OrganizationId.Value,
-            email.Value,
-            cancellationToken))
+        if (
+            await membershipQueries.HasCurrentMembershipForEmailAsync(
+                command.OrganizationId.Value,
+                email.Value,
+                cancellationToken
+            )
+        )
         {
             return new CreateOrganizationInvitationResult.AlreadyMember();
         }
@@ -57,11 +74,13 @@ internal sealed class CreateInvitationHandler(
         Invitation? pending = await invitationQueries.FindPendingAsync(
             command.OrganizationId.Value,
             email.Value,
-            cancellationToken);
+            cancellationToken
+        );
         if (pending is not null)
         {
             return new CreateOrganizationInvitationResult.InvitationAlreadyPending(
-                pending.ToContract());
+                pending.ToContract()
+            );
         }
 
         DateTimeOffset createdAt = timeProvider.GetUtcNow();
@@ -73,9 +92,10 @@ internal sealed class CreateInvitationHandler(
             InvitationSecret.Digest(secret),
             roleIds,
             createdAt,
-            deliveryFactory.InvitationLifetime);
-        string organizationName = await context.Organizations
-            .AsNoTracking()
+            deliveryFactory.InvitationLifetime
+        );
+        string organizationName = await context
+            .Organizations.AsNoTracking()
             .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
             .Where(organization => organization.Id == command.OrganizationId.Value)
             .Select(organization => organization.Name)
@@ -83,12 +103,16 @@ internal sealed class CreateInvitationHandler(
 
         context.Invitations.Add(invitation);
         context.InvitationEmailDeliveries.Add(
-            deliveryFactory.Create(invitation, secret, organizationName, createdAt));
-        context.AuditEntries.Add(InvitationAuditEntries.Created(
-            invitation,
-            command.ActorUserId.Value,
-            roleIds,
-            createdAt));
+            deliveryFactory.Create(invitation, secret, organizationName, createdAt)
+        );
+        context.AuditEntries.Add(
+            InvitationAuditEntries.Created(
+                invitation,
+                command.ActorUserId.Value,
+                roleIds,
+                createdAt
+            )
+        );
 
         try
         {
@@ -97,24 +121,29 @@ internal sealed class CreateInvitationHandler(
         catch (DbUpdateException exception) when (IsPendingInvitationConflict(exception))
         {
             context.ChangeTracker.Clear();
-            Invitation existing = await invitationQueries.FindPendingAsync(
-                command.OrganizationId.Value,
-                email.Value,
-                cancellationToken)
+            Invitation existing =
+                await invitationQueries.FindPendingAsync(
+                    command.OrganizationId.Value,
+                    email.Value,
+                    cancellationToken
+                )
                 ?? throw new InvalidOperationException(
                     "The pending invitation conflict could not be reloaded.",
-                    exception);
+                    exception
+                );
             return new CreateOrganizationInvitationResult.InvitationAlreadyPending(
-                existing.ToContract());
+                existing.ToContract()
+            );
         }
 
         return new CreateOrganizationInvitationResult.Created(invitation.ToContract());
     }
 
     private static bool IsPendingInvitationConflict(DbUpdateException exception) =>
-        exception.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: "ux_invitations_organization_pending_email",
-        };
+        exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "ux_invitations_organization_pending_email",
+            };
 }

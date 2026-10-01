@@ -14,32 +14,38 @@ internal sealed class MembershipConfiguration : IEntityTypeConfiguration<Members
         membership.Property(entity => entity.Id).HasColumnName("id");
         membership.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
         membership.Property(entity => entity.UserId).HasColumnName("user_id");
-        membership.Property(entity => entity.Status)
+        membership
+            .Property(entity => entity.Status)
             .HasColumnName("status")
             .HasMaxLength(32)
             .HasConversion(
                 status => MembershipStatusValues.ToValue(status),
-                value => MembershipStatusValues.FromValue(value));
+                value => MembershipStatusValues.FromValue(value)
+            );
         membership.Property(entity => entity.CreatedAt).HasColumnName("created_at");
-        membership.HasIndex(entity => new { entity.OrganizationId, entity.UserId })
+        membership
+            .HasIndex(entity => new { entity.OrganizationId, entity.UserId })
             .IsUnique()
             .HasFilter(MembershipPersistence.CurrentMembershipFilter)
             .HasDatabaseName(MembershipPersistence.CurrentMembershipIndexName);
-        membership.HasIndex(entity => entity.UserId)
-            .HasDatabaseName("ix_memberships_user_id");
-        membership.HasAlternateKey(entity => new { entity.Id, entity.OrganizationId })
+        membership.HasIndex(entity => entity.UserId).HasDatabaseName("ix_memberships_user_id");
+        membership
+            .HasAlternateKey(entity => new { entity.Id, entity.OrganizationId })
             .HasName("ak_memberships_id_organization_id");
-        membership.HasOne<Organization>()
+        membership
+            .HasOne<Organization>()
             .WithMany()
             .HasForeignKey(entity => entity.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("fk_memberships_organizations_organization_id");
-        membership.HasOne<User>()
+        membership
+            .HasOne<User>()
             .WithMany()
             .HasForeignKey(entity => entity.UserId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("fk_memberships_users_user_id");
-        membership.HasMany(entity => entity.RoleAssignments)
+        membership
+            .HasMany(entity => entity.RoleAssignments)
             .WithOne()
             .HasForeignKey(entity => new { entity.MembershipId, entity.OrganizationId })
             .HasPrincipalKey(entity => new { entity.Id, entity.OrganizationId })

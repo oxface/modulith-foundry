@@ -8,4 +8,5 @@ public sealed record RecordStockReceiptCommand(
     string StockingLocationCode,
     string Sku,
     decimal Quantity,
-    long ExpectedVersion);
+    long ExpectedVersion
+);

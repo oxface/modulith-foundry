@@ -11,43 +11,55 @@ internal sealed class AcceptInvitationHandler(
     AccessDbContext context,
     InvitationQueries invitationQueries,
     OrganizationMembershipQueries membershipQueries,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<AcceptOrganizationInvitationResult> HandleAsync(
         AcceptOrganizationInvitationCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
         Invitation? invitation = await invitationQueries.FindByIdAsync(
             command.InvitationId.Value,
-            cancellationToken);
-        if (invitation is null
+            cancellationToken
+        );
+        if (
+            invitation is null
             || string.IsNullOrWhiteSpace(command.Secret)
-            || !InvitationSecret.Matches(command.Secret, invitation.SecretDigest))
+            || !InvitationSecret.Matches(command.Secret, invitation.SecretDigest)
+        )
         {
             return new AcceptOrganizationInvitationResult.Invalid();
         }
 
-        if (!InvitationEmailAddress.TryCreate(
-            command.VerifiedProviderEmail,
-            out InvitationEmailAddress verifiedProviderEmail)
-            || verifiedProviderEmail.Value != invitation.RecipientEmail)
+        if (
+            !InvitationEmailAddress.TryCreate(
+                command.VerifiedProviderEmail,
+                out InvitationEmailAddress verifiedProviderEmail
+            )
+            || verifiedProviderEmail.Value != invitation.RecipientEmail
+        )
         {
             return new AcceptOrganizationInvitationResult.RecipientMismatch();
         }
 
         DateTimeOffset acceptedAt = timeProvider.GetUtcNow();
-        string[] roleIds = [.. invitation.RoleAssignments
-            .Select(role => role.RoleId)
-            .Order(StringComparer.Ordinal)];
-        if (invitation.Status == InvitationStatus.Accepted
-            && invitation.AcceptedByUserId == command.UserId.Value)
+        string[] roleIds =
+        [
+            .. invitation.RoleAssignments.Select(role => role.RoleId).Order(StringComparer.Ordinal),
+        ];
+        if (
+            invitation.Status == InvitationStatus.Accepted
+            && invitation.AcceptedByUserId == command.UserId.Value
+        )
         {
             OrganizationMembership existingMembership = await ToMembershipAsync(
                 invitation,
                 roleIds,
-                cancellationToken);
+                cancellationToken
+            );
             return new AcceptOrganizationInvitationResult.AlreadyAccepted(existingMembership);
         }
 
@@ -63,20 +75,25 @@ internal sealed class AcceptInvitationHandler(
 
         bool userExists = await context.Users.AnyAsync(
             user => user.Id == command.UserId.Value,
-            cancellationToken);
+            cancellationToken
+        );
         if (!userExists)
         {
-            throw new InvalidOperationException($"Product user '{command.UserId.Value}' does not exist.");
+            throw new InvalidOperationException(
+                $"Product user '{command.UserId.Value}' does not exist."
+            );
         }
 
         OrganizationMembership acceptedMembership = await ToMembershipAsync(
             invitation,
             roleIds,
-            cancellationToken);
+            cancellationToken
+        );
         bool hasCurrentMembership = await membershipQueries.HasCurrentMembershipAsync(
             invitation.OrganizationId,
             command.UserId.Value,
-            cancellationToken);
+            cancellationToken
+        );
         if (hasCurrentMembership)
         {
             return new AcceptOrganizationInvitationResult.Consumed();
@@ -88,15 +105,19 @@ internal sealed class AcceptInvitationHandler(
             invitation.OrganizationId,
             command.UserId.Value,
             roleIds,
-            acceptedAt);
+            acceptedAt
+        );
         context.Memberships.Add(membership);
 
-        context.AuditEntries.Add(InvitationAuditEntries.Accepted(
-            invitation,
-            membership.Id,
-            command.UserId.Value,
-            roleIds,
-            acceptedAt));
+        context.AuditEntries.Add(
+            InvitationAuditEntries.Accepted(
+                invitation,
+                membership.Id,
+                command.UserId.Value,
+                roleIds,
+                acceptedAt
+            )
+        );
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -106,7 +127,8 @@ internal sealed class AcceptInvitationHandler(
             context.ChangeTracker.Clear();
             Invitation? accepted = await invitationQueries.FindByIdAsync(
                 command.InvitationId.Value,
-                cancellationToken);
+                cancellationToken
+            );
             if (accepted is null || accepted.Status != InvitationStatus.Accepted)
             {
                 throw;
@@ -119,8 +141,8 @@ internal sealed class AcceptInvitationHandler(
 
             return new AcceptOrganizationInvitationResult.AlreadyAccepted(acceptedMembership);
         }
-        catch (DbUpdateException exception) when (
-            MembershipPersistence.IsCurrentMembershipConflict(exception))
+        catch (DbUpdateException exception)
+            when (MembershipPersistence.IsCurrentMembershipConflict(exception))
         {
             context.ChangeTracker.Clear();
             return new AcceptOrganizationInvitationResult.Consumed();
@@ -132,18 +154,18 @@ internal sealed class AcceptInvitationHandler(
     private async Task<OrganizationMembership> ToMembershipAsync(
         Invitation invitation,
         IReadOnlyList<string> roleIds,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        Organization organization = await context.Organizations
-            .AsNoTracking()
+        Organization organization = await context
+            .Organizations.AsNoTracking()
             .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
-            .SingleAsync(
-                candidate => candidate.Id == invitation.OrganizationId,
-                cancellationToken);
+            .SingleAsync(candidate => candidate.Id == invitation.OrganizationId, cancellationToken);
         return new OrganizationMembership(
             new OrganizationId(organization.Id),
             organization.Name,
             organization.Slug.Value,
-            roleIds);
+            roleIds
+        );
     }
 }

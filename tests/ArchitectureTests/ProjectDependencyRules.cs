@@ -10,8 +10,7 @@ internal static class ProjectDependencyRules
     private const string TopologyTestsProject = "tests/TopologyTests/TopologyTests.csproj";
 
     // Contracts-to-Contracts edges are exceptional and enter this allowlist with the real contract that needs them.
-    private static readonly HashSet<string> AllowedContractReferences = new(
-        StringComparer.Ordinal)
+    private static readonly HashSet<string> AllowedContractReferences = new(StringComparer.Ordinal)
     {
         "modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
         "modules/Purchasing/Purchasing.Contracts/Purchasing.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
@@ -20,11 +19,13 @@ internal static class ProjectDependencyRules
     };
 
     internal static IReadOnlyCollection<string> ReferenceViolations(
-        IReadOnlyCollection<ProjectDefinition> projects)
+        IReadOnlyCollection<ProjectDefinition> projects
+    )
     {
         Dictionary<string, ProjectDefinition> projectsByPath = projects.ToDictionary(
             project => project.Path,
-            StringComparer.Ordinal);
+            StringComparer.Ordinal
+        );
         List<string> violations = [];
 
         foreach (ProjectDefinition project in projects)
@@ -50,7 +51,8 @@ internal static class ProjectDependencyRules
     }
 
     internal static IReadOnlyCollection<string> Cycles(
-        IReadOnlyDictionary<string, IReadOnlySet<string>> references)
+        IReadOnlyDictionary<string, IReadOnlySet<string>> references
+    )
     {
         List<string> cycles = [];
         HashSet<string> visited = new(StringComparer.Ordinal);
@@ -66,22 +68,30 @@ internal static class ProjectDependencyRules
     }
 
     internal static IReadOnlyCollection<string> AspirePackageReferenceViolations(
-        IReadOnlyCollection<ProjectDefinition> projects)
+        IReadOnlyCollection<ProjectDefinition> projects
+    )
     {
         return projects
-            .Where(project => project.Path != AppHostProject
-                && project.Path != TopologyTestsProject)
-            .SelectMany(project => project.PackageReferences
-                .Where(package => package.StartsWith("Aspire.", StringComparison.Ordinal))
-                .Select(package =>
-                    $"{project.Path} has forbidden Aspire package reference {package}"))
+            .Where(project =>
+                project.Path != AppHostProject && project.Path != TopologyTestsProject
+            )
+            .SelectMany(project =>
+                project
+                    .PackageReferences.Where(package =>
+                        package.StartsWith("Aspire.", StringComparison.Ordinal)
+                    )
+                    .Select(package =>
+                        $"{project.Path} has forbidden Aspire package reference {package}"
+                    )
+            )
             .ToArray();
     }
 
     private static void AddRequiredReferenceViolations(
         ProjectDefinition project,
         IReadOnlyCollection<ProjectDefinition> projects,
-        ICollection<string> violations)
+        ICollection<string> violations
+    )
     {
         if (IsModuleImplementation(project.Path))
         {
@@ -90,9 +100,11 @@ internal static class ProjectDependencyRules
 
         if (project.Path == ApiProject)
         {
-            foreach (string implementation in projects
-                .Select(candidate => candidate.Path)
-                .Where(IsModuleImplementation))
+            foreach (
+                string implementation in projects
+                    .Select(candidate => candidate.Path)
+                    .Where(IsModuleImplementation)
+            )
             {
                 AddMissingReferenceViolation(project, implementation, violations);
             }
@@ -102,7 +114,8 @@ internal static class ProjectDependencyRules
     private static void AddMissingReferenceViolation(
         ProjectDefinition project,
         string requiredReference,
-        ICollection<string> violations)
+        ICollection<string> violations
+    )
     {
         if (!project.ProjectReferences.Contains(requiredReference, StringComparer.Ordinal))
         {
@@ -158,12 +171,10 @@ internal static class ProjectDependencyRules
         && path.Contains(".Contracts/", StringComparison.Ordinal);
 
     private static bool IsModuleImplementation(string path) =>
-        path.StartsWith("modules/", StringComparison.Ordinal)
-        && !IsContractsProject(path);
+        path.StartsWith("modules/", StringComparison.Ordinal) && !IsContractsProject(path);
 
     private static bool IsRunnableApplication(string path) =>
-        path.StartsWith("apps/", StringComparison.Ordinal)
-        && path != AppHostProject;
+        path.StartsWith("apps/", StringComparison.Ordinal) && path != AppHostProject;
 
     private static bool IsSharedProject(string path) =>
         path.StartsWith("shared/", StringComparison.Ordinal);
@@ -171,7 +182,8 @@ internal static class ProjectDependencyRules
     private static bool IsTestProject(string path) =>
         path.StartsWith("tests/", StringComparison.Ordinal);
 
-    private static string ContractReferenceKey(string source, string target) => $"{source} -> {target}";
+    private static string ContractReferenceKey(string source, string target) =>
+        $"{source} -> {target}";
 
     private static void Visit(
         string project,
@@ -179,11 +191,15 @@ internal static class ProjectDependencyRules
         ISet<string> visited,
         ISet<string> active,
         Stack<string> path,
-        ICollection<string> cycles)
+        ICollection<string> cycles
+    )
     {
         if (active.Contains(project))
         {
-            string[] route = path.Reverse().SkipWhile(item => item != project).Append(project).ToArray();
+            string[] route = path.Reverse()
+                .SkipWhile(item => item != project)
+                .Append(project)
+                .ToArray();
             cycles.Add(string.Join(" -> ", route));
             return;
         }

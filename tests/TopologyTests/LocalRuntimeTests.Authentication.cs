@@ -17,12 +17,15 @@ public sealed partial class LocalRuntimeTests
     public async Task AuthenticatedJourney_KeycloakLogin_CreatesOrganizationAndSupportsLogout()
     {
         await using OtlpTestReceiver telemetry = await OtlpTestReceiver.StartAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         using var timeout = new CancellationTokenSource(StartupTimeout);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
             randomizePorts: true,
-            timeout.Token);
-        builder.CreateResourceBuilder<ProjectResource>("api")
+            timeout.Token
+        );
+        builder
+            .CreateResourceBuilder<ProjectResource>("api")
             .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", telemetry.Endpoint.ToString())
             .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf");
 
@@ -33,7 +36,8 @@ public sealed partial class LocalRuntimeTests
         Assert.True(app.ResourceNotifications.TryGetCurrentState("api", out ResourceEvent? api));
         EnvironmentVariableSnapshot authority = Assert.Single(
             api.Snapshot.EnvironmentVariables,
-            variable => variable.Name == "Authentication__Oidc__Authority");
+            variable => variable.Name == "Authentication__Oidc__Authority"
+        );
         Assert.StartsWith("https://localhost:", authority.Value, StringComparison.Ordinal);
 
         var cookies = new CookieContainer();
@@ -51,61 +55,75 @@ public sealed partial class LocalRuntimeTests
 
         using HttpResponseMessage anonymousSession = await client.GetAsync(
             "/api/session",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousSession.StatusCode);
         using HttpResponseMessage anonymousOrganizations = await client.GetAsync(
             "/api/organizations",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousOrganizations.StatusCode);
         using HttpResponseMessage anonymousOrganizationScope = await client.GetAsync(
             "/api/o/topology-organization",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousOrganizationScope.StatusCode);
 
         using HttpResponseMessage challenge = await client.GetAsync(
             "/auth/login?returnUrl=/client-owned-route",
-            timeout.Token);
+            timeout.Token
+        );
         string challengeBody = await challenge.Content.ReadAsStringAsync(timeout.Token);
         Assert.True(
             challenge.StatusCode == HttpStatusCode.Redirect,
-            $"Expected an OIDC redirect but received {(int)challenge.StatusCode}: {challengeBody}");
+            $"Expected an OIDC redirect but received {(int)challenge.StatusCode}: {challengeBody}"
+        );
 
         using HttpResponseMessage loginPage = await GetFollowingRedirectsAsync(
             client,
             cookies,
             Assert.IsType<Uri>(challenge.Headers.Location),
-            timeout.Token);
+            timeout.Token
+        );
         string loginHtml = await loginPage.Content.ReadAsStringAsync(timeout.Token);
         Assert.True(
             loginPage.StatusCode == HttpStatusCode.OK,
             $"Expected the Keycloak login page but received {(int)loginPage.StatusCode} "
-            + $"with Location '{loginPage.Headers.Location}': {loginHtml}");
+                + $"with Location '{loginPage.Headers.Location}': {loginHtml}"
+        );
         Match loginForm = KeycloakLoginForm().Match(loginHtml);
         Assert.True(loginForm.Success, "Keycloak login form was not found.");
         var loginAction = new Uri(WebUtility.HtmlDecode(loginForm.Groups["action"].Value));
 
-        using var credentials = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["username"] = "alice",
-            ["password"] = "topology-user-password",
-            ["credentialId"] = string.Empty,
-        });
+        using var credentials = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["username"] = "alice",
+                ["password"] = "topology-user-password",
+                ["credentialId"] = string.Empty,
+            }
+        );
         using HttpResponseMessage authenticatedRedirect = await client.PostAsync(
             loginAction,
             credentials,
-            timeout.Token);
+            timeout.Token
+        );
         StoreLoopbackSecureCookies(cookies, loginAction, authenticatedRedirect);
-        string authenticationBody = await authenticatedRedirect.Content.ReadAsStringAsync(timeout.Token);
+        string authenticationBody = await authenticatedRedirect.Content.ReadAsStringAsync(
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, authenticatedRedirect.StatusCode);
         using HttpResponseMessage callback = await SubmitOidcFormPostAsync(
             client,
             authenticationBody,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/api/session", callback.Headers.Location?.OriginalString);
         string setCookie = Assert.Single(
             callback.Headers.GetValues("Set-Cookie"),
-            value => value.StartsWith("__Host-modulith-foundry=", StringComparison.Ordinal));
+            value => value.StartsWith("__Host-modulith-foundry=", StringComparison.Ordinal)
+        );
         Assert.Contains("__Host-modulith-foundry=", setCookie, StringComparison.Ordinal);
         Assert.Contains("secure", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
@@ -115,131 +133,145 @@ public sealed partial class LocalRuntimeTests
         using HttpResponseMessage session = await client.GetAsync("/api/session", timeout.Token);
         Assert.Equal(HttpStatusCode.OK, session.StatusCode);
         using JsonDocument sessionJson = JsonDocument.Parse(
-            await session.Content.ReadAsStringAsync(timeout.Token));
-        Assert.NotEqual(
-            Guid.Empty,
-            sessionJson.RootElement.GetProperty("userId").GetGuid());
+            await session.Content.ReadAsStringAsync(timeout.Token)
+        );
+        Assert.NotEqual(Guid.Empty, sessionJson.RootElement.GetProperty("userId").GetGuid());
         Assert.Equal(
             "alice@example.test",
-            sessionJson.RootElement.GetProperty("email").GetString());
+            sessionJson.RootElement.GetProperty("email").GetString()
+        );
         Assert.Equal(
             "Alice Example",
-            sessionJson.RootElement.GetProperty("displayName").GetString());
-        string csrfToken = sessionJson.RootElement.GetProperty("csrfToken").GetString()
+            sessionJson.RootElement.GetProperty("displayName").GetString()
+        );
+        string csrfToken =
+            sessionJson.RootElement.GetProperty("csrfToken").GetString()
             ?? throw new InvalidOperationException("The session response has no CSRF token.");
 
         using var invalidOrganizationRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            "/api/organizations")
+            "/api/organizations"
+        )
         {
-            Content = JsonContent.Create(new
-            {
-                name = "Invalid Organization",
-                slug = "invalid/slug",
-            }),
+            Content = JsonContent.Create(
+                new { name = "Invalid Organization", slug = "invalid/slug" }
+            ),
         };
         invalidOrganizationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
         using HttpResponseMessage invalidOrganization = await client.SendAsync(
             invalidOrganizationRequest,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.BadRequest, invalidOrganization.StatusCode);
 
         using HttpResponseMessage createWithoutCsrf = await client.PostAsJsonAsync(
             "/api/organizations",
             new { name = "Topology Organization", slug = "Topology_Organization" },
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.BadRequest, createWithoutCsrf.StatusCode);
 
         using var createOrganizationRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            "/api/organizations")
+            "/api/organizations"
+        )
         {
-            Content = JsonContent.Create(new
-            {
-                name = "Topology Organization",
-                slug = "Topology_Organization",
-            }),
+            Content = JsonContent.Create(
+                new { name = "Topology Organization", slug = "Topology_Organization" }
+            ),
         };
         createOrganizationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
         using HttpResponseMessage createOrganization = await client.SendAsync(
             createOrganizationRequest,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Created, createOrganization.StatusCode);
         using JsonDocument createdOrganization = JsonDocument.Parse(
-            await createOrganization.Content.ReadAsStringAsync(timeout.Token));
+            await createOrganization.Content.ReadAsStringAsync(timeout.Token)
+        );
         Assert.Equal(
             "topology-organization",
-            createdOrganization.RootElement.GetProperty("slug").GetString());
+            createdOrganization.RootElement.GetProperty("slug").GetString()
+        );
         Assert.Equal(
             "organization-administrator",
-            Assert.Single(createdOrganization.RootElement.GetProperty("roleIds").EnumerateArray())
-                .GetString());
+            Assert
+                .Single(createdOrganization.RootElement.GetProperty("roleIds").EnumerateArray())
+                .GetString()
+        );
 
         using var duplicateOrganizationRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            "/api/organizations")
+            "/api/organizations"
+        )
         {
-            Content = JsonContent.Create(new
-            {
-                name = "Other Organization",
-                slug = "topology-organization",
-            }),
+            Content = JsonContent.Create(
+                new { name = "Other Organization", slug = "topology-organization" }
+            ),
         };
         duplicateOrganizationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
         using HttpResponseMessage duplicateOrganization = await client.SendAsync(
             duplicateOrganizationRequest,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Conflict, duplicateOrganization.StatusCode);
 
         using HttpResponseMessage organizations = await client.GetAsync(
             "/api/organizations",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, organizations.StatusCode);
         using JsonDocument organizationList = JsonDocument.Parse(
-            await organizations.Content.ReadAsStringAsync(timeout.Token));
-        JsonElement listedOrganization = Assert.Single(organizationList.RootElement.EnumerateArray());
+            await organizations.Content.ReadAsStringAsync(timeout.Token)
+        );
+        JsonElement listedOrganization = Assert.Single(
+            organizationList.RootElement.EnumerateArray()
+        );
         Assert.Equal(
             createdOrganization.RootElement.GetProperty("organizationId").GetGuid(),
-            listedOrganization.GetProperty("organizationId").GetGuid());
+            listedOrganization.GetProperty("organizationId").GetGuid()
+        );
 
         using HttpResponseMessage organizationScope = await client.GetAsync(
             "/api/o/topology-organization",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, organizationScope.StatusCode);
         using JsonDocument organizationScopeJson = JsonDocument.Parse(
-            await organizationScope.Content.ReadAsStringAsync(timeout.Token));
+            await organizationScope.Content.ReadAsStringAsync(timeout.Token)
+        );
         Assert.Equal(
             createdOrganization.RootElement.GetProperty("organizationId").GetGuid(),
-            organizationScopeJson.RootElement.GetProperty("organizationId").GetGuid());
+            organizationScopeJson.RootElement.GetProperty("organizationId").GetGuid()
+        );
         Assert.Equal(
             "organization-administrator",
-            Assert.Single(organizationScopeJson.RootElement.GetProperty("roleIds").EnumerateArray())
-                .GetString());
+            Assert
+                .Single(organizationScopeJson.RootElement.GetProperty("roleIds").EnumerateArray())
+                .GetString()
+        );
 
         using HttpResponseMessage inviteWithoutCsrf = await client.PostAsJsonAsync(
             "/api/o/topology-organization/invitations",
-            new
-            {
-                recipientEmail = "invited.person@example.test",
-                roleIds = InvitationRoleIds,
-            },
-            timeout.Token);
+            new { recipientEmail = "invited.person@example.test", roleIds = InvitationRoleIds },
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.BadRequest, inviteWithoutCsrf.StatusCode);
 
         using var invitationRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            "/api/o/topology-organization/invitations")
+            "/api/o/topology-organization/invitations"
+        )
         {
-            Content = JsonContent.Create(new
-            {
-                recipientEmail = "invited.person@example.test",
-                roleIds = InvitationRoleIds,
-            }),
+            Content = JsonContent.Create(
+                new { recipientEmail = "invited.person@example.test", roleIds = InvitationRoleIds }
+            ),
         };
         invitationRequest.Headers.Add("X-CSRF-TOKEN", csrfToken);
         using HttpResponseMessage invitation = await client.SendAsync(
             invitationRequest,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Created, invitation.StatusCode);
 
         using HttpClient mailpit = app.CreateHttpClient("mailpit", "http");
@@ -247,18 +279,21 @@ public sealed partial class LocalRuntimeTests
 
         using HttpResponseMessage unknownOrganizationScope = await client.GetAsync(
             "/api/o/unknown-organization",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.NotFound, unknownOrganizationScope.StatusCode);
 
         Cookie authenticatedCookie = Assert.Single(
             cookies.GetCookies(Assert.IsType<Uri>(client.BaseAddress)).Cast<Cookie>(),
-            cookie => cookie.Name == "__Host-modulith-foundry");
+            cookie => cookie.Name == "__Host-modulith-foundry"
+        );
         string staleCookieValue = authenticatedCookie.Value;
 
         using HttpResponseMessage logoutWithoutCsrf = await client.PostAsync(
             "/auth/logout",
             content: null,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.BadRequest, logoutWithoutCsrf.StatusCode);
 
         using var logoutRequest = new HttpRequestMessage(HttpMethod.Post, "/auth/logout");
@@ -272,47 +307,59 @@ public sealed partial class LocalRuntimeTests
             {
                 HttpOnly = true,
                 Secure = true,
-            });
-        using HttpResponseMessage afterLogout = await client.GetAsync("/api/session", timeout.Token);
+            }
+        );
+        using HttpResponseMessage afterLogout = await client.GetAsync(
+            "/api/session",
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, afterLogout.StatusCode);
 
         using HttpResponseMessage reauthenticationChallenge = await client.GetAsync(
             "/auth/login?returnUrl=/client-owned-route",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Redirect, reauthenticationChallenge.StatusCode);
         using HttpResponseMessage ssoResponse = await GetFollowingRedirectsAsync(
             client,
             cookies,
             Assert.IsType<Uri>(reauthenticationChallenge.Headers.Location),
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, ssoResponse.StatusCode);
         string ssoResponseBody = await ssoResponse.Content.ReadAsStringAsync(timeout.Token);
         using HttpResponseMessage reauthenticatedCallback = await SubmitOidcFormPostAsync(
             client,
             ssoResponseBody,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Redirect, reauthenticatedCallback.StatusCode);
         Task telemetryExport = telemetry.ExpectNextLogExportAsync(timeout.Token);
 
         using HttpResponseMessage reauthenticatedSession = await client.GetAsync(
             "/api/session",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, reauthenticatedSession.StatusCode);
 
         ExecuteCommandResult stopRedis = await app.ResourceCommands.ExecuteCommandAsync(
             "redis",
             KnownResourceCommands.StopCommand,
-            timeout.Token);
+            timeout.Token
+        );
         Assert.True(stopRedis.Success, stopRedis.Message);
         await app.ResourceNotifications.WaitForResourceAsync(
             "redis",
-            resource => resource.Snapshot.State?.Text == KnownResourceStates.Exited
+            resource =>
+                resource.Snapshot.State?.Text == KnownResourceStates.Exited
                 || resource.Snapshot.State?.Text == KnownResourceStates.Finished,
-            timeout.Token);
+            timeout.Token
+        );
 
         using HttpResponseMessage redisUnavailable = await client.GetAsync(
             "/api/session",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.NotEqual(HttpStatusCode.OK, redisUnavailable.StatusCode);
         await telemetryExport;
         Assert.False(telemetry.ContainsLogText("topology-client-secret"));
@@ -323,23 +370,27 @@ public sealed partial class LocalRuntimeTests
 
     [GeneratedRegex(
         "<form[^>]+id=\"kc-form-login\"[^>]+action=\"(?<action>[^\"]+)\"",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     private static partial Regex KeycloakLoginForm();
 
     [GeneratedRegex(
         "<form[^>]+method=\"post\"[^>]+action=\"(?<action>[^\"]+)\"",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     private static partial Regex OidcFormPost();
 
     [GeneratedRegex(
         "<input[^>]+type=\"hidden\"[^>]+name=\"(?<name>[^\"]+)\"[^>]+value=\"(?<value>[^\"]*)\"[^>]*/?>",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     private static partial Regex OidcFormPostField();
 
     private static async Task<HttpResponseMessage> SubmitOidcFormPostAsync(
         HttpClient client,
         string responseBody,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         Match callbackForm = OidcFormPost().Match(responseBody);
         Assert.True(callbackForm.Success, "The OIDC form_post response was not found.");
@@ -349,7 +400,8 @@ public sealed partial class LocalRuntimeTests
             .ToDictionary(
                 match => WebUtility.HtmlDecode(match.Groups["name"].Value),
                 match => WebUtility.HtmlDecode(match.Groups["value"].Value),
-                StringComparer.Ordinal);
+                StringComparer.Ordinal
+            );
 
         using var callbackContent = new FormUrlEncodedContent(callbackFields);
         return await client.PostAsync(callbackAction, callbackContent, cancellationToken);
@@ -359,7 +411,8 @@ public sealed partial class LocalRuntimeTests
         HttpClient client,
         CookieContainer cookies,
         Uri location,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         Uri requestUri = location.IsAbsoluteUri
             ? location
@@ -369,12 +422,16 @@ public sealed partial class LocalRuntimeTests
         {
             HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
             StoreLoopbackSecureCookies(cookies, requestUri, response);
-            if (response.StatusCode is not (
-                HttpStatusCode.MovedPermanently
-                or HttpStatusCode.Redirect
-                or HttpStatusCode.RedirectMethod
-                or HttpStatusCode.TemporaryRedirect
-                or HttpStatusCode.PermanentRedirect))
+            if (
+                response.StatusCode
+                is not (
+                    HttpStatusCode.MovedPermanently
+                    or HttpStatusCode.Redirect
+                    or HttpStatusCode.RedirectMethod
+                    or HttpStatusCode.TemporaryRedirect
+                    or HttpStatusCode.PermanentRedirect
+                )
+            )
             {
                 return response;
             }
@@ -389,7 +446,8 @@ public sealed partial class LocalRuntimeTests
 
     private static async Task WaitForInvitationEmailAsync(
         HttpClient mailpit,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         const string recipient = "invited.person@example.test";
         string searchPath = $"/api/v1/search?query={Uri.EscapeDataString($"to:{recipient}")}";
@@ -398,22 +456,30 @@ public sealed partial class LocalRuntimeTests
         {
             using HttpResponseMessage response = await mailpit.GetAsync(
                 searchPath,
-                cancellationToken);
+                cancellationToken
+            );
             response.EnsureSuccessStatusCode();
             using JsonDocument results = JsonDocument.Parse(
-                await response.Content.ReadAsStringAsync(cancellationToken));
+                await response.Content.ReadAsStringAsync(cancellationToken)
+            );
             JsonElement messages = results.RootElement.GetProperty("messages");
             if (messages.GetArrayLength() > 0)
             {
                 JsonElement message = messages[0];
                 Assert.Equal(
                     "Invitation to Topology Organization",
-                    message.GetProperty("Subject").GetString());
+                    message.GetProperty("Subject").GetString()
+                );
                 using HttpResponseMessage text = await mailpit.GetAsync(
                     $"/view/{message.GetProperty("ID").GetString()}.txt",
-                    cancellationToken);
+                    cancellationToken
+                );
                 string body = await text.Content.ReadAsStringAsync(cancellationToken);
-                Assert.Contains("/invitations/accept?invitationId=", body, StringComparison.Ordinal);
+                Assert.Contains(
+                    "/invitations/accept?invitationId=",
+                    body,
+                    StringComparison.Ordinal
+                );
                 Assert.Contains("code=", body, StringComparison.Ordinal);
                 return;
             }
@@ -425,11 +491,14 @@ public sealed partial class LocalRuntimeTests
     private static void StoreLoopbackSecureCookies(
         CookieContainer cookies,
         Uri requestUri,
-        HttpResponseMessage response)
+        HttpResponseMessage response
+    )
     {
-        if (!requestUri.IsLoopback
+        if (
+            !requestUri.IsLoopback
             || requestUri.Scheme != Uri.UriSchemeHttp
-            || !response.Headers.TryGetValues("Set-Cookie", out IEnumerable<string>? values))
+            || !response.Headers.TryGetValues("Set-Cookie", out IEnumerable<string>? values)
+        )
         {
             return;
         }
@@ -442,8 +511,6 @@ public sealed partial class LocalRuntimeTests
         }
     }
 
-    [GeneratedRegex(
-        ";\\s*Secure(?=;|$)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(";\\s*Secure(?=;|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SecureCookieAttribute();
 }

@@ -5,7 +5,8 @@ namespace ModulithFoundry.Api.Modules.Access.Middleware;
 internal static class OrganizationContextAccessorExtensions
 {
     internal static OrganizationAccessContext GetRequiredOrganizationContext(
-        this IOrganizationContextAccessor contextAccessor)
+        this IOrganizationContextAccessor contextAccessor
+    )
     {
         ArgumentNullException.ThrowIfNull(contextAccessor);
 

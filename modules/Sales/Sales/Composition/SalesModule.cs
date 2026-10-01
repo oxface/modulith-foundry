@@ -37,20 +37,32 @@ public static class SalesModule
 
     public static IServiceCollection AddSalesPersistence(this IServiceCollection services)
     {
-        services.TryAddScoped<IOrganizationContextAccessor, UnresolvedOrganizationContextAccessor>();
-        services.AddDbContext<SalesDbContext>((serviceProvider, options) =>
-            options.UseNpgsql(serviceProvider.GetRequiredService<NpgsqlDataSource>(), postgres =>
-            {
-                postgres.MigrationsAssembly(typeof(SalesModule).Assembly.FullName);
-                postgres.MigrationsHistoryTable("__EFMigrationsHistory", SalesDbContext.Schema);
-            }));
+        services.TryAddScoped<
+            IOrganizationContextAccessor,
+            UnresolvedOrganizationContextAccessor
+        >();
+        services.AddDbContext<SalesDbContext>(
+            (serviceProvider, options) =>
+                options.UseNpgsql(
+                    serviceProvider.GetRequiredService<NpgsqlDataSource>(),
+                    postgres =>
+                    {
+                        postgres.MigrationsAssembly(typeof(SalesModule).Assembly.FullName);
+                        postgres.MigrationsHistoryTable(
+                            "__EFMigrationsHistory",
+                            SalesDbContext.Schema
+                        );
+                    }
+                )
+        );
 
         return services;
     }
 
     public static async Task MigrateSalesAsync(
         this IServiceProvider services,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<SalesDbContext>();

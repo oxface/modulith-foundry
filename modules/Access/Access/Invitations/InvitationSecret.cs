@@ -5,7 +5,8 @@ namespace ModulithFoundry.Modules.Access.Invitations;
 internal static class InvitationSecret
 {
     internal static string Generate() =>
-        Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+        Convert
+            .ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');

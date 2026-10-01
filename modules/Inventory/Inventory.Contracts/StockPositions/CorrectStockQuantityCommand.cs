@@ -9,4 +9,5 @@ public sealed record CorrectStockQuantityCommand(
     string Sku,
     decimal OnHandQuantity,
     string Reason,
-    long ExpectedVersion);
+    long ExpectedVersion
+);

@@ -9,9 +9,12 @@ internal static class InvitationMappings
             new InvitationId(invitation.Id),
             new OrganizationId(invitation.OrganizationId),
             invitation.RecipientEmail,
-            [.. invitation.RoleAssignments
-                .Select(role => role.RoleId)
-                .Order(StringComparer.Ordinal)],
+            [
+                .. invitation
+                    .RoleAssignments.Select(role => role.RoleId)
+                    .Order(StringComparer.Ordinal),
+            ],
             invitation.ExpiresAt,
-            invitation.CreatedAt);
+            invitation.CreatedAt
+        );
 }

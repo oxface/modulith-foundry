@@ -8,10 +8,12 @@ namespace ModulithFoundry.Api.Modules.Access.Invitations;
 internal static class InvitationAcceptanceEndpoints
 {
     internal static IEndpointRouteBuilder MapInvitationAcceptanceEndpoints(
-        this IEndpointRouteBuilder endpoints)
+        this IEndpointRouteBuilder endpoints
+    )
     {
         endpoints.MapGet("/invitations/accept", StartAcceptanceAsync);
-        endpoints.MapPost("/invitations/accept/retry", RetryAcceptanceAsync)
+        endpoints
+            .MapPost("/invitations/accept/retry", RetryAcceptanceAsync)
             .RequireBffAntiforgery()
             .RequireAuthorization();
         endpoints.MapGet("/invitations/accept/resume", ResumeAcceptanceAsync);
@@ -22,7 +24,8 @@ internal static class InvitationAcceptanceEndpoints
     private static IResult AcceptanceResult(
         string? status,
         string? acceptanceHandle,
-        HttpContext httpContext)
+        HttpContext httpContext
+    )
     {
         SetSensitiveResponseHeaders(httpContext);
         return InvitationAcceptanceNavigation.IsRecipientMismatch(status)
@@ -33,12 +36,15 @@ internal static class InvitationAcceptanceEndpoints
                     ? null
                     : new Dictionary<string, object?>
                     {
-                        ["retry"] = $"/invitations/accept/retry?acceptanceHandle={Uri.EscapeDataString(acceptanceHandle)}",
+                        ["retry"] =
+                            $"/invitations/accept/retry?acceptanceHandle={Uri.EscapeDataString(acceptanceHandle)}",
                         ["retryMethod"] = HttpMethods.Post,
-                    })
+                    }
+            )
             : Results.Problem(
                 statusCode: StatusCodes.Status410Gone,
-                title: "This invitation is unavailable.");
+                title: "This invitation is unavailable."
+            );
     }
 
     private static async Task<IResult> StartAcceptanceAsync(
@@ -46,7 +52,8 @@ internal static class InvitationAcceptanceEndpoints
         string code,
         HttpContext httpContext,
         RedisPendingInvitationAcceptanceStore pendingAcceptances,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         SetSensitiveResponseHeaders(httpContext);
 
@@ -57,7 +64,8 @@ internal static class InvitationAcceptanceEndpoints
 
         string acceptanceHandle = await pendingAcceptances.CreateAsync(
             new PendingInvitationAcceptance(invitationId, code),
-            cancellationToken);
+            cancellationToken
+        );
         return Challenge(acceptanceHandle);
     }
 
@@ -65,7 +73,8 @@ internal static class InvitationAcceptanceEndpoints
         string acceptanceHandle,
         HttpContext httpContext,
         RedisPendingInvitationAcceptanceStore pendingAcceptances,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         SetSensitiveResponseHeaders(httpContext);
         if (await pendingAcceptances.RetrieveAsync(acceptanceHandle, cancellationToken) is null)
@@ -75,21 +84,24 @@ internal static class InvitationAcceptanceEndpoints
 
         var properties = new AuthenticationProperties
         {
-            RedirectUri = $"/invitations/accept/resume?acceptanceHandle={Uri.EscapeDataString(acceptanceHandle)}",
+            RedirectUri =
+                $"/invitations/accept/resume?acceptanceHandle={Uri.EscapeDataString(acceptanceHandle)}",
         };
         return Results.SignOut(
             properties,
             [
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 OpenIdConnectDefaults.AuthenticationScheme,
-            ]);
+            ]
+        );
     }
 
     private static async Task<IResult> ResumeAcceptanceAsync(
         string acceptanceHandle,
         HttpContext httpContext,
         RedisPendingInvitationAcceptanceStore pendingAcceptances,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         SetSensitiveResponseHeaders(httpContext);
         return await pendingAcceptances.RetrieveAsync(acceptanceHandle, cancellationToken) is null
@@ -99,14 +111,9 @@ internal static class InvitationAcceptanceEndpoints
 
     private static IResult Challenge(string acceptanceHandle)
     {
-        var properties = new AuthenticationProperties
-        {
-            RedirectUri = "/api/session",
-        };
+        var properties = new AuthenticationProperties { RedirectUri = "/api/session" };
         properties.Items[InvitationAuthenticationProperties.AcceptanceHandle] = acceptanceHandle;
-        return Results.Challenge(
-            properties,
-            [OpenIdConnectDefaults.AuthenticationScheme]);
+        return Results.Challenge(properties, [OpenIdConnectDefaults.AuthenticationScheme]);
     }
 
     private static void SetSensitiveResponseHeaders(HttpContext httpContext)

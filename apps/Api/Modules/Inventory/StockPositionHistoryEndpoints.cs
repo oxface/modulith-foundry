@@ -8,7 +8,8 @@ namespace ModulithFoundry.Api.Modules.Inventory;
 internal static class StockPositionHistoryEndpoints
 {
     internal static IEndpointRouteBuilder MapStockPositionHistoryEndpoints(
-        this IEndpointRouteBuilder endpoints)
+        this IEndpointRouteBuilder endpoints
+    )
     {
         endpoints.MapGet("/{locationCode}/{sku}/history", GetAsync);
         return endpoints;
@@ -21,12 +22,21 @@ internal static class StockPositionHistoryEndpoints
         int? limit,
         IOrganizationContextAccessor contextAccessor,
         IStockPositionOperations stockPositions,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
         GetStockPositionHistoryResult result = await stockPositions.GetHistoryAsync(
-            new(context.UserId, context.OrganizationId, locationCode, sku, afterVersion ?? 0, limit ?? 50),
-            cancellationToken);
+            new(
+                context.UserId,
+                context.OrganizationId,
+                locationCode,
+                sku,
+                afterVersion ?? 0,
+                limit ?? 50
+            ),
+            cancellationToken
+        );
         return result switch
         {
             GetStockPositionHistoryResult.Found found => TypedResults.Ok(ToResponse(found.History)),
@@ -36,26 +46,48 @@ internal static class StockPositionHistoryEndpoints
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "Invalid stock position history query",
                 detail: invalid.Detail,
-                extensions: new Dictionary<string, object?> { ["field"] = invalid.Field }),
+                extensions: new Dictionary<string, object?> { ["field"] = invalid.Field }
+            ),
             _ => throw new UnreachableException(),
         };
     }
 
     private static HistoryResponse ToResponse(StockPositionHistoryView history) =>
-        new(history.StockPositionId.Value, history.BaseUnitCode, history.Version,
-            [.. history.Entries.Select(entry => new HistoryEntryResponse(
-                entry.Version, entry.RecordedAt, entry.Action switch
-                {
-                    StockPositionHistoryAction.Opened => "opened",
-                    StockPositionHistoryAction.Received => "received",
-                    StockPositionHistoryAction.QuantityCorrected => "quantity-corrected",
-                    _ => throw new UnreachableException(),
-                }, entry.Quantity, entry.Reason))], history.NextAfterVersion);
+        new(
+            history.StockPositionId.Value,
+            history.BaseUnitCode,
+            history.Version,
+            [
+                .. history.Entries.Select(entry => new HistoryEntryResponse(
+                    entry.Version,
+                    entry.RecordedAt,
+                    entry.Action switch
+                    {
+                        StockPositionHistoryAction.Opened => "opened",
+                        StockPositionHistoryAction.Received => "received",
+                        StockPositionHistoryAction.QuantityCorrected => "quantity-corrected",
+                        _ => throw new UnreachableException(),
+                    },
+                    entry.Quantity,
+                    entry.Reason
+                )),
+            ],
+            history.NextAfterVersion
+        );
 
     private sealed record HistoryResponse(
-        Guid StockPositionId, string BaseUnitCode, long Version,
-        IReadOnlyList<HistoryEntryResponse> Entries, long? NextAfterVersion);
+        Guid StockPositionId,
+        string BaseUnitCode,
+        long Version,
+        IReadOnlyList<HistoryEntryResponse> Entries,
+        long? NextAfterVersion
+    );
 
     private sealed record HistoryEntryResponse(
-        long Version, DateTimeOffset RecordedAt, string Action, decimal? Quantity, string? Reason);
+        long Version,
+        DateTimeOffset RecordedAt,
+        string Action,
+        decimal? Quantity,
+        string? Reason
+    );
 }

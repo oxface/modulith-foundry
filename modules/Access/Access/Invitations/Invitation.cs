@@ -19,7 +19,8 @@ internal sealed class Invitation : IOrganizationOwned
         byte[] secretDigest,
         IReadOnlyCollection<string> roleIds,
         DateTimeOffset createdAt,
-        DateTimeOffset expiresAt)
+        DateTimeOffset expiresAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -29,8 +30,9 @@ internal sealed class Invitation : IOrganizationOwned
         Status = InvitationStatus.Pending;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
-        _roleAssignments.AddRange(roleIds.Select(roleId =>
-            InvitationRoleAssignment.Create(id, organizationId, roleId)));
+        _roleAssignments.AddRange(
+            roleIds.Select(roleId => InvitationRoleAssignment.Create(id, organizationId, roleId))
+        );
     }
 
     internal Guid Id { get; private set; }
@@ -62,7 +64,8 @@ internal sealed class Invitation : IOrganizationOwned
         byte[] secretDigest,
         IReadOnlyCollection<string> roleIds,
         DateTimeOffset createdAt,
-        TimeSpan lifetime) =>
+        TimeSpan lifetime
+    ) =>
         new(
             id,
             organizationId,
@@ -70,7 +73,8 @@ internal sealed class Invitation : IOrganizationOwned
             secretDigest,
             roleIds,
             createdAt,
-            createdAt.Add(lifetime));
+            createdAt.Add(lifetime)
+        );
 
     internal void Resend(byte[] secretDigest, DateTimeOffset resentAt, TimeSpan lifetime)
     {

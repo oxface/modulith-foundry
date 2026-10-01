@@ -8,7 +8,8 @@ namespace ModulithFoundry.Migrator;
 
 internal sealed class MigrationCoordinator(
     IServiceProvider services,
-    ILogger<MigrationCoordinator> logger)
+    ILogger<MigrationCoordinator> logger
+)
 {
     public async Task MigrateAsync(CancellationToken cancellationToken)
     {

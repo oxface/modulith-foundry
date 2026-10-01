@@ -4,7 +4,8 @@ internal static class MigrationCoveragePolicy
 {
     internal static IReadOnlyCollection<string> SchemaViolations(
         IEnumerable<string> expectedSchemas,
-        IEnumerable<string> migratedSchemas)
+        IEnumerable<string> migratedSchemas
+    )
     {
         var expected = new HashSet<string>(expectedSchemas, StringComparer.Ordinal);
         var migrated = new HashSet<string>(migratedSchemas, StringComparer.Ordinal);
@@ -13,10 +14,12 @@ internal static class MigrationCoveragePolicy
             .Where(schema => !migrated.Contains(schema))
             .Order(StringComparer.Ordinal)
             .Select(schema => $"Module schema '{schema}' was not migrated")
-            .Concat(migrated
-                .Where(schema => !expected.Contains(schema))
-                .Order(StringComparer.Ordinal)
-                .Select(schema => $"Unexpected module schema '{schema}' was migrated"))
+            .Concat(
+                migrated
+                    .Where(schema => !expected.Contains(schema))
+                    .Order(StringComparer.Ordinal)
+                    .Select(schema => $"Unexpected module schema '{schema}' was migrated")
+            )
             .ToArray();
     }
 }

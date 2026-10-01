@@ -6,4 +6,5 @@ public sealed record SetStockingLocationActiveCommand(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     string Code,
-    bool IsActive);
+    bool IsActive
+);

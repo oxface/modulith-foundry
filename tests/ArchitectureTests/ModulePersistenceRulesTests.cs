@@ -23,24 +23,25 @@ public sealed class ModulePersistenceRulesTests
     private static readonly ModulePersistenceAdapter[] PersistenceAdapters =
     [
         new("Access", services => services.AddAccessPersistence()),
-        new(
-            "Inventory",
-            services => services.AddInventoryPersistence()),
-        new(
-            "Purchasing",
-            services => services.AddPurchasingPersistence()),
+        new("Inventory", services => services.AddInventoryPersistence()),
+        new("Purchasing", services => services.AddPurchasingPersistence()),
         new("Sales", services => services.AddSalesPersistence()),
     ];
 
     [Fact]
     public void ModulePersistenceAdapters_WhenDiscoveredModuleHasNoAdapter_ReportViolation()
     {
-        string[] discoveredModules = [.. PersistenceAdapters.Select(module => module.Name), "Shipping"];
+        string[] discoveredModules =
+        [
+            .. PersistenceAdapters.Select(module => module.Name),
+            "Shipping",
+        ];
         string[] adaptedModules = [.. PersistenceAdapters.Select(module => module.Name)];
 
         Assert.Contains(
             "Shipping has no persistence architecture-test adapter",
-            ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules));
+            ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules)
+        );
     }
 
     [Fact]
@@ -51,13 +52,17 @@ public sealed class ModulePersistenceRulesTests
 
         Assert.Contains(
             "Shipping persistence architecture-test adapter has no discovered module",
-            ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules));
+            ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules)
+        );
     }
 
     [Fact]
     public void ModulePersistenceAdapters_WhenInspected_CoverEveryDiscoveredModule()
     {
-        string[] discoveredModules = [.. RepositoryTopology.Modules().Select(module => module.Name)];
+        string[] discoveredModules =
+        [
+            .. RepositoryTopology.Modules().Select(module => module.Name),
+        ];
         string[] adaptedModules = [.. PersistenceAdapters.Select(module => module.Name)];
 
         Assert.Empty(ModuleCoveragePolicy.AdapterViolations(discoveredModules, adaptedModules));
@@ -67,12 +72,14 @@ public sealed class ModulePersistenceRulesTests
     public async Task ModulePersistence_WhenEfMetadataIsInspected_RespectsModuleAndOrganizationBoundaries()
     {
         await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(
-            "Host=localhost;Database=architecture_tests;Username=unused;Password=unused");
+            "Host=localhost;Database=architecture_tests;Username=unused;Password=unused"
+        );
 
         foreach (ModuleDefinition module in RepositoryTopology.Modules())
         {
             ModulePersistenceAdapter adapter = PersistenceAdapters.Single(candidate =>
-                candidate.Name == module.Name);
+                candidate.Name == module.Name
+            );
             var services = new ServiceCollection();
             services.AddSingleton(dataSource);
             adapter.Register(services);
@@ -83,34 +90,42 @@ public sealed class ModulePersistenceRulesTests
             await using AsyncServiceScope scope = provider.CreateAsyncScope();
             var context = (DbContext)scope.ServiceProvider.GetRequiredService(dbContextType);
 
-            RelationalOptionsExtension relationalOptions = context.GetService<IDbContextOptions>()
-                .Extensions
-                .OfType<RelationalOptionsExtension>()
+            RelationalOptionsExtension relationalOptions = context
+                .GetService<IDbContextOptions>()
+                .Extensions.OfType<RelationalOptionsExtension>()
                 .Single();
             Assert.Equal(module.Schema, relationalOptions.MigrationsHistoryTableSchema);
             Assert.Equal(module.Schema, context.Model.GetDefaultSchema());
 
             Assert.All(
                 context.Model.GetEntityTypes(),
-                entity => Assert.Equal(module.Schema, entity.GetSchema()));
-            Assert.All(context.Model.GetEntityTypes(), entity =>
-            {
-                bool isOrganizationOwned = typeof(IOrganizationOwned)
-                    .IsAssignableFrom(entity.ClrType);
-                IQueryFilter? organizationFilter = entity.FindDeclaredQueryFilter(
-                    "OrganizationScope");
+                entity => Assert.Equal(module.Schema, entity.GetSchema())
+            );
+            Assert.All(
+                context.Model.GetEntityTypes(),
+                entity =>
+                {
+                    bool isOrganizationOwned = typeof(IOrganizationOwned).IsAssignableFrom(
+                        entity.ClrType
+                    );
+                    IQueryFilter? organizationFilter = entity.FindDeclaredQueryFilter(
+                        "OrganizationScope"
+                    );
 
-                Assert.Equal(isOrganizationOwned, organizationFilter is not null);
-            });
+                    Assert.Equal(isOrganizationOwned, organizationFilter is not null);
+                }
+            );
 
             IMigrationsAssembly migrationsAssembly = context.GetService<IMigrationsAssembly>();
-            string activeProvider = context.Database.ProviderName
+            string activeProvider =
+                context.Database.ProviderName
                 ?? throw new InvalidOperationException($"{module.Name} has no EF provider.");
             foreach (TypeInfo migrationType in migrationsAssembly.Migrations.Values)
             {
                 Migration migration = migrationsAssembly.CreateMigration(
                     migrationType,
-                    activeProvider);
+                    activeProvider
+                );
                 Assert.Empty(SchemaOwnershipViolations(module.Schema, migration.UpOperations));
                 Assert.Empty(SchemaOwnershipViolations(module.Schema, migration.DownOperations));
             }
@@ -122,40 +137,36 @@ public sealed class ModulePersistenceRulesTests
     {
         MigrationOperation[] operations =
         [
-            new CreateTableOperation
-            {
-                Name = "reservation",
-                Schema = "inventory",
-            }
+            new CreateTableOperation { Name = "reservation", Schema = "inventory" },
         ];
 
         Assert.Contains(
             "CreateTableOperation names schema 'inventory' instead of owned schema 'sales'",
-            SchemaOwnershipViolations("sales", operations));
+            SchemaOwnershipViolations("sales", operations)
+        );
     }
 
     [Fact]
     public void SchemaOwnership_WhenNestedForeignKeyNamesAnotherSchema_ReportsViolation()
     {
-        var createTable = new CreateTableOperation
-        {
-            Name = "reservation",
-            Schema = "sales",
-        };
-        createTable.ForeignKeys.Add(new AddForeignKeyOperation
-        {
-            Name = "FK_reservation_stock",
-            Table = "reservation",
-            Schema = "sales",
-            Columns = ["stock_id"],
-            PrincipalTable = "stock",
-            PrincipalSchema = "inventory",
-            PrincipalColumns = ["id"],
-        });
+        var createTable = new CreateTableOperation { Name = "reservation", Schema = "sales" };
+        createTable.ForeignKeys.Add(
+            new AddForeignKeyOperation
+            {
+                Name = "FK_reservation_stock",
+                Table = "reservation",
+                Schema = "sales",
+                Columns = ["stock_id"],
+                PrincipalTable = "stock",
+                PrincipalSchema = "inventory",
+                PrincipalColumns = ["id"],
+            }
+        );
 
         Assert.Contains(
             "AddForeignKeyOperation names schema 'inventory' instead of owned schema 'sales'",
-            SchemaOwnershipViolations("sales", [createTable]));
+            SchemaOwnershipViolations("sales", [createTable])
+        );
     }
 
     [Fact]
@@ -163,24 +174,19 @@ public sealed class ModulePersistenceRulesTests
     {
         MigrationOperation[] operations =
         [
-            new SqlOperation
-            {
-                Sql = "SELECT * FROM inventory.stock;",
-            }
+            new SqlOperation { Sql = "SELECT * FROM inventory.stock;" },
         ];
 
         Assert.Contains(
             "SqlOperation contains raw SQL; schema ownership cannot be verified",
-            SchemaOwnershipViolations("sales", operations));
+            SchemaOwnershipViolations("sales", operations)
+        );
     }
 
     [Fact]
     public void SchemaOwnership_WhenRawSqlDeclaresOwnedSchema_HasNoViolation()
     {
-        var operation = new SqlOperation
-        {
-            Sql = "UPDATE sales.orders SET status = 'pending';",
-        };
+        var operation = new SqlOperation { Sql = "UPDATE sales.orders SET status = 'pending';" };
         operation.AddAnnotation(OwnedSchemaAnnotation, "sales");
 
         Assert.Empty(SchemaOwnershipViolations("sales", [operation]));
@@ -189,20 +195,19 @@ public sealed class ModulePersistenceRulesTests
     [Fact]
     public void SchemaOwnership_WhenRawSqlDeclaresAnotherSchema_ReportsViolation()
     {
-        var operation = new SqlOperation
-        {
-            Sql = "UPDATE inventory.stock SET available = false;",
-        };
+        var operation = new SqlOperation { Sql = "UPDATE inventory.stock SET available = false;" };
         operation.AddAnnotation(OwnedSchemaAnnotation, "inventory");
 
         Assert.Contains(
             "SqlOperation declares schema 'inventory' instead of owned schema 'sales'",
-            SchemaOwnershipViolations("sales", [operation]));
+            SchemaOwnershipViolations("sales", [operation])
+        );
     }
 
     private static List<string> SchemaOwnershipViolations(
         string ownedSchema,
-        IEnumerable<MigrationOperation> operations)
+        IEnumerable<MigrationOperation> operations
+    )
     {
         var violations = new List<string>();
 
@@ -210,17 +215,19 @@ public sealed class ModulePersistenceRulesTests
         {
             if (operation is SqlOperation)
             {
-                string? declaredSchema = operation.FindAnnotation(OwnedSchemaAnnotation)?.Value
-                    as string;
+                string? declaredSchema =
+                    operation.FindAnnotation(OwnedSchemaAnnotation)?.Value as string;
                 if (declaredSchema is null)
                 {
                     violations.Add(
-                        "SqlOperation contains raw SQL; schema ownership cannot be verified");
+                        "SqlOperation contains raw SQL; schema ownership cannot be verified"
+                    );
                 }
                 else if (!string.Equals(declaredSchema, ownedSchema, StringComparison.Ordinal))
                 {
                     violations.Add(
-                        $"SqlOperation declares schema '{declaredSchema}' instead of owned schema '{ownedSchema}'");
+                        $"SqlOperation declares schema '{declaredSchema}' instead of owned schema '{ownedSchema}'"
+                    );
                 }
 
                 continue;
@@ -228,19 +235,25 @@ public sealed class ModulePersistenceRulesTests
 
             IEnumerable<string> schemaReferences = operation is EnsureSchemaOperation ensureSchema
                 ? [ensureSchema.Name]
-                : operation.GetType()
+                : operation
+                    .GetType()
                     .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                     .Where(property =>
                         property.PropertyType == typeof(string)
-                        && property.Name.Contains("Schema", StringComparison.Ordinal))
+                        && property.Name.Contains("Schema", StringComparison.Ordinal)
+                    )
                     .Select(property => property.GetValue(operation) as string)
                     .OfType<string>();
 
-            foreach (string schema in schemaReferences.Where(schema =>
-                !string.Equals(schema, ownedSchema, StringComparison.Ordinal)))
+            foreach (
+                string schema in schemaReferences.Where(schema =>
+                    !string.Equals(schema, ownedSchema, StringComparison.Ordinal)
+                )
+            )
             {
                 violations.Add(
-                    $"{operation.GetType().Name} names schema '{schema}' instead of owned schema '{ownedSchema}'");
+                    $"{operation.GetType().Name} names schema '{schema}' instead of owned schema '{ownedSchema}'"
+                );
             }
         }
 
@@ -248,7 +261,8 @@ public sealed class ModulePersistenceRulesTests
     }
 
     private static IEnumerable<MigrationOperation> DescendantsAndSelf(
-        IEnumerable<MigrationOperation> operations)
+        IEnumerable<MigrationOperation> operations
+    )
     {
         var visited = new HashSet<MigrationOperation>(ReferenceEqualityComparer.Instance);
         var pending = new Stack<MigrationOperation>(operations.Reverse());
@@ -262,9 +276,12 @@ public sealed class ModulePersistenceRulesTests
 
             yield return operation;
 
-            foreach (PropertyInfo property in operation.GetType()
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(property => property.GetIndexParameters().Length == 0))
+            foreach (
+                PropertyInfo property in operation
+                    .GetType()
+                    .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                    .Where(property => property.GetIndexParameters().Length == 0)
+            )
             {
                 object? value = property.GetValue(operation);
                 if (value is MigrationOperation nested)
@@ -284,5 +301,6 @@ public sealed class ModulePersistenceRulesTests
 
     private sealed record ModulePersistenceAdapter(
         string Name,
-        Action<IServiceCollection> Register);
+        Action<IServiceCollection> Register
+    );
 }

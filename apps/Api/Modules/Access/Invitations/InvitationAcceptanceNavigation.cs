@@ -6,9 +6,7 @@ internal abstract record InvitationAcceptanceNavigation
     private const string RecipientMismatchStatus = "recipient-mismatch";
     private const string UnavailableStatus = "invalid";
 
-    private InvitationAcceptanceNavigation()
-    {
-    }
+    private InvitationAcceptanceNavigation() { }
 
     internal abstract string ReturnUri { get; }
 
@@ -20,7 +18,8 @@ internal abstract record InvitationAcceptanceNavigation
         internal override string ReturnUri => $"/api/o/{Uri.EscapeDataString(Slug)}";
     }
 
-    internal sealed record RecipientMismatch(string AcceptanceHandle) : InvitationAcceptanceNavigation
+    internal sealed record RecipientMismatch(string AcceptanceHandle)
+        : InvitationAcceptanceNavigation
     {
         internal override string ReturnUri =>
             $"{ResultPath}?status={RecipientMismatchStatus}&acceptanceHandle={Uri.EscapeDataString(AcceptanceHandle)}";

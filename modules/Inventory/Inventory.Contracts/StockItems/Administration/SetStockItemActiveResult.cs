@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record SetStockItemActiveResult
 {
-    private SetStockItemActiveResult()
-    {
-    }
+    private SetStockItemActiveResult() { }
 
     public sealed record Changed(StockItemView Item) : SetStockItemActiveResult;
 

@@ -4,4 +4,5 @@ internal sealed record InvitationEmailPayload(
     string RecipientEmail,
     string OrganizationName,
     Uri AcceptUrl,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt
+);

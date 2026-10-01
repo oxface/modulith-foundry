@@ -29,7 +29,8 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
         string sourceModule,
         short schemaVersion,
         JsonElement details,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -86,7 +87,8 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
         TDetails details,
         string? correlationId,
         string? traceId,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         new(
             id,
             organizationId,
@@ -101,7 +103,8 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
             AccessSourceModule,
             schemaVersion,
             JsonSerializer.SerializeToElement(details),
-            occurredAt);
+            occurredAt
+        );
 
     internal static AccessAuditEntry CreateDenied<TDetails>(
         Guid id,
@@ -115,7 +118,8 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
         TDetails details,
         string? correlationId,
         string? traceId,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         new(
             id,
             organizationId,
@@ -130,5 +134,6 @@ internal sealed class AccessAuditEntry : IOrganizationOwned
             AccessSourceModule,
             schemaVersion,
             JsonSerializer.SerializeToElement(details),
-            occurredAt);
+            occurredAt
+        );
 }

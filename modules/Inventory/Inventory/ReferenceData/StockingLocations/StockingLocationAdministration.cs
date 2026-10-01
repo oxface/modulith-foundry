@@ -11,26 +11,27 @@ internal sealed class StockingLocationAdministration(
     CreateStockingLocationHandler create,
     RenameStockingLocationHandler rename,
     SetStockingLocationActiveHandler setActive,
-    StockingLocationQueries queries) : IStockingLocationAdministration
+    StockingLocationQueries queries
+) : IStockingLocationAdministration
 {
     public Task<CreateStockingLocationResult> CreateAsync(
         CreateStockingLocationCommand command,
-        CancellationToken cancellationToken = default) =>
-        create.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => create.HandleAsync(command, cancellationToken);
 
     public Task<RenameStockingLocationResult> RenameAsync(
         RenameStockingLocationCommand command,
-        CancellationToken cancellationToken = default) =>
-        rename.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => rename.HandleAsync(command, cancellationToken);
 
     public Task<SetStockingLocationActiveResult> SetActiveAsync(
         SetStockingLocationActiveCommand command,
-        CancellationToken cancellationToken = default) =>
-        setActive.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => setActive.HandleAsync(command, cancellationToken);
 
     public Task<ListStockingLocationsResult> ListAsync(
         UserId actorUserId,
         OrganizationId organizationId,
-        CancellationToken cancellationToken = default) =>
-        queries.ListAsync(actorUserId, organizationId, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => queries.ListAsync(actorUserId, organizationId, cancellationToken);
 }

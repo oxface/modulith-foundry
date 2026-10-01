@@ -2,25 +2,29 @@ IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(ar
 
 IResourceBuilder<ParameterResource> postgresPassword = builder.AddParameter(
     "postgres-password",
-    secret: true);
+    secret: true
+);
 IResourceBuilder<ParameterResource> keycloakPassword = builder.AddParameter(
     "keycloak-password",
-    secret: true);
+    secret: true
+);
 IResourceBuilder<ParameterResource> oidcClientSecret = builder.AddParameter(
     "oidc-client-secret",
-    secret: true);
+    secret: true
+);
 IResourceBuilder<ParameterResource> keycloakTestUserPassword = builder.AddParameter(
     "keycloak-test-user-password",
-    secret: true);
+    secret: true
+);
 IResourceBuilder<PostgresServerResource> postgres = builder
     .AddPostgres("postgres", password: postgresPassword, port: 55432)
     .WithImageTag("18.6")
     .WithDataVolume()
-    .WithPgAdmin(pgAdmin => pgAdmin
-        .WithHostPort(5050)
-        .WithExplicitStart());
-IResourceBuilder<PostgresDatabaseResource> database = postgres
-    .AddDatabase("database", "modulith_foundry");
+    .WithPgAdmin(pgAdmin => pgAdmin.WithHostPort(5050).WithExplicitStart());
+IResourceBuilder<PostgresDatabaseResource> database = postgres.AddDatabase(
+    "database",
+    "modulith_foundry"
+);
 
 IResourceBuilder<RedisResource> redis = builder
     .AddRedis("redis", port: 56379)
@@ -55,16 +59,21 @@ IResourceBuilder<ProjectResource> api = builder
     .WithReference(keycloak)
     .WithEnvironment(
         "Authentication__Oidc__Authority",
-        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/modulith-foundry"))
+        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/modulith-foundry")
+    )
     .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
     .WithEnvironment("Authentication__Oidc__ClientId", "modulith-foundry-bff")
     .WithEnvironment("Authentication__Oidc__ClientSecret", oidcClientSecret)
     .WithEnvironment("Authentication__Oidc__RequireHttpsMetadata", "true")
+    .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", "false")
     .WithEnvironment(
-        "OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION",
-        "false")
-    .WithEnvironment("Email__Smtp__Host", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
-    .WithEnvironment("Email__Smtp__Port", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
+        "Email__Smtp__Host",
+        mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host)
+    )
+    .WithEnvironment(
+        "Email__Smtp__Port",
+        mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port)
+    )
     .WithEnvironment("Email__Smtp__Security", "None")
     .WithEnvironment("Email__Smtp__FromAddress", "no-reply@modulith-foundry.local")
     .WithEnvironment("Email__Smtp__FromName", "Modulith Foundry")

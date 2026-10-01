@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record GetStockPositionResult
 {
-    private GetStockPositionResult()
-    {
-    }
+    private GetStockPositionResult() { }
 
     public sealed record Found(StockPositionView Position) : GetStockPositionResult;
 

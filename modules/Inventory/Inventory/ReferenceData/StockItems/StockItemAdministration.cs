@@ -11,26 +11,27 @@ internal sealed class StockItemAdministration(
     CreateStockItemHandler create,
     ChangeStockItemDescriptionHandler changeDescription,
     SetStockItemActiveHandler setActive,
-    StockItemQueries queries) : IStockItemAdministration
+    StockItemQueries queries
+) : IStockItemAdministration
 {
     public Task<CreateStockItemResult> CreateAsync(
         CreateStockItemCommand command,
-        CancellationToken cancellationToken = default) =>
-        create.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => create.HandleAsync(command, cancellationToken);
 
     public Task<ChangeStockItemDescriptionResult> ChangeDescriptionAsync(
         ChangeStockItemDescriptionCommand command,
-        CancellationToken cancellationToken = default) =>
-        changeDescription.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => changeDescription.HandleAsync(command, cancellationToken);
 
     public Task<SetStockItemActiveResult> SetActiveAsync(
         SetStockItemActiveCommand command,
-        CancellationToken cancellationToken = default) =>
-        setActive.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => setActive.HandleAsync(command, cancellationToken);
 
     public Task<ListStockItemsResult> ListAsync(
         UserId actorUserId,
         OrganizationId organizationId,
-        CancellationToken cancellationToken = default) =>
-        queries.ListAsync(actorUserId, organizationId, cancellationToken);
+        CancellationToken cancellationToken = default
+    ) => queries.ListAsync(actorUserId, organizationId, cancellationToken);
 }

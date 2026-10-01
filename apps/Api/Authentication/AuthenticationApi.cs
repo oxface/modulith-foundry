@@ -10,35 +10,50 @@ internal static class AuthenticationApi
 {
     internal static IEndpointRouteBuilder MapAuthenticationApi(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/auth/login", () =>
-            Results.Challenge(
-                new AuthenticationProperties { RedirectUri = "/api/session" },
-                [OpenIdConnectDefaults.AuthenticationScheme]));
+        endpoints.MapGet(
+            "/auth/login",
+            () =>
+                Results.Challenge(
+                    new AuthenticationProperties { RedirectUri = "/api/session" },
+                    [OpenIdConnectDefaults.AuthenticationScheme]
+                )
+        );
 
-        endpoints.MapPost("/auth/logout", () =>
-            Results.SignOut(
-                new AuthenticationProperties { RedirectUri = "/" },
-                [
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    OpenIdConnectDefaults.AuthenticationScheme,
-                ]))
+        endpoints
+            .MapPost(
+                "/auth/logout",
+                () =>
+                    Results.SignOut(
+                        new AuthenticationProperties { RedirectUri = "/" },
+                        [
+                            CookieAuthenticationDefaults.AuthenticationScheme,
+                            OpenIdConnectDefaults.AuthenticationScheme,
+                        ]
+                    )
+            )
             .RequireBffAntiforgery()
             .RequireAuthorization();
 
-        endpoints.MapGet("/api/session", (
-            ClaimsPrincipal principal,
-            HttpContext httpContext,
-            IAntiforgery antiforgery) =>
-        {
-            httpContext.Response.Headers.CacheControl = "no-store";
-            CurrentUser currentUser = principal.GetRequiredCurrentUser();
-            return TypedResults.Ok(new SessionResponse(
-                currentUser.UserId.Value,
-                currentUser.Email,
-                currentUser.DisplayName,
-                antiforgery.GetAndStoreTokens(httpContext).RequestToken
-                    ?? throw new InvalidOperationException("No antiforgery request token was created.")));
-        })
+        endpoints
+            .MapGet(
+                "/api/session",
+                (ClaimsPrincipal principal, HttpContext httpContext, IAntiforgery antiforgery) =>
+                {
+                    httpContext.Response.Headers.CacheControl = "no-store";
+                    CurrentUser currentUser = principal.GetRequiredCurrentUser();
+                    return TypedResults.Ok(
+                        new SessionResponse(
+                            currentUser.UserId.Value,
+                            currentUser.Email,
+                            currentUser.DisplayName,
+                            antiforgery.GetAndStoreTokens(httpContext).RequestToken
+                                ?? throw new InvalidOperationException(
+                                    "No antiforgery request token was created."
+                                )
+                        )
+                    );
+                }
+            )
             .RequireAuthorization();
 
         return endpoints;
@@ -48,5 +63,6 @@ internal static class AuthenticationApi
         Guid UserId,
         string? Email,
         string? DisplayName,
-        string CsrfToken);
+        string CsrfToken
+    );
 }

@@ -13,11 +13,13 @@ internal sealed class RecordStockReceiptHandler(
     InventoryDbContext context,
     StockPositionStore store,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<RecordStockReceiptResult> HandleAsync(
         RecordStockReceiptCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -25,18 +27,24 @@ internal sealed class RecordStockReceiptHandler(
             return new RecordStockReceiptResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.StockAdjust,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockReceiptRecordDenied,
-                InventoryAuditSubjectTypes.StockPosition,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockReceiptRecordDenied,
+                    InventoryAuditSubjectTypes.StockPosition,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new RecordStockReceiptResult.PermissionDenied();
         }
@@ -49,11 +57,15 @@ internal sealed class RecordStockReceiptHandler(
             locationCode = InventoryCode.Normalize(
                 command.StockingLocationCode,
                 "stockingLocationCode",
-                64);
+                64
+            );
             Quantity.Positive(command.Quantity);
         }
-        catch (ArgumentException exception) when (exception is InvalidInventoryReferenceDataException
-            or InvalidStockPositionValueException)
+        catch (ArgumentException exception)
+            when (exception
+                    is InvalidInventoryReferenceDataException
+                        or InvalidStockPositionValueException
+            )
         {
             string field = exception switch
             {
@@ -66,7 +78,8 @@ internal sealed class RecordStockReceiptHandler(
 
         StockItem? item = await context.StockItems.SingleOrDefaultAsync(
             candidate => candidate.Sku == sku,
-            cancellationToken);
+            cancellationToken
+        );
         if (item is null || !item.IsActive)
         {
             return new RecordStockReceiptResult.ReferenceUnavailable("stock-item");
@@ -74,7 +87,8 @@ internal sealed class RecordStockReceiptHandler(
 
         StockingLocation? location = await context.StockingLocations.SingleOrDefaultAsync(
             candidate => candidate.Code == locationCode,
-            cancellationToken);
+            cancellationToken
+        );
         if (location is null || !location.IsActive)
         {
             return new RecordStockReceiptResult.ReferenceUnavailable("stocking-location");
@@ -83,9 +97,16 @@ internal sealed class RecordStockReceiptHandler(
         StockPositionAggregate aggregate;
         try
         {
-            await using var transaction = await store.BeginWriteAsync(command.OrganizationId, cancellationToken);
+            await using var transaction = await store.BeginWriteAsync(
+                command.OrganizationId,
+                cancellationToken
+            );
             aggregate = await store.LoadForWritingAsync(
-                item.Id, location.Id, command.ExpectedVersion, cancellationToken);
+                item.Id,
+                location.Id,
+                command.ExpectedVersion,
+                cancellationToken
+            );
             aggregate.RecordReceipt(item.Id, location.Id, item.BaseUnitCode, command.Quantity);
 
             DateTimeOffset now = timeProvider.GetUtcNow();
@@ -94,21 +115,25 @@ internal sealed class RecordStockReceiptHandler(
                 command.ActorUserId,
                 aggregate,
                 now,
-                cancellationToken);
-            context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockReceiptRecorded,
-                InventoryAuditSubjectTypes.StockPosition,
-                aggregate.StreamId,
-                new
-                {
-                    item.Sku,
-                    StockingLocationCode = location.Code,
-                    command.Quantity,
-                    Version = aggregate.Version,
-                },
-                now));
+                cancellationToken
+            );
+            context.AuditEntries.Add(
+                InventoryAuditEntry.Succeeded(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockReceiptRecorded,
+                    InventoryAuditSubjectTypes.StockPosition,
+                    aggregate.StreamId,
+                    new
+                    {
+                        item.Sku,
+                        StockingLocationCode = location.Code,
+                        command.Quantity,
+                        Version = aggregate.Version,
+                    },
+                    now
+                )
+            );
 
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -121,7 +146,8 @@ internal sealed class RecordStockReceiptHandler(
         {
             return new RecordStockReceiptResult.Invalid(exception.Field, exception.Message);
         }
-        catch (DbUpdateException exception) when (StockPositionStore.IsConcurrencyConflict(exception))
+        catch (DbUpdateException exception)
+            when (StockPositionStore.IsConcurrencyConflict(exception))
         {
             return new RecordStockReceiptResult.VersionConflict();
         }

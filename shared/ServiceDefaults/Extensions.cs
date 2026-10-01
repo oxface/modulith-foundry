@@ -36,7 +36,8 @@ public static class Extensions
         });
 
         builder.Services.Configure<HostOptions>(options =>
-            options.ShutdownTimeout = TimeSpan.FromSeconds(30));
+            options.ShutdownTimeout = TimeSpan.FromSeconds(30)
+        );
 
         return builder;
     }
@@ -50,27 +51,36 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
-        builder.Services.AddOpenTelemetry()
-            .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation())
-            .WithTracing(tracing => tracing
-                .AddSource(builder.Environment.ApplicationName)
-                .AddAspNetCoreInstrumentation(options =>
-                    options.Filter = context =>
-                        !context.Request.Path.StartsWithSegments(HealthEndpointPath)
-                        && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath))
-                .AddHttpClientInstrumentation());
+        builder
+            .Services.AddOpenTelemetry()
+            .WithMetrics(metrics =>
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation()
+            )
+            .WithTracing(tracing =>
+                tracing
+                    .AddSource(builder.Environment.ApplicationName)
+                    .AddAspNetCoreInstrumentation(options =>
+                        options.Filter = context =>
+                            !context.Request.Path.StartsWithSegments(HealthEndpointPath)
+                            && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath)
+                    )
+                    .AddHttpClientInstrumentation()
+            );
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
             builder.Services.Configure<OpenTelemetryLoggerOptions>(logging =>
-                logging.AddOtlpExporter());
+                logging.AddOtlpExporter()
+            );
             builder.Services.ConfigureOpenTelemetryMeterProvider(metrics =>
-                metrics.AddOtlpExporter());
+                metrics.AddOtlpExporter()
+            );
             builder.Services.ConfigureOpenTelemetryTracerProvider(tracing =>
-                tracing.AddOtlpExporter());
+                tracing.AddOtlpExporter()
+            );
         }
 
         return builder;
@@ -79,7 +89,8 @@ public static class Extensions
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        builder.Services.AddHealthChecks()
+        builder
+            .Services.AddHealthChecks()
             .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
@@ -88,10 +99,13 @@ public static class Extensions
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
         app.MapHealthChecks(HealthEndpointPath);
-        app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-        {
-            Predicate = static registration => registration.Tags.Contains("live"),
-        });
+        app.MapHealthChecks(
+            AlivenessEndpointPath,
+            new HealthCheckOptions
+            {
+                Predicate = static registration => registration.Tags.Contains("live"),
+            }
+        );
 
         return app;
     }

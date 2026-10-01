@@ -4,4 +4,5 @@ public sealed record CreateOrganizationInvitationCommand(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     string RecipientEmail,
-    IReadOnlyCollection<string> RoleIds);
+    IReadOnlyCollection<string> RoleIds
+);

@@ -22,20 +22,24 @@ public static class AccessModule
 {
     public static IServiceCollection AddAccessModule(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
         services.AddAccessPersistence();
         services.AddInvitationEmailDelivery(configuration);
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton(serviceProvider =>
-            new SystemRoleCatalog(serviceProvider.GetServices<SystemRoleManifest>()));
+        services.AddSingleton(serviceProvider => new SystemRoleCatalog(
+            serviceProvider.GetServices<SystemRoleManifest>()
+        ));
         services.AddScoped<IExternalIdentityLinking, LinkExternalIdentityHandler>();
         services.AddScoped<IOrganizationCreation, CreateOrganizationHandler>();
         services.AddScoped<OrganizationMembershipQueries>();
         services.AddScoped<IOrganizationMembershipQueries>(serviceProvider =>
-            serviceProvider.GetRequiredService<OrganizationMembershipQueries>());
+            serviceProvider.GetRequiredService<OrganizationMembershipQueries>()
+        );
         services.AddScoped<IOrganizationAuthorization>(serviceProvider =>
-            serviceProvider.GetRequiredService<OrganizationMembershipQueries>());
+            serviceProvider.GetRequiredService<OrganizationMembershipQueries>()
+        );
         services.AddScoped<MembershipAdministrationConsistency>();
         services.AddScoped<ChangeMembershipStatusHandler>();
         services.AddScoped<ReplaceMembershipRolesHandler>();
@@ -52,20 +56,32 @@ public static class AccessModule
 
     public static IServiceCollection AddAccessPersistence(this IServiceCollection services)
     {
-        services.TryAddScoped<IOrganizationContextAccessor, UnresolvedOrganizationContextAccessor>();
-        services.AddDbContext<AccessDbContext>((serviceProvider, options) =>
-            options.UseNpgsql(serviceProvider.GetRequiredService<NpgsqlDataSource>(), postgres =>
-            {
-                postgres.MigrationsAssembly(typeof(AccessModule).Assembly.FullName);
-                postgres.MigrationsHistoryTable("__EFMigrationsHistory", AccessDbContext.Schema);
-            }));
+        services.TryAddScoped<
+            IOrganizationContextAccessor,
+            UnresolvedOrganizationContextAccessor
+        >();
+        services.AddDbContext<AccessDbContext>(
+            (serviceProvider, options) =>
+                options.UseNpgsql(
+                    serviceProvider.GetRequiredService<NpgsqlDataSource>(),
+                    postgres =>
+                    {
+                        postgres.MigrationsAssembly(typeof(AccessModule).Assembly.FullName);
+                        postgres.MigrationsHistoryTable(
+                            "__EFMigrationsHistory",
+                            AccessDbContext.Schema
+                        );
+                    }
+                )
+        );
 
         return services;
     }
 
     public static async Task MigrateAccessAsync(
         this IServiceProvider services,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AccessDbContext>();

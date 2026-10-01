@@ -7,4 +7,5 @@ public sealed record GetStockPositionAsOfQuery(
     OrganizationId OrganizationId,
     string StockingLocationCode,
     string Sku,
-    DateTimeOffset RecordedAt);
+    DateTimeOffset RecordedAt
+);

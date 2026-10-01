@@ -7,11 +7,13 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.SetStockIte
 internal sealed class SetStockItemActiveHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<SetStockItemActiveResult> HandleAsync(
         SetStockItemActiveCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -19,18 +21,24 @@ internal sealed class SetStockItemActiveHandler(
             return new SetStockItemActiveResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.ItemsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockItemStatusChangeDenied,
-                InventoryAuditSubjectTypes.StockItem,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockItemStatusChangeDenied,
+                    InventoryAuditSubjectTypes.StockItem,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new SetStockItemActiveResult.PermissionDenied();
         }
@@ -47,7 +55,8 @@ internal sealed class SetStockItemActiveHandler(
 
         StockItem? item = await context.StockItems.SingleOrDefaultAsync(
             candidate => candidate.Sku == sku,
-            cancellationToken);
+            cancellationToken
+        );
         if (item is null)
         {
             return new SetStockItemActiveResult.NotFound();
@@ -59,14 +68,17 @@ internal sealed class SetStockItemActiveHandler(
             return new SetStockItemActiveResult.Unchanged(item.ToView());
         }
 
-        context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-            item.OrganizationId,
-            command.ActorUserId.Value,
-            InventoryAuditActions.StockItemStatusChanged,
-            InventoryAuditSubjectTypes.StockItem,
-            item.Id,
-            new { item.Sku, item.IsActive },
-            now));
+        context.AuditEntries.Add(
+            InventoryAuditEntry.Succeeded(
+                item.OrganizationId,
+                command.ActorUserId.Value,
+                InventoryAuditActions.StockItemStatusChanged,
+                InventoryAuditSubjectTypes.StockItem,
+                item.Id,
+                new { item.Sku, item.IsActive },
+                now
+            )
+        );
         await context.SaveChangesAsync(cancellationToken);
         return new SetStockItemActiveResult.Changed(item.ToView());
     }

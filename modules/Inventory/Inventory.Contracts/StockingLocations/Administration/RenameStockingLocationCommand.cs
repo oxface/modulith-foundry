@@ -6,4 +6,5 @@ public sealed record RenameStockingLocationCommand(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     string Code,
-    string Name);
+    string Name
+);

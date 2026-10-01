@@ -9,7 +9,12 @@ internal sealed class SalesOrderLine
         BaseUnitCode = null!;
     }
 
-    private SalesOrderLine(int lineNumber, SalesOrderLineInput input, OrderQuantity quantity, UnitPrice unitPrice)
+    private SalesOrderLine(
+        int lineNumber,
+        SalesOrderLineInput input,
+        OrderQuantity quantity,
+        UnitPrice unitPrice
+    )
     {
         LineNumber = lineNumber;
         StockItemId = input.StockItemId;
@@ -31,5 +36,10 @@ internal sealed class SalesOrderLine
     internal decimal LineAmount { get; private set; }
 
     internal static SalesOrderLine Create(int lineNumber, SalesOrderLineInput input) =>
-        new(lineNumber, input, OrderQuantity.Create(input.Quantity), Orders.UnitPrice.Create(input.UnitPrice));
+        new(
+            lineNumber,
+            input,
+            OrderQuantity.Create(input.Quantity),
+            Orders.UnitPrice.Create(input.UnitPrice)
+        );
 }

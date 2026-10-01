@@ -10,7 +10,8 @@ namespace ModulithFoundry.Modules.Inventory.Persistence;
 
 internal sealed class InventoryDbContext(
     DbContextOptions<InventoryDbContext> options,
-    IOrganizationContextAccessor organizationContextAccessor) : DbContext(options)
+    IOrganizationContextAccessor organizationContextAccessor
+) : DbContext(options)
 {
     internal const string Schema = "inventory";
     internal const string OrganizationScopeFilter = "OrganizationScope";
@@ -25,7 +26,8 @@ internal sealed class InventoryDbContext(
 
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();
 
-    internal DbSet<StockPositionWriteModel> StockPositionWriteModels => Set<StockPositionWriteModel>();
+    internal DbSet<StockPositionWriteModel> StockPositionWriteModels =>
+        Set<StockPositionWriteModel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,8 +35,9 @@ internal sealed class InventoryDbContext(
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(InventoryDbContext).Assembly);
         modelBuilder.ApplyOwnershipFilters<IOrganizationOwned>(
             OrganizationScopeFilter,
-            entity => CurrentOrganizationId.HasValue
-                && entity.OrganizationId == CurrentOrganizationId);
+            entity =>
+                CurrentOrganizationId.HasValue && entity.OrganizationId == CurrentOrganizationId
+        );
     }
 
     private Guid? CurrentOrganizationId =>

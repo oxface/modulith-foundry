@@ -2,15 +2,12 @@ namespace ModulithFoundry.Modules.Access.Contracts;
 
 public abstract record CreateOrganizationInvitationResult
 {
-    private CreateOrganizationInvitationResult()
-    {
-    }
+    private CreateOrganizationInvitationResult() { }
 
     public sealed record Created(OrganizationInvitation Invitation)
         : CreateOrganizationInvitationResult;
 
-    public sealed record InvalidEmail(string Detail)
-        : CreateOrganizationInvitationResult;
+    public sealed record InvalidEmail(string Detail) : CreateOrganizationInvitationResult;
 
     public sealed record InvalidRoles(IReadOnlyList<string> RoleIds)
         : CreateOrganizationInvitationResult;

@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record CreateStockingLocationResult
 {
-    private CreateStockingLocationResult()
-    {
-    }
+    private CreateStockingLocationResult() { }
 
     public sealed record Created(StockingLocationView Location) : CreateStockingLocationResult;
 

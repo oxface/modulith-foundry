@@ -14,24 +14,27 @@ internal static class AuthenticationExtensions
 {
     internal static IServiceCollection AddBffAuthentication(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
-        services.AddOptions<OidcSettings>()
+        services
+            .AddOptions<OidcSettings>()
             .BindConfiguration(OidcSettings.SectionName)
             .ValidateDataAnnotations()
             .Validate(
                 static settings => IsValidAuthority(settings),
-                "OIDC authority must be an absolute HTTP(S) URI with a host and no user info, query, or fragment; HTTPS is required when metadata HTTPS is required.")
+                "OIDC authority must be an absolute HTTP(S) URI with a host and no user info, query, or fragment; HTTPS is required when metadata HTTPS is required."
+            )
             .ValidateOnStart();
 
-        string redisConnectionString = configuration.GetConnectionString("redis")
+        string redisConnectionString =
+            configuration.GetConnectionString("redis")
             ?? throw new InvalidOperationException("Connection string 'redis' is required.");
         var redisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
         redisConfiguration.AbortOnConnectFail = true;
         redisConfiguration.ConnectTimeout = 5_000;
 
-        services.AddDataProtection()
-            .SetApplicationName("ModulithFoundry");
+        services.AddDataProtection().SetApplicationName("ModulithFoundry");
         services.AddAntiforgery(options =>
         {
             options.HeaderName = "X-CSRF-TOKEN";
@@ -45,15 +48,20 @@ internal static class AuthenticationExtensions
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<CurrentUserCompletion>();
         services.AddSingleton<IConnectionMultiplexer>(_ =>
-            ConnectionMultiplexer.Connect(redisConfiguration));
+            ConnectionMultiplexer.Connect(redisConfiguration)
+        );
         services.AddSingleton<RedisTicketStore>();
-        services.AddSingleton<IPostConfigureOptions<CookieAuthenticationOptions>,
-            CookieTicketStoreConfiguration>();
+        services.AddSingleton<
+            IPostConfigureOptions<CookieAuthenticationOptions>,
+            CookieTicketStoreConfiguration
+        >();
         services.AddHealthChecks().AddCheck<RedisHealthCheck>("redis");
 
-        services.AddAuthentication(options =>
+        services
+            .AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme =
+                    CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
@@ -79,17 +87,17 @@ internal static class AuthenticationExtensions
             })
             .AddOpenIdConnect();
 
-        services.AddOptions<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme)
-            .Configure<IOptions<OidcSettings>>(static (options, configured) =>
-                ConfigureOpenIdConnect(options, configured.Value));
+        services
+            .AddOptions<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme)
+            .Configure<IOptions<OidcSettings>>(
+                static (options, configured) => ConfigureOpenIdConnect(options, configured.Value)
+            );
 
         services.AddAuthorization();
         return services;
     }
 
-    private static void ConfigureOpenIdConnect(
-        OpenIdConnectOptions options,
-        OidcSettings oidc)
+    private static void ConfigureOpenIdConnect(OpenIdConnectOptions options, OidcSettings oidc)
     {
         options.Authority = oidc.Authority;
         options.ClientId = oidc.ClientId;
@@ -119,26 +127,32 @@ internal static class AuthenticationExtensions
 
     private static async Task LinkExternalIdentityAsync(TicketReceivedContext context)
     {
-        ClaimsPrincipal principal = context.Principal
+        ClaimsPrincipal principal =
+            context.Principal
             ?? throw new InvalidOperationException("The completed OIDC principal is missing.");
-        CompletedOidcIdentity completedIdentity = await context.HttpContext.RequestServices
-            .GetRequiredService<CurrentUserCompletion>()
+        CompletedOidcIdentity completedIdentity = await context
+            .HttpContext.RequestServices.GetRequiredService<CurrentUserCompletion>()
             .CompleteAsync(principal, context.HttpContext.RequestAborted);
         AuthenticationProperties? properties = context.Properties;
-        if (properties?.Items.TryGetValue(
+        if (
+            properties?.Items.TryGetValue(
                 InvitationAuthenticationProperties.AcceptanceHandle,
-                out string? acceptanceHandle) is true)
+                out string? acceptanceHandle
+            )
+            is true
+        )
         {
             properties.Items.Remove(InvitationAuthenticationProperties.AcceptanceHandle);
             if (!string.IsNullOrWhiteSpace(acceptanceHandle))
             {
-                InvitationAcceptanceNavigation navigation = await context.HttpContext.RequestServices
-                    .GetRequiredService<CompleteInvitationAcceptanceHandler>()
+                InvitationAcceptanceNavigation navigation = await context
+                    .HttpContext.RequestServices.GetRequiredService<CompleteInvitationAcceptanceHandler>()
                     .HandleAsync(
                         acceptanceHandle,
                         completedIdentity.CurrentUser,
                         completedIdentity.VerifiedProviderEmail,
-                        context.HttpContext.RequestAborted);
+                        context.HttpContext.RequestAborted
+                    );
                 context.ReturnUri = navigation.ReturnUri;
             }
         }

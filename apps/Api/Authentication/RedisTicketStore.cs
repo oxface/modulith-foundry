@@ -19,12 +19,14 @@ internal sealed class RedisTicketStore : ITicketStore
         IConnectionMultiplexer connection,
         IDataProtectionProvider dataProtectionProvider,
         IHostEnvironment environment,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider
+    )
     {
         keyPrefix = RedisKeyNamespace.Create(environment, "auth-ticket");
         redis = connection.GetDatabase();
         protector = dataProtectionProvider.CreateProtector(
-            "ModulithFoundry.Api.Authentication.RedisTicketStore.v1");
+            "ModulithFoundry.Api.Authentication.RedisTicketStore.v1"
+        );
         this.timeProvider = timeProvider;
     }
 
@@ -33,7 +35,8 @@ internal sealed class RedisTicketStore : ITicketStore
 
     public async Task<string> StoreAsync(
         AuthenticationTicket ticket,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         string key = keyPrefix + RandomNumberGenerator.GetHexString(32);
         await WriteAsync(key, ticket, cancellationToken);
@@ -43,17 +46,20 @@ internal sealed class RedisTicketStore : ITicketStore
     public Task RenewAsync(
         string key,
         AuthenticationTicket ticket,
-        CancellationToken cancellationToken) =>
-        WriteAsync(RequireOwnedKey(key), ticket, cancellationToken);
+        CancellationToken cancellationToken
+    ) => WriteAsync(RequireOwnedKey(key), ticket, cancellationToken);
 
     public Task RenewAsync(string key, AuthenticationTicket ticket) =>
         RenewAsync(key, ticket, CancellationToken.None);
 
     public async Task<AuthenticationTicket?> RetrieveAsync(
         string key,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        RedisValue value = await redis.StringGetAsync(RequireOwnedKey(key)).WaitAsync(cancellationToken);
+        RedisValue value = await redis
+            .StringGetAsync(RequireOwnedKey(key))
+            .WaitAsync(cancellationToken);
         if (value.IsNull)
         {
             return null;
@@ -77,13 +83,13 @@ internal sealed class RedisTicketStore : ITicketStore
     public async Task RemoveAsync(string key, CancellationToken cancellationToken) =>
         await redis.KeyDeleteAsync(RequireOwnedKey(key)).WaitAsync(cancellationToken);
 
-    public Task RemoveAsync(string key) =>
-        RemoveAsync(key, CancellationToken.None);
+    public Task RemoveAsync(string key) => RemoveAsync(key, CancellationToken.None);
 
     private async Task WriteAsync(
         string key,
         AuthenticationTicket ticket,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         DateTimeOffset now = timeProvider.GetUtcNow();
         TimeSpan lifetime = ticket.Properties.ExpiresUtc is { } expiresAt
@@ -104,5 +110,4 @@ internal sealed class RedisTicketStore : ITicketStore
         key.StartsWith(keyPrefix, StringComparison.Ordinal)
             ? key
             : throw new ArgumentException("The authentication ticket key is invalid.", nameof(key));
-
 }

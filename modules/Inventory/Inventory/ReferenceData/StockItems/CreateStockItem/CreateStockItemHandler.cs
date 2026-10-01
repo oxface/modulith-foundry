@@ -8,11 +8,13 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.CreateStock
 internal sealed class CreateStockItemHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<CreateStockItemResult> HandleAsync(
         CreateStockItemCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -20,18 +22,24 @@ internal sealed class CreateStockItemHandler(
             return new CreateStockItemResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.ItemsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockItemCreateDenied,
-                InventoryAuditSubjectTypes.StockItem,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockItemCreateDenied,
+                    InventoryAuditSubjectTypes.StockItem,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new CreateStockItemResult.PermissionDenied();
         }
@@ -46,7 +54,8 @@ internal sealed class CreateStockItemHandler(
                 command.Sku,
                 command.Description,
                 command.BaseUnitCode,
-                now);
+                now
+            );
         }
         catch (InvalidInventoryReferenceDataException exception)
         {
@@ -54,14 +63,22 @@ internal sealed class CreateStockItemHandler(
         }
 
         context.StockItems.Add(item);
-        context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-            item.OrganizationId,
-            command.ActorUserId.Value,
-            InventoryAuditActions.StockItemCreated,
-            InventoryAuditSubjectTypes.StockItem,
-            item.Id,
-            new { item.Sku, item.Description, item.BaseUnitCode },
-            now));
+        context.AuditEntries.Add(
+            InventoryAuditEntry.Succeeded(
+                item.OrganizationId,
+                command.ActorUserId.Value,
+                InventoryAuditActions.StockItemCreated,
+                InventoryAuditSubjectTypes.StockItem,
+                item.Id,
+                new
+                {
+                    item.Sku,
+                    item.Description,
+                    item.BaseUnitCode,
+                },
+                now
+            )
+        );
 
         try
         {
@@ -76,9 +93,10 @@ internal sealed class CreateStockItemHandler(
     }
 
     private static bool IsDuplicateSku(DbUpdateException exception) =>
-        exception.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: "ux_stock_items_organization_sku",
-        };
+        exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "ux_stock_items_organization_sku",
+            };
 }

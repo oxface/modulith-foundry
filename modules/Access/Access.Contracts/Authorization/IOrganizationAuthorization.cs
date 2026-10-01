@@ -6,5 +6,6 @@ public interface IOrganizationAuthorization
         UserId userId,
         OrganizationId organizationId,
         string permissionId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 }

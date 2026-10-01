@@ -8,7 +8,8 @@ public sealed record GetStockPositionHistoryQuery(
     string StockingLocationCode,
     string Sku,
     long AfterVersion = 0,
-    int Limit = 50)
+    int Limit = 50
+)
 {
     public const int MaximumPageSize = 100;
 }

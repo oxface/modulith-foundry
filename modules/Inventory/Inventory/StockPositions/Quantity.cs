@@ -11,16 +11,14 @@ internal readonly record struct Quantity
 
     internal decimal Value { get; }
 
-    internal static Quantity NonNegative(decimal value) =>
-        Create(value, requirePositive: false);
+    internal static Quantity NonNegative(decimal value) => Create(value, requirePositive: false);
 
     // Recorded facts and intermediate projection state are not new command inputs.
     internal static Quantity Restore(decimal value) => new(value);
 
     internal Quantity ApplyRecordedIncrease(decimal value) => Restore(checked(Value + value));
 
-    internal static Quantity Positive(decimal value) =>
-        Create(value, requirePositive: true);
+    internal static Quantity Positive(decimal value) => Create(value, requirePositive: true);
 
     internal Quantity Add(Quantity other)
     {
@@ -34,22 +32,26 @@ internal readonly record struct Quantity
         {
             throw new InvalidStockPositionValueException(
                 "quantity",
-                requirePositive ? "Quantity must be greater than zero." : "Quantity cannot be negative.");
+                requirePositive
+                    ? "Quantity must be greater than zero."
+                    : "Quantity cannot be negative."
+            );
         }
 
         if (value > Maximum || decimal.Round(value, 6) != value)
         {
             throw new InvalidStockPositionValueException(
                 "quantity",
-                "Quantity must have at most 13 integral and 6 fractional digits.");
+                "Quantity must have at most 13 integral and 6 fractional digits."
+            );
         }
 
         return new Quantity(value);
     }
 }
 
-internal sealed class InvalidStockPositionValueException(string field, string message) :
-    ArgumentException(message)
+internal sealed class InvalidStockPositionValueException(string field, string message)
+    : ArgumentException(message)
 {
     internal string Field { get; } = field;
 }

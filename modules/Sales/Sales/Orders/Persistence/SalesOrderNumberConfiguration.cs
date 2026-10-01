@@ -9,7 +9,10 @@ internal sealed class SalesOrderNumberConfiguration : IEntityTypeConfiguration<S
     {
         number.ToTable("order_numbers");
         number.HasKey(entity => entity.OrganizationId).HasName("pk_order_numbers");
-        number.Property(entity => entity.OrganizationId).HasColumnName("organization_id").ValueGeneratedNever();
+        number
+            .Property(entity => entity.OrganizationId)
+            .HasColumnName("organization_id")
+            .ValueGeneratedNever();
         number.Property(entity => entity.LastNumber).HasColumnName("last_number");
     }
 }

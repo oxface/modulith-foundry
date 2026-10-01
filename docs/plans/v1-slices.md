@@ -12,9 +12,9 @@ A **slice** is a capability and acceptance unit. An **increment** is the normal 
 
 If an increment becomes difficult to review in one sitting, split it at a vertical, independently verifiable outcome. Do not split by creating speculative layers, empty abstractions, temporary architecture, or knowingly broken intermediate states.
 
-### Proposed formatter follow-up
+### Formatter baseline
 
-Evaluate [CSharpier](https://csharpier.com/docs/Installation) in a separate tooling/formatting-only increment, not mixed with a business slice. Pin a repository-local tool version, retain compiler/analyzer policy, and align editor, Lefthook and CI formatting checks so two formatters do not fight over whitespace. The repository owner raised this because existing formatting checks do not consistently produce readable layout. Adoption and the mechanical baseline diff require their own review; no formatter switch is part of draft-order implementation.
+Use [CSharpier](https://csharpier.com/docs/Installation) as the pinned repository-local C#/XML layout formatter. Editor, Lefthook and CI share `.editorconfig` settings. Retain compiler/analyzer policy and limit `dotnet format` to semantic style and analyzer checks. Formatter adoption or upgrades and their mechanical baseline diffs are separate reviewable increments, not mixed with business slices.
 
 ## Reference outcome and invariants
 

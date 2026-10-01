@@ -4,4 +4,5 @@ public sealed record ReplaceMembershipRolesCommand(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     MembershipId MembershipId,
-    IReadOnlyCollection<string> RoleIds);
+    IReadOnlyCollection<string> RoleIds
+);

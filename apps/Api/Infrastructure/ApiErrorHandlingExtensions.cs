@@ -12,7 +12,8 @@ internal static class ApiErrorHandlingExtensions
             {
                 context.ProblemDetails.Extensions.TryAdd(
                     "traceId",
-                    Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+                    Activity.Current?.Id ?? context.HttpContext.TraceIdentifier
+                );
             };
         });
         return services;

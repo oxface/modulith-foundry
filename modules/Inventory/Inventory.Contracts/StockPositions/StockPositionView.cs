@@ -10,4 +10,5 @@ public sealed record StockPositionView(
     decimal OnHandQuantity,
     decimal ReservedQuantity,
     decimal AvailableQuantity,
-    long Version);
+    long Version
+);

@@ -7,18 +7,23 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Queries;
 
 internal sealed class StockPositionQueries(
     InventoryDbContext context,
-    InventoryRequestAuthorization requestAuthorization)
+    InventoryRequestAuthorization requestAuthorization
+)
 {
     internal async Task<GetStockPositionResult> GetCurrentAsync(
         GetStockPositionQuery query,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(query);
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 query.ActorUserId,
                 query.OrganizationId,
                 InventoryPermissionIds.StockView,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
             return new GetStockPositionResult.PermissionDenied();
         }
@@ -31,7 +36,8 @@ internal sealed class StockPositionQueries(
             locationCode = InventoryCode.Normalize(
                 query.StockingLocationCode,
                 "stockingLocationCode",
-                64);
+                64
+            );
         }
         catch (InvalidInventoryReferenceDataException exception)
         {
@@ -40,8 +46,7 @@ internal sealed class StockPositionQueries(
 
         StockPositionView? position = await (
             from current in context.StockPositionWriteModels.AsNoTracking()
-            join item in context.StockItems.AsNoTracking()
-                on current.StockItemId equals item.Id
+            join item in context.StockItems.AsNoTracking() on current.StockItemId equals item.Id
             join location in context.StockingLocations.AsNoTracking()
                 on current.StockingLocationId equals location.Id
             where item.Sku == sku && location.Code == locationCode
@@ -55,8 +60,9 @@ internal sealed class StockPositionQueries(
                 current.OnHandQuantity,
                 current.ReservedQuantity,
                 current.AvailableQuantity,
-                current.Version))
-            .SingleOrDefaultAsync(cancellationToken);
+                current.Version
+            )
+        ).SingleOrDefaultAsync(cancellationToken);
 
         return position is null
             ? new GetStockPositionResult.NotFound()

@@ -6,4 +6,5 @@ public sealed record SetStockItemActiveCommand(
     UserId ActorUserId,
     OrganizationId OrganizationId,
     string Sku,
-    bool IsActive);
+    bool IsActive
+);

@@ -11,19 +11,24 @@ internal sealed class ResendInvitationHandler(
     OrganizationMembershipQueries membershipQueries,
     InvitationQueries invitationQueries,
     InvitationEmailDeliveryFactory deliveryFactory,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<ResendOrganizationInvitationResult> HandleAsync(
         ResendOrganizationInvitationCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (!await membershipQueries.HasPermissionAsync(
-            command.ActorUserId.Value,
-            command.OrganizationId.Value,
-            AccessPermissionIds.MembersManage,
-            cancellationToken))
+        if (
+            !await membershipQueries.HasPermissionAsync(
+                command.ActorUserId.Value,
+                command.OrganizationId.Value,
+                AccessPermissionIds.MembersManage,
+                cancellationToken
+            )
+        )
         {
             return new ResendOrganizationInvitationResult.PermissionDenied();
         }
@@ -31,7 +36,8 @@ internal sealed class ResendInvitationHandler(
         Invitation? invitation = await invitationQueries.FindPendingAsync(
             command.OrganizationId.Value,
             command.InvitationId.Value,
-            cancellationToken);
+            cancellationToken
+        );
         if (invitation is null)
         {
             return new ResendOrganizationInvitationResult.NotFound();
@@ -42,26 +48,30 @@ internal sealed class ResendInvitationHandler(
         invitation.Resend(
             InvitationSecret.Digest(secret),
             resentAt,
-            deliveryFactory.InvitationLifetime);
-        foreach (InvitationEmailDelivery delivery in await invitationQueries.ListPendingDeliveriesAsync(
-            invitation,
-            cancellationToken))
+            deliveryFactory.InvitationLifetime
+        );
+        foreach (
+            InvitationEmailDelivery delivery in await invitationQueries.ListPendingDeliveriesAsync(
+                invitation,
+                cancellationToken
+            )
+        )
         {
             delivery.Supersede(resentAt);
         }
 
-        string organizationName = await context.Organizations
-            .AsNoTracking()
+        string organizationName = await context
+            .Organizations.AsNoTracking()
             .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
             .Where(organization => organization.Id == command.OrganizationId.Value)
             .Select(organization => organization.Name)
             .SingleAsync(cancellationToken);
         context.InvitationEmailDeliveries.Add(
-            deliveryFactory.Create(invitation, secret, organizationName, resentAt));
-        context.AuditEntries.Add(InvitationAuditEntries.Resent(
-            invitation,
-            command.ActorUserId.Value,
-            resentAt));
+            deliveryFactory.Create(invitation, secret, organizationName, resentAt)
+        );
+        context.AuditEntries.Add(
+            InvitationAuditEntries.Resent(invitation, command.ActorUserId.Value, resentAt)
+        );
 
         try
         {

@@ -5,6 +5,7 @@ namespace ModulithFoundry.Modules.Sales.Orders;
 internal sealed class SalesOrder : IOrganizationOwned
 {
     private readonly List<SalesOrderLine> _lines = [];
+
     private SalesOrder()
     {
         Currency = null!;
@@ -16,7 +17,8 @@ internal sealed class SalesOrder : IOrganizationOwned
         Guid customerId,
         long number,
         string currency,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -35,19 +37,32 @@ internal sealed class SalesOrder : IOrganizationOwned
     internal DateTimeOffset CreatedAt { get; private set; }
     internal IReadOnlyCollection<SalesOrderLine> Lines => _lines;
 
-    internal static SalesOrder CreateDraft(Guid id, Guid organizationId, Guid customerId, long number,
-        string currency, IReadOnlyList<SalesOrderLineInput> inputs, DateTimeOffset createdAt)
+    internal static SalesOrder CreateDraft(
+        Guid id,
+        Guid organizationId,
+        Guid customerId,
+        long number,
+        string currency,
+        IReadOnlyList<SalesOrderLineInput> inputs,
+        DateTimeOffset createdAt
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
         string normalized = currency?.Trim().ToUpperInvariant() ?? "";
         if (normalized is not ("USD" or "EUR"))
         {
-            throw new InvalidSalesOrderInputException("currency", "The sample supports USD and EUR only.");
+            throw new InvalidSalesOrderInputException(
+                "currency",
+                "The sample supports USD and EUR only."
+            );
         }
 
         if (inputs.Count is < 1 or > 100)
         {
-            throw new InvalidSalesOrderInputException("lines", "An order must contain 1–100 lines.");
+            throw new InvalidSalesOrderInputException(
+                "lines",
+                "An order must contain 1–100 lines."
+            );
         }
 
         var order = new SalesOrder(id, organizationId, customerId, number, normalized, createdAt);
@@ -58,7 +73,10 @@ internal sealed class SalesOrder : IOrganizationOwned
             order.TotalAmount += line.LineAmount;
             if (order.TotalAmount > OrderAmount.Maximum)
             {
-                throw new InvalidSalesOrderInputException("lines", "The order total exceeds the supported range.");
+                throw new InvalidSalesOrderInputException(
+                    "lines",
+                    "The order total exceeds the supported range."
+                );
             }
         }
 

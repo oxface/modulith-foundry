@@ -19,7 +19,8 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
         decimal reservedQuantity,
         decimal availableQuantity,
         long version,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt
+    )
     {
         StreamId = streamId;
         OrganizationId = organizationId;
@@ -54,15 +55,21 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
     internal DateTimeOffset UpdatedAt { get; private set; }
 
     internal StockPositionState ToState() =>
-        new(StockItemId, StockingLocationId, BaseUnitCode,
-            Quantity.Restore(OnHandQuantity), Quantity.Restore(ReservedQuantity));
+        new(
+            StockItemId,
+            StockingLocationId,
+            BaseUnitCode,
+            Quantity.Restore(OnHandQuantity),
+            Quantity.Restore(ReservedQuantity)
+        );
 
     internal static StockPositionWriteModel Create(
         Guid streamId,
         Guid organizationId,
         StockPositionState state,
         long version,
-        DateTimeOffset updatedAt) =>
+        DateTimeOffset updatedAt
+    ) =>
         new(
             streamId,
             organizationId,
@@ -73,13 +80,16 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
             state.Reserved.Value,
             state.Available.Value,
             version,
-            updatedAt);
+            updatedAt
+        );
 
     internal void Update(StockPositionState state, long version, DateTimeOffset updatedAt)
     {
         if (StockItemId != state.StockItemId || StockingLocationId != state.StockingLocationId)
         {
-            throw new InvalidOperationException("Stock Position projection identity cannot change.");
+            throw new InvalidOperationException(
+                "Stock Position projection identity cannot change."
+            );
         }
 
         BaseUnitCode = state.BaseUnitCode;

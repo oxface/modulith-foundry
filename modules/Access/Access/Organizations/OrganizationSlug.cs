@@ -20,7 +20,8 @@ internal readonly record struct OrganizationSlug
         if (string.IsNullOrWhiteSpace(proposedSlug))
         {
             throw new InvalidOrganizationSlugException(
-                $"An organization slug must contain between {MinimumLength} and {MaximumLength} canonical characters.");
+                $"An organization slug must contain between {MinimumLength} and {MaximumLength} canonical characters."
+            );
         }
 
         var canonical = new StringBuilder(proposedSlug.Length);
@@ -45,7 +46,8 @@ internal readonly record struct OrganizationSlug
             else
             {
                 throw new InvalidOrganizationSlugException(
-                    "An organization slug may contain only ASCII letters, digits, hyphens, underscores, and spaces.");
+                    "An organization slug may contain only ASCII letters, digits, hyphens, underscores, and spaces."
+                );
             }
         }
 
@@ -53,7 +55,8 @@ internal readonly record struct OrganizationSlug
         if (value.Length is < MinimumLength or > MaximumLength)
         {
             throw new InvalidOrganizationSlugException(
-                $"An organization slug must contain between {MinimumLength} and {MaximumLength} canonical characters.");
+                $"An organization slug must contain between {MinimumLength} and {MaximumLength} canonical characters."
+            );
         }
 
         return new OrganizationSlug(value);

@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Access.Contracts;
 
 public abstract record CreateOrganizationResult
 {
-    private protected CreateOrganizationResult()
-    {
-    }
+    private protected CreateOrganizationResult() { }
 
     public sealed record Created(OrganizationMembership Organization) : CreateOrganizationResult;
 

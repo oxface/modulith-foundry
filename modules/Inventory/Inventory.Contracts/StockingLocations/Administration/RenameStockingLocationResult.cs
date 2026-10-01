@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record RenameStockingLocationResult
 {
-    private RenameStockingLocationResult()
-    {
-    }
+    private RenameStockingLocationResult() { }
 
     public sealed record Renamed(StockingLocationView Location) : RenameStockingLocationResult;
 

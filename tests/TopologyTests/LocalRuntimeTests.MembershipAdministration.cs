@@ -16,7 +16,8 @@ public sealed partial class LocalRuntimeTests
         using var timeout = new CancellationTokenSource(StartupTimeout);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
             randomizePorts: true,
-            timeout.Token);
+            timeout.Token
+        );
 
         await using DistributedApplication app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
@@ -31,54 +32,64 @@ public sealed partial class LocalRuntimeTests
             administratorCookies,
             "alice",
             "topology-user-password",
-            timeout.Token);
+            timeout.Token
+        );
         await CreateOrganizationInvitationAsync(
             administrator,
             administratorCsrf,
             "Membership Administration Organization",
             "membership-administration",
             "bob@example.test",
-            timeout.Token);
+            timeout.Token
+        );
 
         using HttpClient mailpit = app.CreateHttpClient("mailpit", "http");
         Uri acceptanceLink = await WaitForInvitationLinkAsync(
             mailpit,
             "bob@example.test",
-            timeout.Token);
+            timeout.Token
+        );
         var memberCookies = new CookieContainer();
         using var memberHandler = CreateBrowserHandler(memberCookies);
         using var member = new HttpClient(memberHandler) { BaseAddress = apiAddress };
         using HttpResponseMessage acceptanceChallenge = await member.GetAsync(
             acceptanceLink.PathAndQuery,
-            timeout.Token);
+            timeout.Token
+        );
         using HttpResponseMessage loginPage = await GetFollowingRedirectsAsync(
             member,
             memberCookies,
             Assert.IsType<Uri>(acceptanceChallenge.Headers.Location),
-            timeout.Token);
+            timeout.Token
+        );
         using HttpResponseMessage accepted = await SubmitKeycloakCredentialsAsync(
             member,
             memberCookies,
             loginPage,
             "bob",
             "topology-user-password",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.Redirect, accepted.StatusCode);
         Assert.Equal("/api/o/membership-administration", accepted.Headers.Location?.OriginalString);
         string memberCsrf = await GetCsrfTokenAsync(member, timeout.Token);
 
         using HttpResponseMessage memberList = await administrator.GetAsync(
             "/api/o/membership-administration/access/members",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, memberList.StatusCode);
         using JsonDocument members = JsonDocument.Parse(
-            await memberList.Content.ReadAsStringAsync(timeout.Token));
+            await memberList.Content.ReadAsStringAsync(timeout.Token)
+        );
         JsonElement administratorMembership = Assert.Single(
             members.RootElement.GetProperty("members").EnumerateArray(),
-            item => item.GetProperty("email").GetString() == "alice@example.test");
+            item => item.GetProperty("email").GetString() == "alice@example.test"
+        );
         JsonElement ordinaryMembership = Assert.Single(
             members.RootElement.GetProperty("members").EnumerateArray(),
-            item => item.GetProperty("email").GetString() == "bob@example.test");
+            item => item.GetProperty("email").GetString() == "bob@example.test"
+        );
         Guid administratorMembershipId = administratorMembership
             .GetProperty("membershipId")
             .GetGuid();
@@ -86,13 +97,15 @@ public sealed partial class LocalRuntimeTests
 
         using HttpResponseMessage deniedList = await member.GetAsync(
             "/api/o/membership-administration/access/members",
-            timeout.Token);
+            timeout.Token
+        );
         await AssertProblemAsync(deniedList, HttpStatusCode.Forbidden, timeout.Token);
 
         using HttpResponseMessage missingCsrf = await member.PostAsync(
             $"/api/o/membership-administration/access/members/{ordinaryMembershipId:D}/suspend",
             content: null,
-            timeout.Token);
+            timeout.Token
+        );
         await AssertProblemAsync(missingCsrf, HttpStatusCode.BadRequest, timeout.Token);
 
         using HttpResponseMessage replacedRoles = await SendCommandAsync(
@@ -101,7 +114,8 @@ public sealed partial class LocalRuntimeTests
             $"/api/o/membership-administration/access/members/{ordinaryMembershipId:D}/roles",
             administratorCsrf,
             new { roleIds = InventoryManagerRoleIds },
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, replacedRoles.StatusCode);
 
         using HttpResponseMessage suspended = await SendCommandAsync(
@@ -110,15 +124,18 @@ public sealed partial class LocalRuntimeTests
             $"/api/o/membership-administration/access/members/{ordinaryMembershipId:D}/suspend",
             administratorCsrf,
             body: null,
-            timeout.Token);
+            timeout.Token
+        );
         await AssertMembershipStatusAsync(
             suspended,
             ordinaryMembershipId,
             "suspended",
-            timeout.Token);
+            timeout.Token
+        );
         using HttpResponseMessage suspendedAccess = await member.GetAsync(
             "/api/o/membership-administration",
-            timeout.Token);
+            timeout.Token
+        );
         await AssertProblemAsync(suspendedAccess, HttpStatusCode.NotFound, timeout.Token);
 
         using HttpResponseMessage reactivated = await SendCommandAsync(
@@ -127,36 +144,44 @@ public sealed partial class LocalRuntimeTests
             $"/api/o/membership-administration/access/members/{ordinaryMembershipId:D}/reactivate",
             administratorCsrf,
             body: null,
-            timeout.Token);
+            timeout.Token
+        );
         await AssertMembershipStatusAsync(
             reactivated,
             ordinaryMembershipId,
             "active",
-            timeout.Token);
+            timeout.Token
+        );
         using HttpResponseMessage restoredAccess = await member.GetAsync(
             "/api/o/membership-administration",
-            timeout.Token);
+            timeout.Token
+        );
         Assert.Equal(HttpStatusCode.OK, restoredAccess.StatusCode);
         using JsonDocument restoredScope = JsonDocument.Parse(
-            await restoredAccess.Content.ReadAsStringAsync(timeout.Token));
+            await restoredAccess.Content.ReadAsStringAsync(timeout.Token)
+        );
         Assert.Equal(
             "inventory-manager",
-            Assert.Single(restoredScope.RootElement.GetProperty("roleIds").EnumerateArray())
-                .GetString());
+            Assert
+                .Single(restoredScope.RootElement.GetProperty("roleIds").EnumerateArray())
+                .GetString()
+        );
 
         Guid foreignMembershipId = await CreateOrganizationAndReadMembershipIdAsync(
             member,
             memberCsrf,
             "Foreign Membership Organization",
             "foreign-membership",
-            timeout.Token);
+            timeout.Token
+        );
         using HttpResponseMessage crossOrganization = await SendCommandAsync(
             administrator,
             HttpMethod.Post,
             $"/api/o/membership-administration/access/members/{foreignMembershipId:D}/suspend",
             administratorCsrf,
             body: null,
-            timeout.Token);
+            timeout.Token
+        );
         await AssertProblemAsync(crossOrganization, HttpStatusCode.NotFound, timeout.Token);
 
         using HttpResponseMessage lastAdministrator = await SendCommandAsync(
@@ -165,12 +190,14 @@ public sealed partial class LocalRuntimeTests
             $"/api/o/membership-administration/access/members/{administratorMembershipId:D}/suspend",
             administratorCsrf,
             body: null,
-            timeout.Token);
+            timeout.Token
+        );
         await AssertProblemAsync(
             lastAdministrator,
             HttpStatusCode.Conflict,
             timeout.Token,
-            expectedTitle: "Last organization administrator");
+            expectedTitle: "Last organization administrator"
+        );
 
         using HttpResponseMessage removed = await SendCommandAsync(
             administrator,
@@ -178,35 +205,41 @@ public sealed partial class LocalRuntimeTests
             $"/api/o/membership-administration/access/members/{ordinaryMembershipId:D}/remove",
             administratorCsrf,
             body: null,
-            timeout.Token);
-        await AssertMembershipStatusAsync(
-            removed,
-            ordinaryMembershipId,
-            "removed",
-            timeout.Token);
+            timeout.Token
+        );
+        await AssertMembershipStatusAsync(removed, ordinaryMembershipId, "removed", timeout.Token);
         using HttpResponseMessage removedAccess = await member.GetAsync(
             "/api/o/membership-administration",
-            timeout.Token);
+            timeout.Token
+        );
         await AssertProblemAsync(removedAccess, HttpStatusCode.NotFound, timeout.Token);
         using HttpResponseMessage currentMembers = await administrator.GetAsync(
             "/api/o/membership-administration/access/members",
-            timeout.Token);
+            timeout.Token
+        );
         currentMembers.EnsureSuccessStatusCode();
         using JsonDocument currentMembersJson = JsonDocument.Parse(
-            await currentMembers.Content.ReadAsStringAsync(timeout.Token));
+            await currentMembers.Content.ReadAsStringAsync(timeout.Token)
+        );
         Assert.DoesNotContain(
             currentMembersJson.RootElement.GetProperty("members").EnumerateArray(),
-            item => item.GetProperty("membershipId").GetGuid() == ordinaryMembershipId);
+            item => item.GetProperty("membershipId").GetGuid() == ordinaryMembershipId
+        );
     }
 
     private static async Task<string> GetCsrfTokenAsync(
         HttpClient client,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        using HttpResponseMessage session = await client.GetAsync("/api/session", cancellationToken);
+        using HttpResponseMessage session = await client.GetAsync(
+            "/api/session",
+            cancellationToken
+        );
         session.EnsureSuccessStatusCode();
         using JsonDocument sessionJson = JsonDocument.Parse(
-            await session.Content.ReadAsStringAsync(cancellationToken));
+            await session.Content.ReadAsStringAsync(cancellationToken)
+        );
         return sessionJson.RootElement.GetProperty("csrfToken").GetString()
             ?? throw new InvalidOperationException("The session response has no CSRF token.");
     }
@@ -216,7 +249,8 @@ public sealed partial class LocalRuntimeTests
         string csrfToken,
         string organizationName,
         string organizationSlug,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         using HttpResponseMessage created = await SendCommandAsync(
             client,
@@ -224,16 +258,20 @@ public sealed partial class LocalRuntimeTests
             "/api/organizations",
             csrfToken,
             new { name = organizationName, slug = organizationSlug },
-            cancellationToken);
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
         using HttpResponseMessage members = await client.GetAsync(
             $"/api/o/{organizationSlug}/access/members",
-            cancellationToken);
+            cancellationToken
+        );
         members.EnsureSuccessStatusCode();
         using JsonDocument membersJson = JsonDocument.Parse(
-            await members.Content.ReadAsStringAsync(cancellationToken));
-        return Assert.Single(membersJson.RootElement.GetProperty("members").EnumerateArray())
+            await members.Content.ReadAsStringAsync(cancellationToken)
+        );
+        return Assert
+            .Single(membersJson.RootElement.GetProperty("members").EnumerateArray())
             .GetProperty("membershipId")
             .GetGuid();
     }
@@ -244,7 +282,8 @@ public sealed partial class LocalRuntimeTests
         string path,
         string csrfToken,
         object? body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(method, path);
         request.Headers.Add("X-CSRF-TOKEN", csrfToken);
@@ -260,12 +299,17 @@ public sealed partial class LocalRuntimeTests
         HttpResponseMessage response,
         Guid expectedMembershipId,
         string expectedStatus,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using JsonDocument payload = JsonDocument.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken));
-        Assert.Equal(expectedMembershipId, payload.RootElement.GetProperty("membershipId").GetGuid());
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
+        Assert.Equal(
+            expectedMembershipId,
+            payload.RootElement.GetProperty("membershipId").GetGuid()
+        );
         Assert.Equal(expectedStatus, payload.RootElement.GetProperty("status").GetString());
     }
 
@@ -273,12 +317,14 @@ public sealed partial class LocalRuntimeTests
         HttpResponseMessage response,
         HttpStatusCode expectedStatus,
         CancellationToken cancellationToken,
-        string? expectedTitle = null)
+        string? expectedTitle = null
+    )
     {
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         using JsonDocument problem = JsonDocument.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken));
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         Assert.Equal((int)expectedStatus, problem.RootElement.GetProperty("status").GetInt32());
         if (expectedTitle is not null)
         {

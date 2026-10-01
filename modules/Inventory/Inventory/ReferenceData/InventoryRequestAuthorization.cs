@@ -4,20 +4,23 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData;
 
 internal sealed class InventoryRequestAuthorization(
     IOrganizationContextAccessor organizationContextAccessor,
-    IOrganizationAuthorization authorization)
+    IOrganizationAuthorization authorization
+)
 {
     internal async Task<bool> HasPermissionAsync(
         UserId actorUserId,
         OrganizationId organizationId,
         string permissionId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         return MatchesContext(actorUserId, organizationId)
             && await authorization.HasPermissionAsync(
                 actorUserId,
                 organizationId,
                 permissionId,
-                cancellationToken);
+                cancellationToken
+            );
     }
 
     internal bool MatchesContext(UserId actorUserId, OrganizationId organizationId) =>

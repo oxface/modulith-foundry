@@ -7,26 +7,33 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Queries;
 
 internal sealed class StockItemQueries(
     InventoryDbContext context,
-    InventoryRequestAuthorization requestAuthorization)
+    InventoryRequestAuthorization requestAuthorization
+)
 {
     internal async Task<ListStockItemsResult> ListAsync(
         UserId actorUserId,
         OrganizationId organizationId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 actorUserId,
                 organizationId,
                 InventoryPermissionIds.ItemsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
             return new ListStockItemsResult.PermissionDenied();
         }
 
-        return new ListStockItemsResult.Listed(await context.StockItems
-            .AsNoTracking()
-            .OrderBy(item => item.Sku)
-            .Select(item => item.ToView())
-            .ToArrayAsync(cancellationToken));
+        return new ListStockItemsResult.Listed(
+            await context
+                .StockItems.AsNoTracking()
+                .OrderBy(item => item.Sku)
+                .Select(item => item.ToView())
+                .ToArrayAsync(cancellationToken)
+        );
     }
 }

@@ -10,9 +10,7 @@ internal sealed class SmtpEmailTransport(IOptions<SmtpOptions> options) : IEmail
 {
     private readonly SmtpOptions _options = options.Value;
 
-    public async Task SendAsync(
-        EmailMessage message,
-        CancellationToken cancellationToken)
+    public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
     {
         var mimeMessage = new MimeMessage();
         mimeMessage.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress));
@@ -29,13 +27,15 @@ internal sealed class SmtpEmailTransport(IOptions<SmtpOptions> options) : IEmail
             _options.Host,
             _options.Port,
             ToSecureSocketOptions(_options.Security),
-            cancellationToken);
+            cancellationToken
+        );
         if (!string.IsNullOrWhiteSpace(_options.Username))
         {
             await client.AuthenticateAsync(
                 _options.Username,
                 _options.Password!,
-                cancellationToken);
+                cancellationToken
+            );
         }
 
         await client.SendAsync(mimeMessage, cancellationToken);
@@ -48,6 +48,10 @@ internal sealed class SmtpEmailTransport(IOptions<SmtpOptions> options) : IEmail
             SmtpSecurity.None => SecureSocketOptions.None,
             SmtpSecurity.StartTls => SecureSocketOptions.StartTls,
             SmtpSecurity.SslOnConnect => SecureSocketOptions.SslOnConnect,
-            _ => throw new ArgumentOutOfRangeException(nameof(security), security, "Unknown SMTP security mode."),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(security),
+                security,
+                "Unknown SMTP security mode."
+            ),
         };
 }

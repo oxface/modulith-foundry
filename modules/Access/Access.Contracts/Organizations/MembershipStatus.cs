@@ -22,7 +22,8 @@ public static class MembershipStatusValues
             _ => throw new ArgumentOutOfRangeException(
                 nameof(status),
                 status,
-                "Unknown membership status."),
+                "Unknown membership status."
+            ),
         };
 
     public static MembershipStatus FromValue(string value) =>
@@ -31,7 +32,6 @@ public static class MembershipStatusValues
             Active => MembershipStatus.Active,
             Suspended => MembershipStatus.Suspended,
             Removed => MembershipStatus.Removed,
-            _ => throw new InvalidOperationException(
-                $"Unknown membership status value '{value}'."),
+            _ => throw new InvalidOperationException($"Unknown membership status value '{value}'."),
         };
 }

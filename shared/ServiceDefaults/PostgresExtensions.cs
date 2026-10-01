@@ -11,22 +11,24 @@ public static class PostgresExtensions
 {
     public static TBuilder AddPostgresDataSource<TBuilder>(
         this TBuilder builder,
-        string connectionName)
+        string connectionName
+    )
         where TBuilder : IHostApplicationBuilder
     {
         string? connectionString = builder.Configuration.GetConnectionString(connectionName);
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                $"Connection string '{connectionName}' is required.");
+                $"Connection string '{connectionName}' is required."
+            );
         }
 
         builder.Services.AddNpgsqlDataSource(connectionString);
-        builder.Services.AddHealthChecks()
-            .AddCheck<PostgresHealthCheck>(connectionName);
+        builder.Services.AddHealthChecks().AddCheck<PostgresHealthCheck>(connectionName);
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddNpgsql());
         builder.Services.ConfigureOpenTelemetryMeterProvider(metrics =>
-            metrics.AddNpgsqlInstrumentation());
+            metrics.AddNpgsqlInstrumentation()
+        );
 
         return builder;
     }
@@ -35,12 +37,12 @@ public static class PostgresExtensions
     {
         public async Task<HealthCheckResult> CheckHealthAsync(
             HealthCheckContext context,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default
+        )
         {
             try
             {
-                await dataSource.CreateCommand("SELECT 1")
-                    .ExecuteScalarAsync(cancellationToken);
+                await dataSource.CreateCommand("SELECT 1").ExecuteScalarAsync(cancellationToken);
 
                 return HealthCheckResult.Healthy();
             }
@@ -52,7 +54,8 @@ public static class PostgresExtensions
             {
                 return HealthCheckResult.Unhealthy(
                     "The PostgreSQL database is unavailable.",
-                    exception);
+                    exception
+                );
             }
         }
     }

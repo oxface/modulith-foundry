@@ -4,5 +4,6 @@ public interface IOrganizationMembershipQueries
 {
     Task<ListOrganizationMembersResult> ListForAdministrationAsync(
         ListOrganizationMembersQuery query,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 }

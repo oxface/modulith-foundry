@@ -4,5 +4,6 @@ public interface IOrganizationCreation
 {
     Task<CreateOrganizationResult> CreateOrganizationAsync(
         CreateOrganizationCommand command,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 }

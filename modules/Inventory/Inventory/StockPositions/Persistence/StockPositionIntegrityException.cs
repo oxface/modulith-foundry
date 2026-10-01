@@ -5,9 +5,13 @@ internal sealed class StockPositionIntegrityException(
     StockPositionIntegrityFailure failure,
     long? expectedVersion = null,
     long? observedVersion = null,
-    Exception? innerException = null) : Exception(
+    Exception? innerException = null
+)
+    : Exception(
         $"Stock Position stream '{streamId}' failed integrity validation: {failure}; "
-        + $"expected version {expectedVersion}, observed version {observedVersion}.", innerException)
+            + $"expected version {expectedVersion}, observed version {observedVersion}.",
+        innerException
+    )
 {
     internal Guid StreamId { get; } = streamId;
 

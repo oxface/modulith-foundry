@@ -8,7 +8,10 @@ namespace ModulithFoundry.Modules.Access.Persistence.Migrations;
 internal sealed partial class AddMembershipLifecycle : Migration
 {
     private static readonly string[] MembershipOrganizationUserColumns =
-        ["organization_id", "user_id"];
+    [
+        "organization_id",
+        "user_id",
+    ];
 
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,7 +19,8 @@ internal sealed partial class AddMembershipLifecycle : Migration
         migrationBuilder.DropIndex(
             name: "ux_memberships_organization_user",
             schema: "access",
-            table: "memberships");
+            table: "memberships"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_memberships_organization_user",
@@ -24,7 +28,8 @@ internal sealed partial class AddMembershipLifecycle : Migration
             table: "memberships",
             columns: MembershipOrganizationUserColumns,
             unique: true,
-            filter: "status IN ('active', 'suspended')");
+            filter: "status IN ('active', 'suspended')"
+        );
     }
 
     /// <inheritdoc />
@@ -33,13 +38,15 @@ internal sealed partial class AddMembershipLifecycle : Migration
         migrationBuilder.DropIndex(
             name: "ux_memberships_organization_user",
             schema: "access",
-            table: "memberships");
+            table: "memberships"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_memberships_organization_user",
             schema: "access",
             table: "memberships",
             columns: MembershipOrganizationUserColumns,
-            unique: true);
+            unique: true
+        );
     }
 }

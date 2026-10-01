@@ -7,7 +7,8 @@ internal sealed class RedisHealthCheck(IConnectionMultiplexer connection) : IHea
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {

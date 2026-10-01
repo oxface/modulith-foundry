@@ -6,15 +6,9 @@ internal sealed class Membership : IOrganizationOwned
 {
     private readonly List<MembershipRoleAssignment> _roleAssignments = [];
 
-    private Membership()
-    {
-    }
+    private Membership() { }
 
-    private Membership(
-        Guid id,
-        Guid organizationId,
-        Guid userId,
-        DateTimeOffset createdAt)
+    private Membership(Guid id, Guid organizationId, Guid userId, DateTimeOffset createdAt)
     {
         Id = id;
         OrganizationId = organizationId;
@@ -39,7 +33,8 @@ internal sealed class Membership : IOrganizationOwned
         Guid id,
         Guid organizationId,
         Guid userId,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         var membership = new Membership(id, organizationId, userId, createdAt);
         membership.AssignRole(SystemRoleIds.OrganizationAdministrator, createdAt);
@@ -51,7 +46,8 @@ internal sealed class Membership : IOrganizationOwned
         Guid organizationId,
         Guid userId,
         IReadOnlyCollection<string> roleIds,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         var membership = new Membership(id, organizationId, userId, createdAt);
         foreach (string roleId in roleIds)
@@ -62,17 +58,15 @@ internal sealed class Membership : IOrganizationOwned
         return membership;
     }
 
-    internal bool HasRole(string roleId) =>
-        _roleAssignments.Any(role => role.RoleId == roleId);
+    internal bool HasRole(string roleId) => _roleAssignments.Any(role => role.RoleId == roleId);
 
-    internal void ReplaceRoles(
-        IReadOnlySet<string> roleIds,
-        DateTimeOffset assignedAt)
+    internal void ReplaceRoles(IReadOnlySet<string> roleIds, DateTimeOffset assignedAt)
     {
         if (!AllowsRoleChanges)
         {
             throw new InvalidOperationException(
-                "Roles cannot be changed after a membership has ended.");
+                "Roles cannot be changed after a membership has ended."
+            );
         }
 
         _roleAssignments.RemoveAll(role => !roleIds.Contains(role.RoleId));
@@ -82,7 +76,8 @@ internal sealed class Membership : IOrganizationOwned
         }
     }
 
-    internal bool AllowsRoleChanges => Status is MembershipStatus.Active or MembershipStatus.Suspended;
+    internal bool AllowsRoleChanges =>
+        Status is MembershipStatus.Active or MembershipStatus.Suspended;
 
     internal bool WouldDeactivateAdministrator(MembershipStatus requestedStatus) =>
         Status == MembershipStatus.Active
@@ -114,11 +109,9 @@ internal sealed class Membership : IOrganizationOwned
     }
 
     private void AssignRole(string roleId, DateTimeOffset assignedAt) =>
-        _roleAssignments.Add(MembershipRoleAssignment.Create(
-            Id,
-            OrganizationId,
-            roleId,
-            assignedAt));
+        _roleAssignments.Add(
+            MembershipRoleAssignment.Create(Id, OrganizationId, roleId, assignedAt)
+        );
 }
 
 internal enum MembershipStatusChangeOutcome

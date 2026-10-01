@@ -10,17 +10,15 @@ internal sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organ
         organization.ToTable("organizations");
         organization.HasKey(entity => entity.Id).HasName("pk_organizations");
         organization.Property(entity => entity.Id).HasColumnName("id");
-        organization.Property(entity => entity.Name)
-            .HasColumnName("name")
-            .HasMaxLength(200);
-        organization.Property(entity => entity.Slug)
+        organization.Property(entity => entity.Name).HasColumnName("name").HasMaxLength(200);
+        organization
+            .Property(entity => entity.Slug)
             .HasColumnName("slug")
             .HasMaxLength(63)
-            .HasConversion(
-                slug => slug.Value,
-                value => OrganizationSlug.Create(value));
+            .HasConversion(slug => slug.Value, value => OrganizationSlug.Create(value));
         organization.Property(entity => entity.CreatedAt).HasColumnName("created_at");
-        organization.HasIndex(entity => entity.Slug)
+        organization
+            .HasIndex(entity => entity.Slug)
             .IsUnique()
             .HasDatabaseName("ux_organizations_slug");
     }

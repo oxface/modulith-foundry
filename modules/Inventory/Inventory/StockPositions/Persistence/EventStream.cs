@@ -14,7 +14,8 @@ internal sealed class EventStream : IOrganizationOwned
         Guid organizationId,
         string streamType,
         long version,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -41,8 +42,8 @@ internal sealed class EventStream : IOrganizationOwned
         Guid organizationId,
         string streamType,
         long version,
-        DateTimeOffset createdAt) =>
-        new(id, organizationId, streamType, version, createdAt);
+        DateTimeOffset createdAt
+    ) => new(id, organizationId, streamType, version, createdAt);
 
     internal void Advance(long expectedVersion, long newVersion, DateTimeOffset updatedAt)
     {

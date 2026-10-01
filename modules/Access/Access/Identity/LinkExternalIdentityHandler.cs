@@ -7,20 +7,23 @@ namespace ModulithFoundry.Modules.Access.Identity;
 
 internal sealed class LinkExternalIdentityHandler(
     AccessDbContext context,
-    TimeProvider timeProvider) : IExternalIdentityLinking
+    TimeProvider timeProvider
+) : IExternalIdentityLinking
 {
     public async Task<UserIdentityLink> LinkAsync(
         ExternalIdentity identity,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(identity);
 
         DateTimeOffset authenticatedAt = timeProvider.GetUtcNow();
-        ExternalIdentityRecord? existing = await context.ExternalIdentities
-            .Include(link => link.User)
+        ExternalIdentityRecord? existing = await context
+            .ExternalIdentities.Include(link => link.User)
             .SingleOrDefaultAsync(
                 link => link.Issuer == identity.Issuer && link.Subject == identity.Subject,
-                cancellationToken);
+                cancellationToken
+            );
 
         if (existing is not null)
         {
@@ -34,13 +37,15 @@ internal sealed class LinkExternalIdentityHandler(
             Guid.CreateVersion7(authenticatedAt),
             identity.Email,
             identity.DisplayName,
-            authenticatedAt);
+            authenticatedAt
+        );
         var link = new ExternalIdentityRecord(
             Guid.CreateVersion7(authenticatedAt),
             identity.Issuer,
             identity.Subject,
             user,
-            authenticatedAt);
+            authenticatedAt
+        );
         context.ExternalIdentities.Add(link);
 
         try
@@ -51,24 +56,26 @@ internal sealed class LinkExternalIdentityHandler(
         catch (DbUpdateException exception) when (IsConcurrentLink(exception))
         {
             context.ChangeTracker.Clear();
-            ExternalIdentityRecord concurrent = await context.ExternalIdentities
-                .Include(existingLink => existingLink.User)
+            ExternalIdentityRecord concurrent = await context
+                .ExternalIdentities.Include(existingLink => existingLink.User)
                 .SingleAsync(
-                    existingLink => existingLink.Issuer == identity.Issuer
+                    existingLink =>
+                        existingLink.Issuer == identity.Issuer
                         && existingLink.Subject == identity.Subject,
-                    cancellationToken);
+                    cancellationToken
+                );
             return ToLink(concurrent.User);
         }
     }
 
     private static bool IsConcurrentLink(DbUpdateException exception) =>
-        exception.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: ExternalIdentityRecord.IssuerSubjectConstraint,
-        };
+        exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: ExternalIdentityRecord.IssuerSubjectConstraint,
+            };
 
     private static UserIdentityLink ToLink(User user) =>
         new(new UserId(user.Id), user.Email, user.DisplayName);
-
 }

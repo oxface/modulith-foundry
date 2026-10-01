@@ -9,11 +9,12 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
 {
     public async Task<IReadOnlyList<OrganizationMembership>> ListAccessibleToAsync(
         UserId userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         var memberships = await (
-            from membership in context.Memberships
-                .AsNoTracking()
+            from membership in context
+                .Memberships.AsNoTracking()
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
                 .Active()
                 .Where(membership => membership.UserId == userId.Value)
@@ -26,38 +27,43 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
                 OrganizationId = organization.Id,
                 organization.Name,
                 organization.Slug,
-            })
-            .ToListAsync(cancellationToken);
+            }
+        ).ToListAsync(cancellationToken);
         if (memberships.Count == 0)
         {
             return [];
         }
 
         Guid[] membershipIds = [.. memberships.Select(row => row.MembershipId)];
-        var rolesByMembership = (await context.MembershipRoleAssignments
-                .AsNoTracking()
+        var rolesByMembership = (
+            await context
+                .MembershipRoleAssignments.AsNoTracking()
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
                 .Where(role => membershipIds.Contains(role.MembershipId))
                 .OrderBy(role => role.RoleId)
-                .ToListAsync(cancellationToken))
+                .ToListAsync(cancellationToken)
+        )
             .GroupBy(role => role.MembershipId)
             .ToDictionary(
                 group => group.Key,
-                group => (IReadOnlyList<string>)[.. group.Select(role => role.RoleId)]);
+                group => (IReadOnlyList<string>)[.. group.Select(role => role.RoleId)]
+            );
 
         return memberships
             .Select(row => new OrganizationMembership(
                 new OrganizationId(row.OrganizationId),
                 row.Name,
                 row.Slug.Value,
-                rolesByMembership.GetValueOrDefault(row.MembershipId, [])))
+                rolesByMembership.GetValueOrDefault(row.MembershipId, [])
+            ))
             .ToArray();
     }
 
     public async Task<OrganizationAccessContext?> ResolveAccessAsync(
         UserId userId,
         string organizationSlug,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         OrganizationSlug slug;
         try
@@ -70,29 +76,28 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
         }
 
         var access = await (
-            from membership in context.Memberships
-                .AsNoTracking()
+            from membership in context
+                .Memberships.AsNoTracking()
                 .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
                 .Active()
             join organization in context.Organizations.AsNoTracking()
                 on membership.OrganizationId equals organization.Id
-            where membership.UserId == userId.Value
-                && organization.Slug == slug
+            where membership.UserId == userId.Value && organization.Slug == slug
             select new
             {
                 MembershipId = membership.Id,
                 OrganizationId = organization.Id,
                 organization.Name,
                 organization.Slug,
-            })
-            .SingleOrDefaultAsync(cancellationToken);
+            }
+        ).SingleOrDefaultAsync(cancellationToken);
         if (access is null)
         {
             return null;
         }
 
-        string[] roles = await context.MembershipRoleAssignments
-            .AsNoTracking()
+        string[] roles = await context
+            .MembershipRoleAssignments.AsNoTracking()
             .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
             .Where(role => role.MembershipId == access.MembershipId)
             .Where(role => role.OrganizationId == access.OrganizationId)
@@ -106,6 +111,7 @@ internal sealed class OrganizationQueries(AccessDbContext context) : IOrganizati
             new MembershipId(access.MembershipId),
             access.Name,
             access.Slug.Value,
-            roles);
+            roles
+        );
     }
 }

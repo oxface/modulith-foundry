@@ -19,7 +19,8 @@ public sealed class OrganizationScopeMiddlewareTests
             new MembershipId(Guid.Parse("01997d3d-8d8c-7c31-b74b-8dafc2bb2a03")),
             "Scoped Organization",
             "scoped-organization",
-            [SystemRoleIds.OrganizationAdministrator]);
+            [SystemRoleIds.OrganizationAdministrator]
+        );
         var queries = new OrganizationQueriesStub(organizationContext);
         var accessor = new OrganizationContextAccessor();
         bool nextCalled = false;
@@ -50,9 +51,7 @@ public sealed class OrganizationScopeMiddlewareTests
             nextCalled = true;
             return Task.CompletedTask;
         });
-        DefaultHttpContext httpContext = CreateHttpContext(
-            userId,
-            "inaccessible-organization");
+        DefaultHttpContext httpContext = CreateHttpContext(userId, "inaccessible-organization");
 
         await middleware.InvokeAsync(httpContext, accessor, queries);
 
@@ -65,15 +64,21 @@ public sealed class OrganizationScopeMiddlewareTests
     {
         var httpContext = new DefaultHttpContext
         {
-            User = new ClaimsPrincipal(new ClaimsIdentity(
-                [new Claim(ProductClaims.UserId, userId.Value.ToString())],
-                "test")),
+            User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    [new Claim(ProductClaims.UserId, userId.Value.ToString())],
+                    "test"
+                )
+            ),
         };
         httpContext.Request.RouteValues["organizationSlug"] = organizationSlug;
-        httpContext.SetEndpoint(new Endpoint(
-            _ => Task.CompletedTask,
-            new EndpointMetadataCollection(OrganizationScopeMetadata.Instance),
-            "organization-scoped test endpoint"));
+        httpContext.SetEndpoint(
+            new Endpoint(
+                _ => Task.CompletedTask,
+                new EndpointMetadataCollection(OrganizationScopeMetadata.Instance),
+                "organization-scoped test endpoint"
+            )
+        );
         return httpContext;
     }
 
@@ -86,13 +91,14 @@ public sealed class OrganizationScopeMiddlewareTests
 
         public Task<IReadOnlyList<OrganizationMembership>> ListAccessibleToAsync(
             UserId userId,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken = default
+        ) => throw new NotSupportedException();
 
         public Task<OrganizationAccessContext?> ResolveAccessAsync(
             UserId userId,
             string organizationSlug,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default
+        )
         {
             UserId = userId;
             OrganizationSlug = organizationSlug;

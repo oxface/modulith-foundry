@@ -22,10 +22,13 @@ public sealed partial class StockPositionPersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
-            postgres.GetConnectionString(), organization);
+            postgres.GetConnectionString(),
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 10m, expectedVersion: 0));
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, organization, quantity: 10m, expectedVersion: 0)
+        );
 
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -37,7 +40,9 @@ public sealed partial class StockPositionPersistenceTests
             GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA inventory TO stock_position_writer;
             REVOKE SELECT ON inventory.events FROM stock_position_writer;
             GRANT SELECT (global_sequence) ON inventory.events TO stock_position_writer;
-            """, connection);
+            """,
+            connection
+        );
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         var writerConnection = new NpgsqlConnectionStringBuilder(postgres.GetConnectionString())
         {
@@ -45,10 +50,16 @@ public sealed partial class StockPositionPersistenceTests
             Password = "test-only-writer",
         };
         await using ServiceProvider writer = await CreateServicesAsync(
-            writerConnection.ConnectionString, organization, migrate: false);
+            writerConnection.ConnectionString,
+            organization,
+            migrate: false
+        );
 
-        StockPositionView recorded = Assert.IsType<RecordStockReceiptResult.Recorded>(
-            await RecordReceiptAsync(writer, organization, quantity: 2m, expectedVersion: 2)).Position;
+        StockPositionView recorded = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(
+                await RecordReceiptAsync(writer, organization, quantity: 2m, expectedVersion: 2)
+            )
+            .Position;
 
         Assert.Equal(12m, recorded.OnHandQuantity);
         Assert.Equal(3, recorded.Version);
@@ -62,24 +73,36 @@ public sealed partial class StockPositionPersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
-            postgres.GetConnectionString(), organization);
+            postgres.GetConnectionString(),
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        StockPositionView original = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 10m, expectedVersion: 0)).Position;
+        StockPositionView original = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(
+                await RecordReceiptAsync(services, organization, quantity: 10m, expectedVersion: 0)
+            )
+            .Position;
 
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            InventoryDbContext context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            InventoryDbContext context =
+                scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
             IMigrator migrator = context.GetService<IMigrator>();
             await migrator.MigrateAsync(
-                "20260930131247_MoveStockPositionIdentityIntoStream", TestContext.Current.CancellationToken);
+                "20260930131247_MoveStockPositionIdentityIntoStream",
+                TestContext.Current.CancellationToken
+            );
             await migrator.MigrateAsync(cancellationToken: TestContext.Current.CancellationToken);
         }
 
-        Assert.IsType<RecordStockReceiptResult.VersionConflict>(await RecordReceiptAsync(
-            services, organization, quantity: 1m, expectedVersion: 0));
-        StockPositionView appended = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 1m, expectedVersion: 2)).Position;
+        Assert.IsType<RecordStockReceiptResult.VersionConflict>(
+            await RecordReceiptAsync(services, organization, quantity: 1m, expectedVersion: 0)
+        );
+        StockPositionView appended = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(
+                await RecordReceiptAsync(services, organization, quantity: 1m, expectedVersion: 2)
+            )
+            .Position;
         Assert.Equal(original.StockPositionId, appended.StockPositionId);
         Assert.Equal(11m, appended.OnHandQuantity);
         Assert.Equal(3, await CountStoredEventsAsync(postgres.GetConnectionString()));
@@ -92,25 +115,38 @@ public sealed partial class StockPositionPersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
-            postgres.GetConnectionString(), organization);
+            postgres.GetConnectionString(),
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 10m, expectedVersion: 0));
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, organization, quantity: 10m, expectedVersion: 0)
+        );
 
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         InventoryDbContext context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
         IMigrator migrator = context.GetService<IMigrator>();
         await migrator.MigrateAsync(
-            "20260930131247_MoveStockPositionIdentityIntoStream", TestContext.Current.CancellationToken);
+            "20260930131247_MoveStockPositionIdentityIntoStream",
+            TestContext.Current.CancellationToken
+        );
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = new NpgsqlCommand("DELETE FROM inventory.stock_position_current", connection);
+        await using var command = new NpgsqlCommand(
+            "DELETE FROM inventory.stock_position_current",
+            connection
+        );
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
         PostgresException failure = await Assert.ThrowsAsync<PostgresException>(() =>
-            migrator.MigrateAsync(cancellationToken: TestContext.Current.CancellationToken));
+            migrator.MigrateAsync(cancellationToken: TestContext.Current.CancellationToken)
+        );
 
-        Assert.Contains("Repair Stock Position write models", failure.MessageText, StringComparison.Ordinal);
+        Assert.Contains(
+            "Repair Stock Position write models",
+            failure.MessageText,
+            StringComparison.Ordinal
+        );
         Assert.Equal(2, await CountStoredEventsAsync(postgres.GetConnectionString()));
     }
 
@@ -121,19 +157,26 @@ public sealed partial class StockPositionPersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
-            postgres.GetConnectionString(), organization);
+            postgres.GetConnectionString(),
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 10m, expectedVersion: 0));
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, organization, quantity: 10m, expectedVersion: 0)
+        );
 
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = new NpgsqlCommand(
-            "UPDATE inventory.stock_position_current SET version = 1", connection);
+            "UPDATE inventory.stock_position_current SET version = 1",
+            connection
+        );
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
-        StockPositionIntegrityException failure = await Assert.ThrowsAsync<StockPositionIntegrityException>(() => RecordReceiptAsync(
-            services, organization, quantity: 1m, expectedVersion: 2));
+        StockPositionIntegrityException failure =
+            await Assert.ThrowsAsync<StockPositionIntegrityException>(() =>
+                RecordReceiptAsync(services, organization, quantity: 1m, expectedVersion: 2)
+            );
         Assert.Equal(StockPositionIntegrityFailure.WriteModelBehind, failure.Failure);
         Assert.Equal(2, failure.ExpectedVersion);
         Assert.Equal(1, failure.ObservedVersion);
@@ -147,23 +190,32 @@ public sealed partial class StockPositionPersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
-            postgres.GetConnectionString(), organization);
+            postgres.GetConnectionString(),
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        StockPositionView recorded = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services, organization, quantity: 10m, expectedVersion: 0)).Position;
+        StockPositionView recorded = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(
+                await RecordReceiptAsync(services, organization, quantity: 10m, expectedVersion: 0)
+            )
+            .Position;
 
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = new NpgsqlCommand(
-            "DELETE FROM inventory.stock_position_current", connection);
+            "DELETE FROM inventory.stock_position_current",
+            connection
+        );
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
-        Assert.IsType<RecordStockReceiptResult.VersionConflict>(await RecordReceiptAsync(
-            services, organization, quantity: 1m, expectedVersion: 2));
+        Assert.IsType<RecordStockReceiptResult.VersionConflict>(
+            await RecordReceiptAsync(services, organization, quantity: 1m, expectedVersion: 2)
+        );
         Assert.Equal(2, await CountStoredEventsAsync(postgres.GetConnectionString()));
 
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        StockPositionAggregate? live = await scope.ServiceProvider.GetRequiredService<StockPositionStore>()
+        StockPositionAggregate? live = await scope
+            .ServiceProvider.GetRequiredService<StockPositionStore>()
             .LoadLiveAsync(recorded.StockPositionId.Value, TestContext.Current.CancellationToken);
         Assert.NotNull(live);
         Assert.Equal(10m, live.State!.OnHand.Value);
@@ -177,15 +229,19 @@ public sealed partial class StockPositionPersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
-            postgres.GetConnectionString(), organization);
+            postgres.GetConnectionString(),
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
 
         RecordStockReceiptResult[] results = await Task.WhenAll(
             RecordReceiptAsync(services, organization, quantity: 2m, expectedVersion: 0),
-            RecordReceiptAsync(services, organization, quantity: 3m, expectedVersion: 0));
+            RecordReceiptAsync(services, organization, quantity: 3m, expectedVersion: 0)
+        );
 
-        StockPositionView winner = Assert.Single(
-            results.OfType<RecordStockReceiptResult.Recorded>()).Position;
+        StockPositionView winner = Assert
+            .Single(results.OfType<RecordStockReceiptResult.Recorded>())
+            .Position;
         Assert.True(winner.OnHandQuantity is 2m or 3m);
         Assert.Single(results, result => result is RecordStockReceiptResult.VersionConflict);
         Assert.Equal(2, await CountStoredEventsAsync(postgres.GetConnectionString()));
@@ -200,13 +256,15 @@ public sealed partial class StockPositionPersistenceTests
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(),
-            organization);
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
 
         RecordStockReceiptResult result;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            result = await scope.ServiceProvider.GetRequiredService<IStockPositionOperations>()
+            result = await scope
+                .ServiceProvider.GetRequiredService<IStockPositionOperations>()
                 .RecordReceiptAsync(
                     new RecordStockReceiptCommand(
                         organization.UserId,
@@ -214,11 +272,15 @@ public sealed partial class StockPositionPersistenceTests
                         "main",
                         "bolt-01",
                         12.5m,
-                        ExpectedVersion: 0),
-                    TestContext.Current.CancellationToken);
+                        ExpectedVersion: 0
+                    ),
+                    TestContext.Current.CancellationToken
+                );
         }
 
-        StockPositionView recorded = Assert.IsType<RecordStockReceiptResult.Recorded>(result).Position;
+        StockPositionView recorded = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(result)
+            .Position;
         Assert.Equal(2, recorded.Version);
         Assert.Equal(12.5m, recorded.OnHandQuantity);
         Assert.Equal(0m, recorded.ReservedQuantity);
@@ -226,15 +288,17 @@ public sealed partial class StockPositionPersistenceTests
         Assert.Equal("EA", recorded.BaseUnitCode);
 
         await using AsyncServiceScope readScope = services.CreateAsyncScope();
-        GetStockPositionResult read = await readScope.ServiceProvider
-            .GetRequiredService<IStockPositionOperations>()
+        GetStockPositionResult read = await readScope
+            .ServiceProvider.GetRequiredService<IStockPositionOperations>()
             .GetCurrentAsync(
                 new GetStockPositionQuery(
                     organization.UserId,
                     organization.OrganizationId,
                     "MAIN",
-                    "BOLT-01"),
-                TestContext.Current.CancellationToken);
+                    "BOLT-01"
+                ),
+                TestContext.Current.CancellationToken
+            );
         Assert.Equal(recorded, Assert.IsType<GetStockPositionResult.Found>(read).Position);
     }
 
@@ -246,34 +310,37 @@ public sealed partial class StockPositionPersistenceTests
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(),
-            organization);
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services,
-            organization,
-            quantity: 10m,
-            expectedVersion: 0));
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, organization, quantity: 10m, expectedVersion: 0)
+        );
 
         RecordStockReceiptResult[] results = await Task.WhenAll(
             RecordReceiptAsync(services, organization, 2m, expectedVersion: 2),
-            RecordReceiptAsync(services, organization, 3m, expectedVersion: 2));
+            RecordReceiptAsync(services, organization, 3m, expectedVersion: 2)
+        );
 
-        StockPositionView winner = Assert.Single(
-            results.OfType<RecordStockReceiptResult.Recorded>()).Position;
+        StockPositionView winner = Assert
+            .Single(results.OfType<RecordStockReceiptResult.Recorded>())
+            .Position;
         Assert.Equal(3, winner.Version);
         Assert.True(winner.OnHandQuantity is 12m or 13m);
         Assert.Single(results, result => result is RecordStockReceiptResult.VersionConflict);
 
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        GetStockPositionResult current = await scope.ServiceProvider
-            .GetRequiredService<IStockPositionOperations>()
+        GetStockPositionResult current = await scope
+            .ServiceProvider.GetRequiredService<IStockPositionOperations>()
             .GetCurrentAsync(
                 new GetStockPositionQuery(
                     organization.UserId,
                     organization.OrganizationId,
                     "main",
-                    "bolt-01"),
-                TestContext.Current.CancellationToken);
+                    "bolt-01"
+                ),
+                TestContext.Current.CancellationToken
+            );
         Assert.Equal(winner, Assert.IsType<GetStockPositionResult.Found>(current).Position);
     }
 
@@ -285,28 +352,35 @@ public sealed partial class StockPositionPersistenceTests
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(),
-            organization);
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
 
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services,
-            organization,
-            quantity: 10.125m,
-            expectedVersion: 0));
-        StockPositionView rehydrated = Assert.IsType<RecordStockReceiptResult.Recorded>(
-            await RecordReceiptAsync(
-                services,
-                organization,
-                quantity: 1.875m,
-                expectedVersion: 2)).Position;
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, organization, quantity: 10.125m, expectedVersion: 0)
+        );
+        StockPositionView rehydrated = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(
+                await RecordReceiptAsync(
+                    services,
+                    organization,
+                    quantity: 1.875m,
+                    expectedVersion: 2
+                )
+            )
+            .Position;
 
         Assert.Equal(3, rehydrated.Version);
         Assert.Equal(12m, rehydrated.OnHandQuantity);
 
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            StockPositionAggregate? live = await scope.ServiceProvider.GetRequiredService<StockPositionStore>()
-                .LoadLiveAsync(rehydrated.StockPositionId.Value, TestContext.Current.CancellationToken);
+            StockPositionAggregate? live = await scope
+                .ServiceProvider.GetRequiredService<StockPositionStore>()
+                .LoadLiveAsync(
+                    rehydrated.StockPositionId.Value,
+                    TestContext.Current.CancellationToken
+                );
             Assert.NotNull(live);
             Assert.Equal(12m, live.State!.OnHand.Value);
             Assert.Equal(3, live.ExpectedVersion);
@@ -323,21 +397,26 @@ public sealed partial class StockPositionPersistenceTests
             WHERE organization_id = @organization_id
             ORDER BY stream_version
             """,
-            connection);
+            connection
+        );
         command.Parameters.AddWithValue("organization_id", organization.OrganizationId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         var events = new List<StoredEventEnvelope>();
         while (await reader.ReadAsync(TestContext.Current.CancellationToken))
         {
-            events.Add(new StoredEventEnvelope(
-                reader.GetGuid(0),
-                reader.GetInt64(1),
-                reader.GetString(2),
-                reader.GetInt32(3),
-                reader.GetString(4),
-                reader.GetString(5),
-                reader.GetInt64(6)));
+            events.Add(
+                new StoredEventEnvelope(
+                    reader.GetGuid(0),
+                    reader.GetInt64(1),
+                    reader.GetString(2),
+                    reader.GetInt32(3),
+                    reader.GetString(4),
+                    reader.GetString(5),
+                    reader.GetInt64(6)
+                )
+            );
         }
 
         Assert.Equal([1L, 2L, 3L], events.Select(@event => @event.StreamVersion));
@@ -347,14 +426,21 @@ public sealed partial class StockPositionPersistenceTests
                 "inventory.stock-position.received",
                 "inventory.stock-position.received",
             ],
-            events.Select(@event => @event.EventName));
+            events.Select(@event => @event.EventName)
+        );
         Assert.All(events, @event => Assert.Equal(1, @event.SchemaVersion));
         Assert.Equal(events.Count, events.Select(@event => @event.EventId).Distinct().Count());
-        Assert.Equal(events.Count, events.Select(@event => @event.GlobalSequence).Distinct().Count());
-        Assert.DoesNotContain(events, @event =>
-            @event.EventName.Contains(',', StringComparison.Ordinal)
-            || @event.Payload.Contains("ModulithFoundry", StringComparison.Ordinal)
-            || @event.Metadata.Contains("ModulithFoundry", StringComparison.Ordinal));
+        Assert.Equal(
+            events.Count,
+            events.Select(@event => @event.GlobalSequence).Distinct().Count()
+        );
+        Assert.DoesNotContain(
+            events,
+            @event =>
+                @event.EventName.Contains(',', StringComparison.Ordinal)
+                || @event.Payload.Contains("ModulithFoundry", StringComparison.Ordinal)
+                || @event.Metadata.Contains("ModulithFoundry", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -365,20 +451,17 @@ public sealed partial class StockPositionPersistenceTests
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(),
-            organization);
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
 
-        decimal[] invalidQuantities =
-        [
-            0m,
-            -1m,
-            0.0000001m,
-            10_000_000_000_000m,
-        ];
+        decimal[] invalidQuantities = [0m, -1m, 0.0000001m, 10_000_000_000_000m];
         foreach (decimal quantity in invalidQuantities)
         {
-            RecordStockReceiptResult.Invalid invalid = Assert.IsType<RecordStockReceiptResult.Invalid>(
-                await RecordReceiptAsync(services, organization, quantity, expectedVersion: 0));
+            RecordStockReceiptResult.Invalid invalid =
+                Assert.IsType<RecordStockReceiptResult.Invalid>(
+                    await RecordReceiptAsync(services, organization, quantity, expectedVersion: 0)
+                );
             Assert.Equal("quantity", invalid.Field);
         }
 
@@ -394,50 +477,58 @@ public sealed partial class StockPositionPersistenceTests
         OrganizationAccessContext firstOrganization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(),
-            firstOrganization);
+            firstOrganization
+        );
         await CreateReferenceDataAsync(services, firstOrganization);
-        StockPositionView firstPosition = Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services,
-            firstOrganization,
-            quantity: 5m,
-            expectedVersion: 0)).Position;
+        StockPositionView firstPosition = Assert
+            .IsType<RecordStockReceiptResult.Recorded>(
+                await RecordReceiptAsync(
+                    services,
+                    firstOrganization,
+                    quantity: 5m,
+                    expectedVersion: 0
+                )
+            )
+            .Position;
 
         OrganizationAccessContext secondOrganization = CreateOrganizationContext();
         SetOrganizationContext(services, secondOrganization);
         await CreateReferenceDataAsync(services, secondOrganization);
-        Assert.IsType<RecordStockReceiptResult.PermissionDenied>(await RecordReceiptAsync(
-            services,
-            firstOrganization,
-            quantity: 1m,
-            expectedVersion: 2));
+        Assert.IsType<RecordStockReceiptResult.PermissionDenied>(
+            await RecordReceiptAsync(services, firstOrganization, quantity: 1m, expectedVersion: 2)
+        );
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            GetStockPositionResult result = await scope.ServiceProvider
-                .GetRequiredService<IStockPositionOperations>()
+            GetStockPositionResult result = await scope
+                .ServiceProvider.GetRequiredService<IStockPositionOperations>()
                 .GetCurrentAsync(
                     new GetStockPositionQuery(
                         secondOrganization.UserId,
                         secondOrganization.OrganizationId,
                         "main",
-                        "bolt-01"),
-                    TestContext.Current.CancellationToken);
+                        "bolt-01"
+                    ),
+                    TestContext.Current.CancellationToken
+                );
             Assert.IsType<GetStockPositionResult.NotFound>(result);
-            Assert.Null(await scope.ServiceProvider.GetRequiredService<StockPositionStore>()
-                .LoadLiveAsync(firstPosition.StockPositionId.Value, TestContext.Current.CancellationToken));
+            Assert.Null(
+                await scope
+                    .ServiceProvider.GetRequiredService<StockPositionStore>()
+                    .LoadLiveAsync(
+                        firstPosition.StockPositionId.Value,
+                        TestContext.Current.CancellationToken
+                    )
+            );
         }
 
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services,
-            secondOrganization,
-            quantity: 7m,
-            expectedVersion: 0));
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, secondOrganization, quantity: 7m, expectedVersion: 0)
+        );
 
         services.GetRequiredService<TestOrganizationAuthorization>().Allow = false;
-        Assert.IsType<RecordStockReceiptResult.PermissionDenied>(await RecordReceiptAsync(
-            services,
-            secondOrganization,
-            quantity: 1m,
-            expectedVersion: 2));
+        Assert.IsType<RecordStockReceiptResult.PermissionDenied>(
+            await RecordReceiptAsync(services, secondOrganization, quantity: 1m, expectedVersion: 2)
+        );
         Assert.Equal(4, await CountStoredEventsAsync(postgres.GetConnectionString()));
     }
 
@@ -449,20 +540,17 @@ public sealed partial class StockPositionPersistenceTests
         OrganizationAccessContext organization = CreateOrganizationContext();
         await using ServiceProvider services = await CreateServicesAsync(
             postgres.GetConnectionString(),
-            organization);
+            organization
+        );
         await CreateReferenceDataAsync(services, organization);
-        Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
-            services,
-            organization,
-            quantity: 8m,
-            expectedVersion: 0));
+        Assert.IsType<RecordStockReceiptResult.Recorded>(
+            await RecordReceiptAsync(services, organization, quantity: 8m, expectedVersion: 0)
+        );
         await CreateProjectionFailureTriggerAsync(postgres.GetConnectionString());
 
-        DbUpdateException failure = await Assert.ThrowsAsync<DbUpdateException>(() => RecordReceiptAsync(
-            services,
-            organization,
-            quantity: 2m,
-            expectedVersion: 2));
+        DbUpdateException failure = await Assert.ThrowsAsync<DbUpdateException>(() =>
+            RecordReceiptAsync(services, organization, quantity: 2m, expectedVersion: 2)
+        );
         Assert.IsType<PostgresException>(failure.InnerException);
 
         await using var connection = new NpgsqlConnection(postgres.GetConnectionString());
@@ -475,10 +563,12 @@ public sealed partial class StockPositionPersistenceTests
             JOIN inventory.stock_position_current p ON p.stream_id = s.id
             WHERE s.organization_id = @organization_id
             """,
-            connection);
+            connection
+        );
         command.Parameters.AddWithValue("organization_id", organization.OrganizationId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         Assert.Equal(2, reader.GetInt64(0));
         Assert.Equal(2, reader.GetInt64(1));
@@ -493,22 +583,26 @@ public sealed partial class StockPositionPersistenceTests
             new MembershipId(Guid.CreateVersion7()),
             "Stock Position Test Organization",
             $"stock-position-{Guid.NewGuid():N}",
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
 
     private static async Task<ServiceProvider> CreateServicesAsync(
         string connectionString,
         OrganizationAccessContext organizationContext,
         bool migrate = true,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null
+    )
     {
         var services = new ServiceCollection();
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
         services.AddSingleton(new TestOrganizationContextAccessor(organizationContext));
         services.AddSingleton<IOrganizationContextAccessor>(provider =>
-            provider.GetRequiredService<TestOrganizationContextAccessor>());
+            provider.GetRequiredService<TestOrganizationContextAccessor>()
+        );
         services.AddSingleton<TestOrganizationAuthorization>();
         services.AddSingleton<IOrganizationAuthorization>(provider =>
-            provider.GetRequiredService<TestOrganizationAuthorization>());
+            provider.GetRequiredService<TestOrganizationAuthorization>()
+        );
         services.AddSingleton(timeProvider ?? TimeProvider.System);
         services.AddInventoryModule();
         ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -521,30 +615,35 @@ public sealed partial class StockPositionPersistenceTests
 
     private static async Task CreateReferenceDataAsync(
         ServiceProvider services,
-        OrganizationAccessContext organization)
+        OrganizationAccessContext organization
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        CreateStockItemResult item = await scope.ServiceProvider
-            .GetRequiredService<IStockItemAdministration>()
+        CreateStockItemResult item = await scope
+            .ServiceProvider.GetRequiredService<IStockItemAdministration>()
             .CreateAsync(
                 new CreateStockItemCommand(
                     organization.UserId,
                     organization.OrganizationId,
                     "bolt-01",
                     "Zinc-plated bolt",
-                    "ea"),
-                TestContext.Current.CancellationToken);
+                    "ea"
+                ),
+                TestContext.Current.CancellationToken
+            );
         Assert.IsType<CreateStockItemResult.Created>(item);
 
-        CreateStockingLocationResult location = await scope.ServiceProvider
-            .GetRequiredService<IStockingLocationAdministration>()
+        CreateStockingLocationResult location = await scope
+            .ServiceProvider.GetRequiredService<IStockingLocationAdministration>()
             .CreateAsync(
                 new CreateStockingLocationCommand(
                     organization.UserId,
                     organization.OrganizationId,
                     "main",
-                    "Main warehouse"),
-                TestContext.Current.CancellationToken);
+                    "Main warehouse"
+                ),
+                TestContext.Current.CancellationToken
+            );
         Assert.IsType<CreateStockingLocationResult.Created>(location);
     }
 
@@ -552,10 +651,12 @@ public sealed partial class StockPositionPersistenceTests
         ServiceProvider services,
         OrganizationAccessContext organization,
         decimal quantity,
-        long expectedVersion)
+        long expectedVersion
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IStockPositionOperations>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IStockPositionOperations>()
             .RecordReceiptAsync(
                 new RecordStockReceiptCommand(
                     organization.UserId,
@@ -563,14 +664,18 @@ public sealed partial class StockPositionPersistenceTests
                     "main",
                     "bolt-01",
                     quantity,
-                    expectedVersion),
-                TestContext.Current.CancellationToken);
+                    expectedVersion
+                ),
+                TestContext.Current.CancellationToken
+            );
     }
 
     private static void SetOrganizationContext(
         ServiceProvider services,
-        OrganizationAccessContext context) =>
-        services.GetRequiredService<TestOrganizationContextAccessor>().OrganizationContext = context;
+        OrganizationAccessContext context
+    ) =>
+        services.GetRequiredService<TestOrganizationContextAccessor>().OrganizationContext =
+            context;
 
     private static Task<long> CountStoredEventsAsync(string connectionString) =>
         CountRowsAsync(connectionString, "SELECT count(*) FROM inventory.events");
@@ -607,12 +712,13 @@ public sealed partial class StockPositionPersistenceTests
             FOR EACH ROW
             EXECUTE FUNCTION inventory.reject_stock_position_update();
             """,
-            connection);
+            connection
+        );
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
-    private sealed class TestOrganizationContextAccessor(OrganizationAccessContext context) :
-        IOrganizationContextAccessor
+    private sealed class TestOrganizationContextAccessor(OrganizationAccessContext context)
+        : IOrganizationContextAccessor
     {
         public OrganizationAccessContext? OrganizationContext { get; set; } = context;
     }
@@ -625,8 +731,8 @@ public sealed partial class StockPositionPersistenceTests
             UserId userId,
             OrganizationId organizationId,
             string permissionId,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Allow);
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(Allow);
     }
 
     private sealed record StoredEventEnvelope(
@@ -636,5 +742,6 @@ public sealed partial class StockPositionPersistenceTests
         int SchemaVersion,
         string Payload,
         string Metadata,
-        long GlobalSequence);
+        long GlobalSequence
+    );
 }

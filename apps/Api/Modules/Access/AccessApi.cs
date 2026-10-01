@@ -14,7 +14,8 @@ internal static class AccessApi
         services.AddScoped<CompleteInvitationAcceptanceHandler>();
         services.AddScoped<OrganizationContextAccessor>();
         services.AddScoped<IOrganizationContextAccessor>(serviceProvider =>
-            serviceProvider.GetRequiredService<OrganizationContextAccessor>());
+            serviceProvider.GetRequiredService<OrganizationContextAccessor>()
+        );
         return services;
     }
 
@@ -25,7 +26,8 @@ internal static class AccessApi
     {
         endpoints.MapInvitationAcceptanceEndpoints();
         endpoints.MapOrganizationEndpoints();
-        RouteGroupBuilder organization = endpoints.MapGroup("/api/o/{organizationSlug}")
+        RouteGroupBuilder organization = endpoints
+            .MapGroup("/api/o/{organizationSlug}")
             .RequireAuthorization()
             .WithMetadata(OrganizationScopeMetadata.Instance);
         organization.MapOrganizationScopeEndpoints();

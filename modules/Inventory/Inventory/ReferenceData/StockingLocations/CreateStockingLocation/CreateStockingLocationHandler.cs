@@ -8,11 +8,13 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.Crea
 internal sealed class CreateStockingLocationHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<CreateStockingLocationResult> HandleAsync(
         CreateStockingLocationCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -20,18 +22,24 @@ internal sealed class CreateStockingLocationHandler(
             return new CreateStockingLocationResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.LocationsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockingLocationCreateDenied,
-                InventoryAuditSubjectTypes.StockingLocation,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockingLocationCreateDenied,
+                    InventoryAuditSubjectTypes.StockingLocation,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new CreateStockingLocationResult.PermissionDenied();
         }
@@ -45,7 +53,8 @@ internal sealed class CreateStockingLocationHandler(
                 command.OrganizationId.Value,
                 command.Code,
                 command.Name,
-                now);
+                now
+            );
         }
         catch (InvalidInventoryReferenceDataException exception)
         {
@@ -53,14 +62,17 @@ internal sealed class CreateStockingLocationHandler(
         }
 
         context.StockingLocations.Add(location);
-        context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-            location.OrganizationId,
-            command.ActorUserId.Value,
-            InventoryAuditActions.StockingLocationCreated,
-            InventoryAuditSubjectTypes.StockingLocation,
-            location.Id,
-            new { location.Code, location.Name },
-            now));
+        context.AuditEntries.Add(
+            InventoryAuditEntry.Succeeded(
+                location.OrganizationId,
+                command.ActorUserId.Value,
+                InventoryAuditActions.StockingLocationCreated,
+                InventoryAuditSubjectTypes.StockingLocation,
+                location.Id,
+                new { location.Code, location.Name },
+                now
+            )
+        );
 
         try
         {
@@ -75,9 +87,10 @@ internal sealed class CreateStockingLocationHandler(
     }
 
     private static bool IsDuplicateCode(DbUpdateException exception) =>
-        exception.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: "ux_stocking_locations_organization_code",
-        };
+        exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "ux_stocking_locations_organization_code",
+            };
 }

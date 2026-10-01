@@ -5,7 +5,8 @@ namespace ModulithFoundry.Modules.Access.Invitations;
 
 internal sealed class InvitationEmailDeliveryFactory(
     InvitationEmailPayloadCodec payloadCodec,
-    IOptions<InvitationOptions> options)
+    IOptions<InvitationOptions> options
+)
 {
     private readonly InvitationOptions _options = options.Value;
 
@@ -15,22 +16,27 @@ internal sealed class InvitationEmailDeliveryFactory(
         Invitation invitation,
         string secret,
         string organizationName,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         Uri acceptUrl = new(
             _options.PublicApplicationUrl
                 ?? throw new InvalidOperationException("Public application URL is not configured."),
-            $"/invitations/accept?invitationId={invitation.Id:D}&code={Uri.EscapeDataString(secret)}");
+            $"/invitations/accept?invitationId={invitation.Id:D}&code={Uri.EscapeDataString(secret)}"
+        );
         string protectedPayload = payloadCodec.Protect(
             new InvitationEmailPayload(
                 invitation.RecipientEmail,
                 organizationName,
                 acceptUrl,
-                invitation.ExpiresAt));
+                invitation.ExpiresAt
+            )
+        );
         return InvitationEmailDelivery.Create(
             Guid.CreateVersion7(createdAt),
             invitation,
             protectedPayload,
-            createdAt);
+            createdAt
+        );
     }
 }

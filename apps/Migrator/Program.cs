@@ -14,7 +14,8 @@ builder.AddServiceDefaults();
 if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("database")))
 {
     await Console.Error.WriteLineAsync(
-        "{\"LogLevel\":\"Critical\",\"Message\":\"Connection string 'database' is required.\"}");
+        "{\"LogLevel\":\"Critical\",\"Message\":\"Connection string 'database' is required.\"}"
+    );
     return 1;
 }
 
@@ -32,16 +33,15 @@ ILogger logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger
 try
 {
     await host.StartAsync();
-    CancellationToken stoppingToken = host.Services
-        .GetRequiredService<IHostApplicationLifetime>()
+    CancellationToken stoppingToken = host
+        .Services.GetRequiredService<IHostApplicationLifetime>()
         .ApplicationStopping;
 
-    await using PostgresMigrationLock.Lease migrationLock = await host.Services
-        .GetRequiredService<PostgresMigrationLock>()
+    await using PostgresMigrationLock.Lease migrationLock = await host
+        .Services.GetRequiredService<PostgresMigrationLock>()
         .AcquireAsync(stoppingToken);
 
-    await host.Services.GetRequiredService<MigrationCoordinator>()
-        .MigrateAsync(stoppingToken);
+    await host.Services.GetRequiredService<MigrationCoordinator>().MigrateAsync(stoppingToken);
 
     MigrationLogs.MigrationsCompleted(logger);
     return 0;

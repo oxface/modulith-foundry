@@ -6,13 +6,15 @@ namespace ModulithFoundry.Migrator;
 
 internal sealed class PostgresMigrationLock(
     IConfiguration configuration,
-    ILogger<PostgresMigrationLock> logger)
+    ILogger<PostgresMigrationLock> logger
+)
 {
     private const string LockName = "modulith-foundry:migrations";
 
     public async Task<Lease> AcquireAsync(CancellationToken cancellationToken)
     {
-        string connectionString = configuration.GetConnectionString("database")
+        string connectionString =
+            configuration.GetConnectionString("database")
             ?? throw new InvalidOperationException("Connection string 'database' is required.");
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString)
         {
@@ -25,7 +27,8 @@ internal sealed class PostgresMigrationLock(
             await connection.OpenAsync(cancellationToken);
             await using var command = new NpgsqlCommand(
                 "SELECT pg_advisory_lock(hashtextextended($1, 0));",
-                connection);
+                connection
+            );
             command.Parameters.AddWithValue(LockName);
 
             MigrationLogs.WaitingForLock(logger);
@@ -40,9 +43,7 @@ internal sealed class PostgresMigrationLock(
         }
     }
 
-    internal sealed class Lease(
-        NpgsqlConnection connection,
-        ILogger logger) : IAsyncDisposable
+    internal sealed class Lease(NpgsqlConnection connection, ILogger logger) : IAsyncDisposable
     {
         public async ValueTask DisposeAsync()
         {
@@ -50,7 +51,8 @@ internal sealed class PostgresMigrationLock(
             {
                 await using var command = new NpgsqlCommand(
                     "SELECT pg_advisory_unlock(hashtextextended($1, 0));",
-                    connection);
+                    connection
+                );
                 command.Parameters.AddWithValue(LockName);
 
                 await command.ExecuteNonQueryAsync();

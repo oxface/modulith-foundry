@@ -26,48 +26,65 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "inventory-authorization-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Inventory Authorization Organization",
-            "inventory-authorization-organization");
-        OrganizationMember membership = Assert.Single((await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members);
+            "inventory-authorization-organization"
+        );
+        OrganizationMember membership = Assert.Single(
+            (
+                await ListMembershipAdministrationAsync(
+                    services,
+                    administrator.UserId,
+                    organization.OrganizationId
+                )
+            ).Members
+        );
 
         bool before;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            before = await scope.ServiceProvider.GetRequiredService<IOrganizationAuthorization>()
+            before = await scope
+                .ServiceProvider.GetRequiredService<IOrganizationAuthorization>()
                 .HasPermissionAsync(
                     administrator.UserId,
                     organization.OrganizationId,
                     InventoryPermissionIds.ItemsManage,
-                    TestContext.Current.CancellationToken);
+                    TestContext.Current.CancellationToken
+                );
         }
 
-        Assert.IsType<ReplaceMembershipRolesResult.Updated>((await ReplaceMembershipRolesAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId,
-            membership.MembershipId,
-            [SystemRoleIds.OrganizationAdministrator, InventoryRoleIds.Manager])).Result);
+        Assert.IsType<ReplaceMembershipRolesResult.Updated>(
+            (
+                await ReplaceMembershipRolesAsync(
+                    services,
+                    administrator.UserId,
+                    organization.OrganizationId,
+                    membership.MembershipId,
+                    [SystemRoleIds.OrganizationAdministrator, InventoryRoleIds.Manager]
+                )
+            ).Result
+        );
 
         bool after;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            after = await scope.ServiceProvider.GetRequiredService<IOrganizationAuthorization>()
+            after = await scope
+                .ServiceProvider.GetRequiredService<IOrganizationAuthorization>()
                 .HasPermissionAsync(
                     administrator.UserId,
                     organization.OrganizationId,
                     InventoryPermissionIds.ItemsManage,
-                    TestContext.Current.CancellationToken);
+                    TestContext.Current.CancellationToken
+                );
         }
 
         Assert.False(before);
@@ -80,26 +97,32 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "membership-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Membership Organization",
-            "membership-organization");
+            "membership-organization"
+        );
 
         ListOrganizationMembersResult result;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            result = await scope.ServiceProvider.GetRequiredService<IOrganizationMembershipQueries>()
+            result = await scope
+                .ServiceProvider.GetRequiredService<IOrganizationMembershipQueries>()
                 .ListForAdministrationAsync(
                     new ListOrganizationMembersQuery(
                         administrator.UserId,
-                        organization.OrganizationId),
-                    TestContext.Current.CancellationToken);
+                        organization.OrganizationId
+                    ),
+                    TestContext.Current.CancellationToken
+                );
         }
 
         ListOrganizationMembersResult.Listed listed =
@@ -117,16 +140,18 @@ public sealed class AccessModulePersistenceTests
                 SalesRoleIds.Clerk,
                 SalesRoleIds.Manager,
             ],
-            listed.View.SystemRoles.Select(role => role.Id));
-        SystemRoleDefinition administratorRole = listed.View.SystemRoles.Single(
-            role => role.Id == SystemRoleIds.OrganizationAdministrator);
-        Assert.Equal(
-            [AccessPermissionIds.MembersManage],
-            administratorRole.PermissionIds);
+            listed.View.SystemRoles.Select(role => role.Id)
+        );
+        SystemRoleDefinition administratorRole = listed.View.SystemRoles.Single(role =>
+            role.Id == SystemRoleIds.OrganizationAdministrator
+        );
+        Assert.Equal([AccessPermissionIds.MembersManage], administratorRole.PermissionIds);
         Assert.Contains(
             listed.View.SystemPermissions,
-            permission => permission.Id == AccessPermissionIds.MembersManage
-                && permission.DisplayName == "Manage organization access");
+            permission =>
+                permission.Id == AccessPermissionIds.MembersManage
+                && permission.DisplayName == "Manage organization access"
+        );
     }
 
     [Fact]
@@ -137,50 +162,63 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "role-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Role Organization",
-            "role-organization");
+            "role-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "member@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "role-member",
-            "member@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            member.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "member@example.test"));
-        OrganizationMember memberBefore = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
+            "member@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                member.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "member@example.test"
+            )
+        );
+        OrganizationMember memberBefore = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(item => item.UserId == member.UserId);
 
         ReplaceMembershipRolesResult result;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            result = await scope.ServiceProvider
-                .GetRequiredService<IOrganizationMembershipAdministration>()
+            result = await scope
+                .ServiceProvider.GetRequiredService<IOrganizationMembershipAdministration>()
                 .ReplaceRolesAsync(
                     new ReplaceMembershipRolesCommand(
                         administrator.UserId,
                         organization.OrganizationId,
                         memberBefore.MembershipId,
-                        [InventoryRoleIds.Manager]),
-                    TestContext.Current.CancellationToken);
+                        [InventoryRoleIds.Manager]
+                    ),
+                    TestContext.Current.CancellationToken
+                );
         }
 
         ReplaceMembershipRolesResult.Updated updated =
@@ -192,19 +230,25 @@ public sealed class AccessModulePersistenceTests
             administrator.UserId,
             organization.OrganizationId,
             memberBefore.MembershipId,
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
         Assert.IsType<ReplaceMembershipRolesResult.Updated>(replay.Result);
-        OrganizationMember memberAfter = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
+        OrganizationMember memberAfter = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(item => item.UserId == member.UserId);
         Assert.Equal([InventoryRoleIds.Manager], memberAfter.RoleIds);
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.roles-replaced"));
+                "membership.roles-replaced"
+            )
+        );
     }
 
     [Fact]
@@ -215,41 +259,52 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink firstAdministrator = await LinkUserAsync(
             services,
             "first-role-administrator",
-            "first-administrator@example.test");
+            "first-administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             firstAdministrator.UserId,
             "Concurrent Role Organization",
-            "concurrent-role-organization");
+            "concurrent-role-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             firstAdministrator.UserId,
             organization.OrganizationId,
             "second-administrator@example.test",
-            [SystemRoleIds.OrganizationAdministrator]);
+            [SystemRoleIds.OrganizationAdministrator]
+        );
         UserIdentityLink secondAdministrator = await LinkUserAsync(
             services,
             "second-role-administrator",
-            "second-administrator@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            secondAdministrator.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "second-administrator@example.test"));
+            "second-administrator@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                secondAdministrator.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "second-administrator@example.test"
+            )
+        );
         OrganizationMembershipAdministration before = await ListMembershipAdministrationAsync(
             services,
             firstAdministrator.UserId,
-            organization.OrganizationId);
-        OrganizationMember firstMembership = before.Members.Single(
-            member => member.UserId == firstAdministrator.UserId);
-        OrganizationMember secondMembership = before.Members.Single(
-            member => member.UserId == secondAdministrator.UserId);
+            organization.OrganizationId
+        );
+        OrganizationMember firstMembership = before.Members.Single(member =>
+            member.UserId == firstAdministrator.UserId
+        );
+        OrganizationMember secondMembership = before.Members.Single(member =>
+            member.UserId == secondAdministrator.UserId
+        );
 
         MembershipRoleReplacementAttempt[] attempts = await Task.WhenAll(
             ReplaceMembershipRolesAsync(
@@ -257,41 +312,51 @@ public sealed class AccessModulePersistenceTests
                 firstAdministrator.UserId,
                 organization.OrganizationId,
                 firstMembership.MembershipId,
-                [SalesRoleIds.Clerk]),
+                [SalesRoleIds.Clerk]
+            ),
             ReplaceMembershipRolesAsync(
                 services,
                 secondAdministrator.UserId,
                 organization.OrganizationId,
                 secondMembership.MembershipId,
-                [SalesRoleIds.Clerk]));
+                [SalesRoleIds.Clerk]
+            )
+        );
 
-        Assert.Single(
-            attempts,
-            attempt => attempt.Result is ReplaceMembershipRolesResult.Updated);
+        Assert.Single(attempts, attempt => attempt.Result is ReplaceMembershipRolesResult.Updated);
         MembershipRoleReplacementAttempt protectedAttempt = Assert.Single(
             attempts,
-            attempt => attempt.Result is ReplaceMembershipRolesResult.LastAdministrator);
+            attempt => attempt.Result is ReplaceMembershipRolesResult.LastAdministrator
+        );
         OrganizationMembershipAdministration after = await ListMembershipAdministrationAsync(
             services,
             protectedAttempt.ActorUserId,
-            organization.OrganizationId);
+            organization.OrganizationId
+        );
         Assert.Single(
             after.Members,
-            member => member.RoleIds.Contains(
-                SystemRoleIds.OrganizationAdministrator,
-                StringComparer.Ordinal));
+            member =>
+                member.RoleIds.Contains(
+                    SystemRoleIds.OrganizationAdministrator,
+                    StringComparer.Ordinal
+                )
+        );
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.roles-replaced"));
+                "membership.roles-replaced"
+            )
+        );
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.roles-replacement-denied"));
+                "membership.roles-replacement-denied"
+            )
+        );
     }
 
     [Fact]
@@ -302,106 +367,139 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "lifecycle-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Lifecycle Organization",
-            "lifecycle-organization");
+            "lifecycle-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "lifecycle-member@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "lifecycle-member",
-            "lifecycle-member@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            member.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "lifecycle-member@example.test"));
-        OrganizationMember target = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
+            "lifecycle-member@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                member.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "lifecycle-member@example.test"
+            )
+        );
+        OrganizationMember target = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(item => item.UserId == member.UserId);
 
         ChangeMembershipStatusResult suspended = await ChangeMembershipStatusAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            MembershipStatus.Suspended);
+            MembershipStatus.Suspended
+        );
         ChangeMembershipStatusResult suspendedReplay = await ChangeMembershipStatusAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            MembershipStatus.Suspended);
+            MembershipStatus.Suspended
+        );
         OrganizationAccessContext? denied = await ResolveOrganizationAccessAsync(
             services,
             member.UserId,
-            organization.Slug);
+            organization.Slug
+        );
         ChangeMembershipStatusResult reactivated = await ChangeMembershipStatusAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            MembershipStatus.Active);
+            MembershipStatus.Active
+        );
         OrganizationAccessContext? restored = await ResolveOrganizationAccessAsync(
             services,
             member.UserId,
-            organization.Slug);
+            organization.Slug
+        );
         ChangeMembershipStatusResult removed = await ChangeMembershipStatusAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            MembershipStatus.Removed);
+            MembershipStatus.Removed
+        );
         ChangeMembershipStatusResult invalidReactivation = await ChangeMembershipStatusAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            MembershipStatus.Active);
+            MembershipStatus.Active
+        );
         MembershipRoleReplacementAttempt removedRoleChange = await ReplaceMembershipRolesAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
 
-        Assert.Equal(MembershipStatus.Suspended, Assert.IsType<ChangeMembershipStatusResult.Changed>(
-            suspended).Status);
+        Assert.Equal(
+            MembershipStatus.Suspended,
+            Assert.IsType<ChangeMembershipStatusResult.Changed>(suspended).Status
+        );
         Assert.IsType<ChangeMembershipStatusResult.Unchanged>(suspendedReplay);
         Assert.Null(denied);
-        Assert.Equal(MembershipStatus.Active, Assert.IsType<ChangeMembershipStatusResult.Changed>(
-            reactivated).Status);
+        Assert.Equal(
+            MembershipStatus.Active,
+            Assert.IsType<ChangeMembershipStatusResult.Changed>(reactivated).Status
+        );
         Assert.NotNull(restored);
-        Assert.Equal(MembershipStatus.Removed, Assert.IsType<ChangeMembershipStatusResult.Changed>(
-            removed).Status);
+        Assert.Equal(
+            MembershipStatus.Removed,
+            Assert.IsType<ChangeMembershipStatusResult.Changed>(removed).Status
+        );
         Assert.IsType<ChangeMembershipStatusResult.InvalidTransition>(invalidReactivation);
         Assert.Equal(
             MembershipStatus.Removed,
-            Assert.IsType<ReplaceMembershipRolesResult.InvalidMembershipStatus>(
-                removedRoleChange.Result).Status);
+            Assert
+                .IsType<ReplaceMembershipRolesResult.InvalidMembershipStatus>(
+                    removedRoleChange.Result
+                )
+                .Status
+        );
         OrganizationMembershipAdministration after = await ListMembershipAdministrationAsync(
             services,
             administrator.UserId,
-            organization.OrganizationId);
+            organization.OrganizationId
+        );
         Assert.DoesNotContain(after.Members, item => item.UserId == member.UserId);
-        MembershipTenure endedTenure = Assert.Single(await ReadMembershipTenuresAsync(
-            postgres.GetConnectionString(),
-            organization.OrganizationId,
-            member.UserId));
+        MembershipTenure endedTenure = Assert.Single(
+            await ReadMembershipTenuresAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                member.UserId
+            )
+        );
         Assert.Equal(target.MembershipId.Value, endedTenure.MembershipId);
         Assert.Equal(MembershipStatusValues.Removed, endedTenure.Status);
         Assert.Equal([SalesRoleIds.Clerk], endedTenure.RoleIds);
@@ -410,7 +508,9 @@ public sealed class AccessModulePersistenceTests
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.status-changed"));
+                "membership.status-changed"
+            )
+        );
     }
 
     [Fact]
@@ -421,78 +521,97 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink firstAdministrator = await LinkUserAsync(
             services,
             "first-lifecycle-administrator",
-            "first-administrator@example.test");
+            "first-administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             firstAdministrator.UserId,
             "Concurrent Lifecycle Organization",
-            "concurrent-lifecycle-organization");
+            "concurrent-lifecycle-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             firstAdministrator.UserId,
             organization.OrganizationId,
             "second-administrator@example.test",
-            [SystemRoleIds.OrganizationAdministrator]);
+            [SystemRoleIds.OrganizationAdministrator]
+        );
         UserIdentityLink secondAdministrator = await LinkUserAsync(
             services,
             "second-lifecycle-administrator",
-            "second-administrator@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            secondAdministrator.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "second-administrator@example.test"));
+            "second-administrator@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                secondAdministrator.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "second-administrator@example.test"
+            )
+        );
         OrganizationMembershipAdministration before = await ListMembershipAdministrationAsync(
             services,
             firstAdministrator.UserId,
-            organization.OrganizationId);
-        OrganizationMember firstMembership = before.Members.Single(
-            member => member.UserId == firstAdministrator.UserId);
-        OrganizationMember secondMembership = before.Members.Single(
-            member => member.UserId == secondAdministrator.UserId);
+            organization.OrganizationId
+        );
+        OrganizationMember firstMembership = before.Members.Single(member =>
+            member.UserId == firstAdministrator.UserId
+        );
+        OrganizationMember secondMembership = before.Members.Single(member =>
+            member.UserId == secondAdministrator.UserId
+        );
 
-        (UserId ActorUserId, ChangeMembershipStatusResult Result)[] attempts =
-            await Task.WhenAll(
-                ChangeMembershipStatusAttemptAsync(
-                    services,
-                    firstAdministrator.UserId,
-                    organization.OrganizationId,
-                    firstMembership.MembershipId,
-                    MembershipStatus.Suspended),
-                ChangeMembershipStatusAttemptAsync(
-                    services,
-                    secondAdministrator.UserId,
-                    organization.OrganizationId,
-                    secondMembership.MembershipId,
-                    MembershipStatus.Suspended));
+        (UserId ActorUserId, ChangeMembershipStatusResult Result)[] attempts = await Task.WhenAll(
+            ChangeMembershipStatusAttemptAsync(
+                services,
+                firstAdministrator.UserId,
+                organization.OrganizationId,
+                firstMembership.MembershipId,
+                MembershipStatus.Suspended
+            ),
+            ChangeMembershipStatusAttemptAsync(
+                services,
+                secondAdministrator.UserId,
+                organization.OrganizationId,
+                secondMembership.MembershipId,
+                MembershipStatus.Suspended
+            )
+        );
 
         Assert.Single(attempts, attempt => attempt.Result is ChangeMembershipStatusResult.Changed);
         (UserId ActorUserId, ChangeMembershipStatusResult Result) protectedAttempt = Assert.Single(
             attempts,
-            attempt => attempt.Result is ChangeMembershipStatusResult.LastAdministrator);
+            attempt => attempt.Result is ChangeMembershipStatusResult.LastAdministrator
+        );
         OrganizationMembershipAdministration after = await ListMembershipAdministrationAsync(
             services,
             protectedAttempt.ActorUserId,
-            organization.OrganizationId);
+            organization.OrganizationId
+        );
         Assert.Single(after.Members, member => member.Status == MembershipStatus.Active);
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.status-changed"));
+                "membership.status-changed"
+            )
+        );
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.status-change-denied"));
+                "membership.status-change-denied"
+            )
+        );
     }
 
     [Fact]
@@ -503,69 +622,91 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "returning-member-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Returning Member Organization",
-            "returning-member-organization");
+            "returning-member-organization"
+        );
         DeliveredInvitation firstInvitation = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "returning-member@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "returning-member",
-            "returning-member@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            member.UserId,
-            firstInvitation.InvitationId,
-            firstInvitation.Secret,
-            "returning-member@example.test"));
-        OrganizationMember original = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
-        Assert.IsType<ChangeMembershipStatusResult.Changed>(await ChangeMembershipStatusAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId,
-            original.MembershipId,
-            MembershipStatus.Removed));
+            "returning-member@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                member.UserId,
+                firstInvitation.InvitationId,
+                firstInvitation.Secret,
+                "returning-member@example.test"
+            )
+        );
+        OrganizationMember original = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(item => item.UserId == member.UserId);
+        Assert.IsType<ChangeMembershipStatusResult.Changed>(
+            await ChangeMembershipStatusAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId,
+                original.MembershipId,
+                MembershipStatus.Removed
+            )
+        );
         DeliveredInvitation returnInvitation = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "returning-member@example.test",
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
 
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            member.UserId,
-            returnInvitation.InvitationId,
-            returnInvitation.Secret,
-            "returning-member@example.test"));
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                member.UserId,
+                returnInvitation.InvitationId,
+                returnInvitation.Secret,
+                "returning-member@example.test"
+            )
+        );
 
-        OrganizationMember current = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
+        OrganizationMember current = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(item => item.UserId == member.UserId);
         Assert.NotEqual(original.MembershipId, current.MembershipId);
         Assert.Equal(MembershipStatus.Active, current.Status);
         Assert.Equal([InventoryRoleIds.Manager], current.RoleIds);
         MembershipTenure[] tenures = await ReadMembershipTenuresAsync(
             postgres.GetConnectionString(),
             organization.OrganizationId,
-            member.UserId);
+            member.UserId
+        );
         Assert.Collection(
             tenures.OrderBy(tenure => tenure.CreatedAt),
             ended =>
@@ -579,11 +720,11 @@ public sealed class AccessModulePersistenceTests
                 Assert.Equal(current.MembershipId.Value, active.MembershipId);
                 Assert.Equal(MembershipStatusValues.Active, active.Status);
                 Assert.Equal([InventoryRoleIds.Manager], active.RoleIds);
-            });
-        Assert.NotNull(await ResolveOrganizationAccessAsync(
-            services,
-            member.UserId,
-            organization.Slug));
+            }
+        );
+        Assert.NotNull(
+            await ResolveOrganizationAccessAsync(services, member.UserId, organization.Slug)
+        );
     }
 
     [Fact]
@@ -594,34 +735,40 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "concurrent-tenure-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Concurrent Tenure Organization",
-            "concurrent-tenure-organization");
+            "concurrent-tenure-organization"
+        );
         DeliveredInvitation firstInvitation = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "first-address@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         DeliveredInvitation secondInvitation = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "second-address@example.test",
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "concurrent-tenure-member",
-            "first-address@example.test");
+            "first-address@example.test"
+        );
 
         AcceptOrganizationInvitationResult[] results = await Task.WhenAll(
             AcceptInvitationAsync(
@@ -629,25 +776,37 @@ public sealed class AccessModulePersistenceTests
                 member.UserId,
                 firstInvitation.InvitationId,
                 firstInvitation.Secret,
-                "first-address@example.test"),
+                "first-address@example.test"
+            ),
             AcceptInvitationAsync(
                 services,
                 member.UserId,
                 secondInvitation.InvitationId,
                 secondInvitation.Secret,
-                "second-address@example.test"));
+                "second-address@example.test"
+            )
+        );
 
         Assert.Single(results, result => result is AcceptOrganizationInvitationResult.Accepted);
         Assert.Single(results, result => result is AcceptOrganizationInvitationResult.Consumed);
-        OrganizationMember current = Assert.Single((await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members, item => item.UserId == member.UserId);
+        OrganizationMember current = Assert.Single(
+            (
+                await ListMembershipAdministrationAsync(
+                    services,
+                    administrator.UserId,
+                    organization.OrganizationId
+                )
+            ).Members,
+            item => item.UserId == member.UserId
+        );
         Assert.Equal(MembershipStatus.Active, current.Status);
-        Assert.Single(await ReadMembershipTenuresAsync(
-            postgres.GetConnectionString(),
-            organization.OrganizationId,
-            member.UserId));
+        Assert.Single(
+            await ReadMembershipTenuresAsync(
+                postgres.GetConnectionString(),
+                organization.OrganizationId,
+                member.UserId
+            )
+        );
     }
 
     [Fact]
@@ -658,50 +817,65 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "suspended-invite-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Suspended Invitation Organization",
-            "suspended-invitation-organization");
+            "suspended-invitation-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "suspended-member@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "suspended-invite-member",
-            "suspended-member@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            member.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "suspended-member@example.test"));
-        OrganizationMember target = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(item => item.UserId == member.UserId);
-        Assert.IsType<ChangeMembershipStatusResult.Changed>(await ChangeMembershipStatusAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId,
-            target.MembershipId,
-            MembershipStatus.Suspended));
+            "suspended-member@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                member.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "suspended-member@example.test"
+            )
+        );
+        OrganizationMember target = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(item => item.UserId == member.UserId);
+        Assert.IsType<ChangeMembershipStatusResult.Changed>(
+            await ChangeMembershipStatusAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId,
+                target.MembershipId,
+                MembershipStatus.Suspended
+            )
+        );
 
         CreateOrganizationInvitationResult result = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "suspended-member@example.test",
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
 
         Assert.IsType<CreateOrganizationInvitationResult.AlreadyMember>(result);
     }
@@ -714,79 +888,101 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "status-denial-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Status Denial Organization",
-            "status-denial-organization");
+            "status-denial-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "status-denial-member@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "status-denial-member",
-            "status-denial-member@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            member.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "status-denial-member@example.test"));
+            "status-denial-member@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                member.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "status-denial-member@example.test"
+            )
+        );
         OrganizationMembershipAdministration before = await ListMembershipAdministrationAsync(
             services,
             administrator.UserId,
-            organization.OrganizationId);
-        OrganizationMember administratorMembership = before.Members.Single(
-            item => item.UserId == administrator.UserId);
-        OrganizationMember memberMembership = before.Members.Single(
-            item => item.UserId == member.UserId);
+            organization.OrganizationId
+        );
+        OrganizationMember administratorMembership = before.Members.Single(item =>
+            item.UserId == administrator.UserId
+        );
+        OrganizationMember memberMembership = before.Members.Single(item =>
+            item.UserId == member.UserId
+        );
         OrganizationMembership otherOrganization = await CreateOrganizationAsync(
             services,
             member.UserId,
             "Other Status Organization",
-            "other-status-organization");
-        OrganizationMember otherMembership = (await ListMembershipAdministrationAsync(
-            services,
-            member.UserId,
-            otherOrganization.OrganizationId)).Members.Single();
+            "other-status-organization"
+        );
+        OrganizationMember otherMembership = (
+            await ListMembershipAdministrationAsync(
+                services,
+                member.UserId,
+                otherOrganization.OrganizationId
+            )
+        ).Members.Single();
 
         ChangeMembershipStatusResult denied = await ChangeMembershipStatusAsync(
             services,
             member.UserId,
             organization.OrganizationId,
             administratorMembership.MembershipId,
-            MembershipStatus.Suspended);
+            MembershipStatus.Suspended
+        );
         ChangeMembershipStatusResult crossTenant = await ChangeMembershipStatusAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             otherMembership.MembershipId,
-            MembershipStatus.Suspended);
+            MembershipStatus.Suspended
+        );
 
         Assert.IsType<ChangeMembershipStatusResult.PermissionDenied>(denied);
         Assert.IsType<ChangeMembershipStatusResult.NotFound>(crossTenant);
         OrganizationMembershipAdministration after = await ListMembershipAdministrationAsync(
             services,
             administrator.UserId,
-            organization.OrganizationId);
+            organization.OrganizationId
+        );
         Assert.All(after.Members, item => Assert.Equal(MembershipStatus.Active, item.Status));
-        Assert.Equal(memberMembership.RoleIds, after.Members.Single(
-            item => item.UserId == member.UserId).RoleIds);
+        Assert.Equal(
+            memberMembership.RoleIds,
+            after.Members.Single(item => item.UserId == member.UserId).RoleIds
+        );
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.status-change-denied"));
+                "membership.status-change-denied"
+            )
+        );
     }
 
     [Fact]
@@ -797,104 +993,129 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "failure-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Failure Organization",
-            "failure-organization");
+            "failure-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "ordinary-member@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink ordinaryMember = await LinkUserAsync(
             services,
             "ordinary-member",
-            "ordinary-member@example.test");
-        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(await AcceptInvitationAsync(
-            services,
-            ordinaryMember.UserId,
-            delivered.InvitationId,
-            delivered.Secret,
-            "ordinary-member@example.test"));
+            "ordinary-member@example.test"
+        );
+        Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(
+            await AcceptInvitationAsync(
+                services,
+                ordinaryMember.UserId,
+                delivered.InvitationId,
+                delivered.Secret,
+                "ordinary-member@example.test"
+            )
+        );
         OrganizationMembershipAdministration before = await ListMembershipAdministrationAsync(
             services,
             administrator.UserId,
-            organization.OrganizationId);
-        OrganizationMember target = before.Members.Single(
-            member => member.UserId == ordinaryMember.UserId);
+            organization.OrganizationId
+        );
+        OrganizationMember target = before.Members.Single(member =>
+            member.UserId == ordinaryMember.UserId
+        );
         OrganizationMembership otherOrganization = await CreateOrganizationAsync(
             services,
             ordinaryMember.UserId,
             "Other Organization",
-            "other-membership-organization");
+            "other-membership-organization"
+        );
         OrganizationAccessContext otherContext = Assert.IsType<OrganizationAccessContext>(
             await ResolveOrganizationAccessAsync(
                 services,
                 ordinaryMember.UserId,
-                otherOrganization.Slug));
+                otherOrganization.Slug
+            )
+        );
 
         MembershipRoleReplacementAttempt invalid = await ReplaceMembershipRolesAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            ["unknown-role"]);
+            ["unknown-role"]
+        );
         MembershipRoleReplacementAttempt denied = await ReplaceMembershipRolesAsync(
             services,
             ordinaryMember.UserId,
             organization.OrganizationId,
             target.MembershipId,
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
         MembershipRoleReplacementAttempt crossTenant = await ReplaceMembershipRolesAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             otherContext.MembershipId,
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
         ListOrganizationMembersResult deniedList;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            deniedList = await scope.ServiceProvider
-                .GetRequiredService<IOrganizationMembershipQueries>()
+            deniedList = await scope
+                .ServiceProvider.GetRequiredService<IOrganizationMembershipQueries>()
                 .ListForAdministrationAsync(
                     new ListOrganizationMembersQuery(
                         ordinaryMember.UserId,
-                        organization.OrganizationId),
-                    TestContext.Current.CancellationToken);
+                        organization.OrganizationId
+                    ),
+                    TestContext.Current.CancellationToken
+                );
         }
 
         Assert.Equal(
             ["unknown-role"],
-            Assert.IsType<ReplaceMembershipRolesResult.InvalidRoles>(invalid.Result).RoleIds);
+            Assert.IsType<ReplaceMembershipRolesResult.InvalidRoles>(invalid.Result).RoleIds
+        );
         Assert.IsType<ReplaceMembershipRolesResult.PermissionDenied>(denied.Result);
         Assert.IsType<ReplaceMembershipRolesResult.NotFound>(crossTenant.Result);
         Assert.IsType<ListOrganizationMembersResult.PermissionDenied>(deniedList);
-        OrganizationMember unchanged = (await ListMembershipAdministrationAsync(
-            services,
-            administrator.UserId,
-            organization.OrganizationId)).Members.Single(
-                member => member.UserId == ordinaryMember.UserId);
+        OrganizationMember unchanged = (
+            await ListMembershipAdministrationAsync(
+                services,
+                administrator.UserId,
+                organization.OrganizationId
+            )
+        ).Members.Single(member => member.UserId == ordinaryMember.UserId);
         Assert.Equal([SalesRoleIds.Clerk], unchanged.RoleIds);
         Assert.Equal(
             0,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.roles-replaced"));
+                "membership.roles-replaced"
+            )
+        );
         Assert.Equal(
             1,
             await CountAuditEntriesAsync(
                 postgres.GetConnectionString(),
                 organization.OrganizationId,
-                "membership.roles-replacement-denied"));
+                "membership.roles-replacement-denied"
+            )
+        );
     }
 
     [Fact]
@@ -903,20 +1124,24 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink user = await LinkUserAsync(
             services,
             "creator-subject",
-            "creator@example.test");
+            "creator@example.test"
+        );
 
         OrganizationMembership created = await CreateOrganizationAsync(
             services,
             user.UserId,
             "  Acme Industrial  ",
-            "  Acme_Industrial  ");
+            "  Acme_Industrial  "
+        );
         IReadOnlyList<OrganizationMembership> accessible = await ListOrganizationsAsync(
             services,
-            user.UserId);
+            user.UserId
+        );
 
         Assert.NotEqual(Guid.Empty, created.OrganizationId.Value);
         Assert.Equal("Acme Industrial", created.Name);
@@ -930,7 +1155,8 @@ public sealed class AccessModulePersistenceTests
         OrganizationCreatedAudit audit = await ReadOrganizationCreatedAuditAsync(
             postgres.GetConnectionString(),
             created.OrganizationId,
-            user.UserId);
+            user.UserId
+        );
         Assert.Equal(1, audit.SchemaVersion);
         Assert.Equal("access", audit.SourceModule);
         Assert.Equal("succeeded", audit.Outcome);
@@ -945,35 +1171,38 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink user = await LinkUserAsync(
             services,
             "invalid-input-subject",
-            "invalid-input@example.test");
+            "invalid-input@example.test"
+        );
 
         CreateOrganizationResult invalidName = await ExecuteCreateOrganizationAsync(
             services,
             user.UserId,
             "  ",
-            "valid-slug");
+            "valid-slug"
+        );
         CreateOrganizationResult shortSlug = await ExecuteCreateOrganizationAsync(
             services,
             user.UserId,
             "Valid Organization",
-            "ab");
+            "ab"
+        );
         CreateOrganizationResult unsupportedSlug = await ExecuteCreateOrganizationAsync(
             services,
             user.UserId,
             "Valid Organization",
-            "invalid/slug");
+            "invalid/slug"
+        );
 
         Assert.IsType<CreateOrganizationResult.InvalidName>(invalidName);
         Assert.IsType<CreateOrganizationResult.InvalidSlug>(shortSlug);
         Assert.IsType<CreateOrganizationResult.InvalidSlug>(unsupportedSlug);
         Assert.Empty(await ListOrganizationsAsync(services, user.UserId));
-        Assert.Equal(
-            0,
-            await CountOrganizationCreatedAuditsAsync(postgres.GetConnectionString()));
+        Assert.Equal(0, await CountOrganizationCreatedAuditsAsync(postgres.GetConnectionString()));
     }
 
     [Fact]
@@ -982,45 +1211,52 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink firstUser = await LinkUserAsync(
             services,
             "first-subject",
-            "first@example.test");
+            "first@example.test"
+        );
         UserIdentityLink secondUser = await LinkUserAsync(
             services,
             "second-subject",
-            "second@example.test");
+            "second@example.test"
+        );
 
         OrganizationCreationAttempt[] attempts = await Task.WhenAll(
             CaptureCreationAsync(
                 services,
                 firstUser.UserId,
                 "First Organization",
-                "Contested_Slug"),
+                "Contested_Slug"
+            ),
             CaptureCreationAsync(
                 services,
                 secondUser.UserId,
                 "Second Organization",
-                "contested-slug"));
+                "contested-slug"
+            )
+        );
 
         OrganizationCreationAttempt winner = Assert.Single(
             attempts,
-            attempt => attempt.Result is CreateOrganizationResult.Created);
+            attempt => attempt.Result is CreateOrganizationResult.Created
+        );
         OrganizationCreationAttempt loser = Assert.Single(
             attempts,
-            attempt => attempt.Result is CreateOrganizationResult.SlugUnavailable);
+            attempt => attempt.Result is CreateOrganizationResult.SlugUnavailable
+        );
         CreateOrganizationResult.Created created = Assert.IsType<CreateOrganizationResult.Created>(
-            winner.Result);
+            winner.Result
+        );
         CreateOrganizationResult.SlugUnavailable unavailable =
             Assert.IsType<CreateOrganizationResult.SlugUnavailable>(loser.Result);
         Assert.Equal("contested-slug", unavailable.Slug);
         Assert.Equal("contested-slug", created.Organization.Slug);
         Assert.Single(await ListOrganizationsAsync(services, winner.UserId));
         Assert.Empty(await ListOrganizationsAsync(services, loser.UserId));
-        Assert.Equal(
-            1,
-            await CountOrganizationCreatedAuditsAsync(postgres.GetConnectionString()));
+        Assert.Equal(1, await CountOrganizationCreatedAuditsAsync(postgres.GetConnectionString()));
     }
 
     [Fact]
@@ -1029,29 +1265,35 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink member = await LinkUserAsync(
             services,
             "member-subject",
-            "member@example.test");
+            "member@example.test"
+        );
         UserIdentityLink otherUser = await LinkUserAsync(
             services,
             "other-subject",
-            "other@example.test");
+            "other@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             member.UserId,
             "Scoped Organization",
-            "scoped-organization");
+            "scoped-organization"
+        );
 
         OrganizationAccessContext? resolved = await ResolveOrganizationAccessAsync(
             services,
             member.UserId,
-            organization.Slug);
+            organization.Slug
+        );
         OrganizationAccessContext? denied = await ResolveOrganizationAccessAsync(
             services,
             otherUser.UserId,
-            organization.Slug);
+            organization.Slug
+        );
 
         OrganizationAccessContext context = Assert.IsType<OrganizationAccessContext>(resolved);
         Assert.Equal(member.UserId, context.UserId);
@@ -1069,42 +1311,56 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "inviting-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Invitation Organization",
-            "invitation-organization");
+            "invitation-organization"
+        );
 
         CreateOrganizationInvitationResult result;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            result = await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
+            result = await scope
+                .ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
                 .CreateInvitationAsync(
                     new CreateOrganizationInvitationCommand(
                         administrator.UserId,
                         organization.OrganizationId,
                         " Invited.Person@Example.Test ",
-                        [SalesRoleIds.Clerk]),
-                    TestContext.Current.CancellationToken);
+                        [SalesRoleIds.Clerk]
+                    ),
+                    TestContext.Current.CancellationToken
+                );
         }
 
         CreateOrganizationInvitationResult.Created created =
             Assert.IsType<CreateOrganizationInvitationResult.Created>(result);
         Assert.Equal("invited.person@example.test", created.Invitation.RecipientEmail);
         Assert.Equal([SalesRoleIds.Clerk], created.Invitation.RoleIds);
-        Assert.Equal(TimeSpan.FromDays(7), created.Invitation.ExpiresAt - created.Invitation.CreatedAt);
+        Assert.Equal(
+            TimeSpan.FromDays(7),
+            created.Invitation.ExpiresAt - created.Invitation.CreatedAt
+        );
 
         InvitationStorageFacts stored = await ReadInvitationStorageFactsAsync(
             postgres.GetConnectionString(),
-            created.Invitation.InvitationId);
+            created.Invitation.InvitationId
+        );
         Assert.Equal(32, stored.SecretDigestLength);
         Assert.NotEmpty(stored.ProtectedPayload);
-        Assert.DoesNotContain("invited.person@example.test", stored.ProtectedPayload, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(
+            "invited.person@example.test",
+            stored.ProtectedPayload,
+            StringComparison.OrdinalIgnoreCase
+        );
         Assert.Equal("invitation.created", stored.AuditAction);
     }
 
@@ -1114,64 +1370,76 @@ public sealed class AccessModulePersistenceTests
         await using PostgreSqlContainer postgres = CreatePostgresContainer();
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         await using ServiceProvider services = await CreateAccessServicesAsync(
-            postgres.GetConnectionString());
+            postgres.GetConnectionString()
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "lifecycle-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         UserIdentityLink nonmember = await LinkUserAsync(
             services,
             "lifecycle-nonmember",
-            "nonmember@example.test");
+            "nonmember@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Lifecycle Organization",
-            "lifecycle-organization");
+            "lifecycle-organization"
+        );
 
         CreateOrganizationInvitationResult invalidEmail = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "not-an-email",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         CreateOrganizationInvitationResult invalidRole = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "valid@example.test",
-            ["unknown-role"]);
+            ["unknown-role"]
+        );
         CreateOrganizationInvitationResult existingMember = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "administrator@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         CreateOrganizationInvitationResult denied = await CreateInvitationAsync(
             services,
             nonmember.UserId,
             organization.OrganizationId,
             "valid@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         CreateOrganizationInvitationResult created = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "valid@example.test",
-            [SalesRoleIds.Clerk]);
-        OrganizationInvitation invitation = Assert.IsType<CreateOrganizationInvitationResult.Created>(created)
+            [SalesRoleIds.Clerk]
+        );
+        OrganizationInvitation invitation = Assert
+            .IsType<CreateOrganizationInvitationResult.Created>(created)
             .Invitation;
         CreateOrganizationInvitationResult duplicate = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "VALID@example.test",
-            [InventoryRoleIds.Manager]);
+            [InventoryRoleIds.Manager]
+        );
         ResendOrganizationInvitationResult resent = await ResendInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
-            invitation.InvitationId);
+            invitation.InvitationId
+        );
 
         Assert.IsType<CreateOrganizationInvitationResult.InvalidEmail>(invalidEmail);
         Assert.IsType<CreateOrganizationInvitationResult.InvalidRoles>(invalidRole);
@@ -1179,16 +1447,20 @@ public sealed class AccessModulePersistenceTests
         Assert.IsType<CreateOrganizationInvitationResult.PermissionDenied>(denied);
         Assert.Equal(
             invitation.InvitationId,
-            Assert.IsType<CreateOrganizationInvitationResult.InvitationAlreadyPending>(duplicate)
-                .Invitation.InvitationId);
-        OrganizationInvitation resentInvitation =
-            Assert.IsType<ResendOrganizationInvitationResult.Resent>(resent).Invitation;
+            Assert
+                .IsType<CreateOrganizationInvitationResult.InvitationAlreadyPending>(duplicate)
+                .Invitation.InvitationId
+        );
+        OrganizationInvitation resentInvitation = Assert
+            .IsType<ResendOrganizationInvitationResult.Resent>(resent)
+            .Invitation;
         Assert.Equal(invitation.InvitationId, resentInvitation.InvitationId);
         Assert.True(resentInvitation.ExpiresAt >= invitation.ExpiresAt);
 
         InvitationDeliveryLifecycle lifecycle = await ReadInvitationDeliveryLifecycleAsync(
             postgres.GetConnectionString(),
-            invitation.InvitationId);
+            invitation.InvitationId
+        );
         Assert.Equal(2, lifecycle.DeliveryCount);
         Assert.Equal(1, lifecycle.SupersededCount);
         Assert.Equal(1, lifecycle.PendingCount);
@@ -1203,23 +1475,28 @@ public sealed class AccessModulePersistenceTests
         var transport = new FailOnceEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "delivery-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Delivery Organization",
-            "delivery-organization");
+            "delivery-organization"
+        );
         CreateOrganizationInvitationResult created = await CreateInvitationAsync(
             services,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk]);
-        InvitationId invitationId = Assert.IsType<CreateOrganizationInvitationResult.Created>(created)
+            [SalesRoleIds.Clerk]
+        );
+        InvitationId invitationId = Assert
+            .IsType<CreateOrganizationInvitationResult.Created>(created)
             .Invitation.InvitationId;
 
         IHostedService[] hostedServices = [.. services.GetServices<IHostedService>()];
@@ -1234,7 +1511,8 @@ public sealed class AccessModulePersistenceTests
             await WaitForDeliveredAsync(
                 postgres.GetConnectionString(),
                 invitationId,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
         }
         finally
         {
@@ -1250,7 +1528,8 @@ public sealed class AccessModulePersistenceTests
         Assert.Contains("code=", attempts[0].TextBody, StringComparison.Ordinal);
         InvitationDeliveryState state = await ReadInvitationDeliveryStateAsync(
             postgres.GetConnectionString(),
-            invitationId);
+            invitationId
+        );
         Assert.Equal(1, state.AttemptCount);
         Assert.NotNull(state.SentAt);
         Assert.Null(state.ProtectedPayload);
@@ -1264,50 +1543,56 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "accepting-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Acceptance Organization",
-            "acceptance-organization");
+            "acceptance-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk, InventoryRoleIds.Manager]);
+            [SalesRoleIds.Clerk, InventoryRoleIds.Manager]
+        );
         UserIdentityLink recipient = await LinkUserAsync(
             services,
             "invitation-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
             services,
             recipient.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         AcceptOrganizationInvitationResult.Accepted accepted =
             Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(result);
         Assert.Equal(organization.OrganizationId, accepted.Membership.OrganizationId);
-        Assert.Equal(
-            [InventoryRoleIds.Manager, SalesRoleIds.Clerk],
-            accepted.Membership.RoleIds);
+        Assert.Equal([InventoryRoleIds.Manager, SalesRoleIds.Clerk], accepted.Membership.RoleIds);
         OrganizationMembership accessible = Assert.Single(
-            await ListOrganizationsAsync(services, recipient.UserId));
+            await ListOrganizationsAsync(services, recipient.UserId)
+        );
         Assert.Equal(accepted.Membership.OrganizationId, accessible.OrganizationId);
         Assert.Equal(accepted.Membership.Name, accessible.Name);
         Assert.Equal(accepted.Membership.Slug, accessible.Slug);
         Assert.Equal(accepted.Membership.RoleIds, accessible.RoleIds);
         InvitationAcceptanceFacts facts = await ReadInvitationAcceptanceFactsAsync(
             postgres.GetConnectionString(),
-            delivered.InvitationId);
+            delivered.InvitationId
+        );
         Assert.Equal("accepted", facts.Status);
         Assert.Equal(recipient.UserId.Value, facts.AcceptedByUserId);
         Assert.NotNull(facts.AcceptedAt);
@@ -1324,34 +1609,40 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "invalid-secret-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Invalid Secret Organization",
-            "invalid-secret-organization");
+            "invalid-secret-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink recipient = await LinkUserAsync(
             services,
             "invalid-secret-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
             services,
             recipient.UserId,
             delivered.InvitationId,
             "not-the-invitation-secret",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         Assert.IsType<AcceptOrganizationInvitationResult.Invalid>(result);
         Assert.Empty(await ListOrganizationsAsync(services, recipient.UserId));
@@ -1365,34 +1656,40 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "mismatch-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Mismatch Organization",
-            "mismatch-organization");
+            "mismatch-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "invited@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink differentUser = await LinkUserAsync(
             services,
             "different-recipient",
-            "different@example.test");
+            "different@example.test"
+        );
 
         AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
             services,
             differentUser.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "different@example.test");
+            "different@example.test"
+        );
 
         Assert.IsType<AcceptOrganizationInvitationResult.RecipientMismatch>(result);
         Assert.Empty(await ListOrganizationsAsync(services, differentUser.UserId));
@@ -1405,34 +1702,40 @@ public sealed class AccessModulePersistenceTests
         await postgres.StartAsync(TestContext.Current.CancellationToken);
         var transport = new RecordingEmailTransport();
         var timeProvider = new AdjustableTimeProvider(
-            new DateTimeOffset(2026, 9, 28, 12, 0, 0, TimeSpan.Zero));
+            new DateTimeOffset(2026, 9, 28, 12, 0, 0, TimeSpan.Zero)
+        );
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
             collection =>
             {
                 collection.AddSingleton<IEmailTransport>(transport);
                 collection.AddSingleton<TimeProvider>(timeProvider);
-            });
+            }
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "expiry-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Expiry Organization",
-            "expiry-organization");
+            "expiry-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink recipient = await LinkUserAsync(
             services,
             "expiry-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
         timeProvider.Advance(TimeSpan.FromDays(7));
 
         AcceptOrganizationInvitationResult result = await AcceptInvitationAsync(
@@ -1440,7 +1743,8 @@ public sealed class AccessModulePersistenceTests
             recipient.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         Assert.IsType<AcceptOrganizationInvitationResult.Expired>(result);
         Assert.Empty(await ListOrganizationsAsync(services, recipient.UserId));
@@ -1454,40 +1758,47 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "replay-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Replay Organization",
-            "replay-organization");
+            "replay-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink recipient = await LinkUserAsync(
             services,
             "replay-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
         AcceptOrganizationInvitationResult first = await AcceptInvitationAsync(
             services,
             recipient.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         AcceptOrganizationInvitationResult replay = await AcceptInvitationAsync(
             services,
             recipient.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         Assert.IsType<AcceptOrganizationInvitationResult.Accepted>(first);
         Assert.IsType<AcceptOrganizationInvitationResult.AlreadyAccepted>(replay);
@@ -1502,44 +1813,52 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "consumed-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Consumed Organization",
-            "consumed-organization");
+            "consumed-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink firstRecipient = await LinkUserAsync(
             services,
             "first-consumed-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
         UserIdentityLink secondRecipient = await LinkUserAsync(
             services,
             "second-consumed-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
         await AcceptInvitationAsync(
             services,
             firstRecipient.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         AcceptOrganizationInvitationResult replay = await AcceptInvitationAsync(
             services,
             secondRecipient.UserId,
             delivered.InvitationId,
             delivered.Secret,
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         Assert.IsType<AcceptOrganizationInvitationResult.Consumed>(replay);
         Assert.Empty(await ListOrganizationsAsync(services, secondRecipient.UserId));
@@ -1553,31 +1872,37 @@ public sealed class AccessModulePersistenceTests
         var transport = new RecordingEmailTransport();
         await using ServiceProvider services = await CreateAccessServicesAsync(
             postgres.GetConnectionString(),
-            collection => collection.AddSingleton<IEmailTransport>(transport));
+            collection => collection.AddSingleton<IEmailTransport>(transport)
+        );
         UserIdentityLink administrator = await LinkUserAsync(
             services,
             "concurrent-acceptance-administrator",
-            "administrator@example.test");
+            "administrator@example.test"
+        );
         OrganizationMembership organization = await CreateOrganizationAsync(
             services,
             administrator.UserId,
             "Concurrent Acceptance Organization",
-            "concurrent-acceptance-organization");
+            "concurrent-acceptance-organization"
+        );
         DeliveredInvitation delivered = await CreateDeliveredInvitationAsync(
             services,
             transport,
             administrator.UserId,
             organization.OrganizationId,
             "recipient@example.test",
-            [SalesRoleIds.Clerk]);
+            [SalesRoleIds.Clerk]
+        );
         UserIdentityLink firstRecipient = await LinkUserAsync(
             services,
             "first-concurrent-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
         UserIdentityLink secondRecipient = await LinkUserAsync(
             services,
             "second-concurrent-recipient",
-            "recipient@example.test");
+            "recipient@example.test"
+        );
 
         AcceptOrganizationInvitationResult[] results = await Task.WhenAll(
             AcceptInvitationAsync(
@@ -1585,28 +1910,32 @@ public sealed class AccessModulePersistenceTests
                 firstRecipient.UserId,
                 delivered.InvitationId,
                 delivered.Secret,
-                "recipient@example.test"),
+                "recipient@example.test"
+            ),
             AcceptInvitationAsync(
                 services,
                 secondRecipient.UserId,
                 delivered.InvitationId,
                 delivered.Secret,
-                "recipient@example.test"));
+                "recipient@example.test"
+            )
+        );
 
         Assert.Single(results, result => result is AcceptOrganizationInvitationResult.Accepted);
         Assert.Single(results, result => result is AcceptOrganizationInvitationResult.Consumed);
-        int membershipCount = (await ListOrganizationsAsync(services, firstRecipient.UserId)).Count
+        int membershipCount =
+            (await ListOrganizationsAsync(services, firstRecipient.UserId)).Count
             + (await ListOrganizationsAsync(services, secondRecipient.UserId)).Count;
         Assert.Equal(1, membershipCount);
     }
 
     private static PostgreSqlContainer CreatePostgresContainer() =>
-        new PostgreSqlBuilder("postgres:18.6")
-            .Build();
+        new PostgreSqlBuilder("postgres:18.6").Build();
 
     private static async Task<ServiceProvider> CreateAccessServicesAsync(
         string connectionString,
-        Action<IServiceCollection>? configure = null)
+        Action<IServiceCollection>? configure = null
+    )
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -1614,14 +1943,16 @@ public sealed class AccessModulePersistenceTests
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
         configure?.Invoke(services);
         IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Invitations:PublicApplicationUrl"] = "https://example.test",
-                ["Email:Smtp:Host"] = "localhost",
-                ["Email:Smtp:Port"] = "1025",
-                ["Email:Smtp:Security"] = "None",
-                ["Email:Smtp:FromAddress"] = "no-reply@example.test",
-            })
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["Invitations:PublicApplicationUrl"] = "https://example.test",
+                    ["Email:Smtp:Host"] = "localhost",
+                    ["Email:Smtp:Port"] = "1025",
+                    ["Email:Smtp:Security"] = "None",
+                    ["Email:Smtp:FromAddress"] = "no-reply@example.test",
+                }
+            )
             .Build();
         services.AddAccessModule(configuration);
         services.AddInventoryModule();
@@ -1636,26 +1967,31 @@ public sealed class AccessModulePersistenceTests
     private static async Task<UserIdentityLink> LinkUserAsync(
         IServiceProvider services,
         string subject,
-        string email)
+        string email
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IExternalIdentityLinking>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IExternalIdentityLinking>()
             .LinkAsync(
                 ExternalIdentity.Create("https://issuer.example", subject, email, subject),
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
     }
 
     private static async Task<OrganizationMembership> CreateOrganizationAsync(
         IServiceProvider services,
         UserId userId,
         string name,
-        string proposedSlug)
+        string proposedSlug
+    )
     {
         CreateOrganizationResult result = await ExecuteCreateOrganizationAsync(
             services,
             userId,
             name,
-            proposedSlug);
+            proposedSlug
+        );
         return Assert.IsType<CreateOrganizationResult.Created>(result).Organization;
     }
 
@@ -1663,36 +1999,42 @@ public sealed class AccessModulePersistenceTests
         IServiceProvider services,
         UserId userId,
         string name,
-        string proposedSlug)
+        string proposedSlug
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationCreation>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationCreation>()
             .CreateOrganizationAsync(
                 new CreateOrganizationCommand(userId, name, proposedSlug),
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
     }
 
     private static async Task<IReadOnlyList<OrganizationMembership>> ListOrganizationsAsync(
         IServiceProvider services,
-        UserId userId)
+        UserId userId
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationQueries>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationQueries>()
             .ListAccessibleToAsync(userId, TestContext.Current.CancellationToken);
     }
 
-    private static async Task<OrganizationMembershipAdministration>
-        ListMembershipAdministrationAsync(
-            IServiceProvider services,
-            UserId actorUserId,
-            OrganizationId organizationId)
+    private static async Task<OrganizationMembershipAdministration> ListMembershipAdministrationAsync(
+        IServiceProvider services,
+        UserId actorUserId,
+        OrganizationId organizationId
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        ListOrganizationMembersResult result = await scope.ServiceProvider
-            .GetRequiredService<IOrganizationMembershipQueries>()
+        ListOrganizationMembersResult result = await scope
+            .ServiceProvider.GetRequiredService<IOrganizationMembershipQueries>()
             .ListForAdministrationAsync(
                 new ListOrganizationMembersQuery(actorUserId, organizationId),
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
         return Assert.IsType<ListOrganizationMembersResult.Listed>(result).View;
     }
 
@@ -1701,18 +2043,21 @@ public sealed class AccessModulePersistenceTests
         UserId actorUserId,
         OrganizationId organizationId,
         MembershipId membershipId,
-        IReadOnlyCollection<string> roleIds)
+        IReadOnlyCollection<string> roleIds
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        ReplaceMembershipRolesResult result = await scope.ServiceProvider
-            .GetRequiredService<IOrganizationMembershipAdministration>()
+        ReplaceMembershipRolesResult result = await scope
+            .ServiceProvider.GetRequiredService<IOrganizationMembershipAdministration>()
             .ReplaceRolesAsync(
                 new ReplaceMembershipRolesCommand(
                     actorUserId,
                     organizationId,
                     membershipId,
-                    roleIds),
-                TestContext.Current.CancellationToken);
+                    roleIds
+                ),
+                TestContext.Current.CancellationToken
+            );
         return new MembershipRoleReplacementAttempt(actorUserId, result);
     }
 
@@ -1721,66 +2066,80 @@ public sealed class AccessModulePersistenceTests
         UserId actorUserId,
         OrganizationId organizationId,
         MembershipId membershipId,
-        MembershipStatus status)
+        MembershipStatus status
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider
-            .GetRequiredService<IOrganizationMembershipAdministration>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationMembershipAdministration>()
             .ChangeStatusAsync(
                 new ChangeMembershipStatusCommand(
                     actorUserId,
                     organizationId,
                     membershipId,
-                    status),
-                TestContext.Current.CancellationToken);
+                    status
+                ),
+                TestContext.Current.CancellationToken
+            );
     }
 
-    private static async Task<(UserId ActorUserId, ChangeMembershipStatusResult Result)>
-        ChangeMembershipStatusAttemptAsync(
-            IServiceProvider services,
-            UserId actorUserId,
-            OrganizationId organizationId,
-            MembershipId membershipId,
-            MembershipStatus status) =>
-        (actorUserId, await ChangeMembershipStatusAsync(
-            services,
+    private static async Task<(
+        UserId ActorUserId,
+        ChangeMembershipStatusResult Result
+    )> ChangeMembershipStatusAttemptAsync(
+        IServiceProvider services,
+        UserId actorUserId,
+        OrganizationId organizationId,
+        MembershipId membershipId,
+        MembershipStatus status
+    ) =>
+        (
             actorUserId,
-            organizationId,
-            membershipId,
-            status));
+            await ChangeMembershipStatusAsync(
+                services,
+                actorUserId,
+                organizationId,
+                membershipId,
+                status
+            )
+        );
 
     private static async Task<CreateOrganizationInvitationResult> CreateInvitationAsync(
         IServiceProvider services,
         UserId actorUserId,
         OrganizationId organizationId,
         string recipientEmail,
-        IReadOnlyCollection<string> roleIds)
+        IReadOnlyCollection<string> roleIds
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
             .CreateInvitationAsync(
                 new CreateOrganizationInvitationCommand(
                     actorUserId,
                     organizationId,
                     recipientEmail,
-                    roleIds),
-                TestContext.Current.CancellationToken);
+                    roleIds
+                ),
+                TestContext.Current.CancellationToken
+            );
     }
 
     private static async Task<ResendOrganizationInvitationResult> ResendInvitationAsync(
         IServiceProvider services,
         UserId actorUserId,
         OrganizationId organizationId,
-        InvitationId invitationId)
+        InvitationId invitationId
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
             .ResendInvitationAsync(
-                new ResendOrganizationInvitationCommand(
-                    actorUserId,
-                    organizationId,
-                    invitationId),
-                TestContext.Current.CancellationToken);
+                new ResendOrganizationInvitationCommand(actorUserId, organizationId, invitationId),
+                TestContext.Current.CancellationToken
+            );
     }
 
     private static async Task<AcceptOrganizationInvitationResult> AcceptInvitationAsync(
@@ -1788,17 +2147,21 @@ public sealed class AccessModulePersistenceTests
         UserId userId,
         InvitationId invitationId,
         string secret,
-        string verifiedProviderEmail)
+        string verifiedProviderEmail
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
             .AcceptInvitationAsync(
                 new AcceptOrganizationInvitationCommand(
                     userId,
                     invitationId,
                     secret,
-                    verifiedProviderEmail),
-                TestContext.Current.CancellationToken);
+                    verifiedProviderEmail
+                ),
+                TestContext.Current.CancellationToken
+            );
     }
 
     private static async Task<DeliveredInvitation> CreateDeliveredInvitationAsync(
@@ -1807,15 +2170,18 @@ public sealed class AccessModulePersistenceTests
         UserId actorUserId,
         OrganizationId organizationId,
         string recipientEmail,
-        IReadOnlyCollection<string> roleIds)
+        IReadOnlyCollection<string> roleIds
+    )
     {
         CreateOrganizationInvitationResult result = await CreateInvitationAsync(
             services,
             actorUserId,
             organizationId,
             recipientEmail,
-            roleIds);
-        InvitationId invitationId = Assert.IsType<CreateOrganizationInvitationResult.Created>(result)
+            roleIds
+        );
+        InvitationId invitationId = Assert
+            .IsType<CreateOrganizationInvitationResult.Created>(result)
             .Invitation.InvitationId;
         IHostedService[] hostedServices = [.. services.GetServices<IHostedService>()];
         foreach (IHostedService hostedService in hostedServices)
@@ -1837,16 +2203,21 @@ public sealed class AccessModulePersistenceTests
         }
 
         const string linkPrefix = "Accept the invitation: ";
-        string link = message.TextBody.Split('\n', StringSplitOptions.TrimEntries)
-            .Single(line => line.StartsWith(linkPrefix, StringComparison.Ordinal))[linkPrefix.Length..];
+        string link = message
+            .TextBody.Split('\n', StringSplitOptions.TrimEntries)
+            .Single(line => line.StartsWith(linkPrefix, StringComparison.Ordinal))[
+            linkPrefix.Length..
+        ];
         var uri = new Uri(link);
-        Dictionary<string, string> query = uri.Query.TrimStart('?')
+        Dictionary<string, string> query = uri
+            .Query.TrimStart('?')
             .Split('&', StringSplitOptions.RemoveEmptyEntries)
             .Select(part => part.Split('=', 2))
             .ToDictionary(
                 part => Uri.UnescapeDataString(part[0]),
                 part => Uri.UnescapeDataString(part[1]),
-                StringComparer.Ordinal);
+                StringComparer.Ordinal
+            );
         Assert.Equal(invitationId.Value, Guid.Parse(query["invitationId"]));
         return new DeliveredInvitation(invitationId, query["code"]);
     }
@@ -1854,27 +2225,28 @@ public sealed class AccessModulePersistenceTests
     private static async Task<OrganizationAccessContext?> ResolveOrganizationAccessAsync(
         IServiceProvider services,
         UserId userId,
-        string organizationSlug)
+        string organizationSlug
+    )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationQueries>()
-            .ResolveAccessAsync(
-                userId,
-                organizationSlug,
-                TestContext.Current.CancellationToken);
+        return await scope
+            .ServiceProvider.GetRequiredService<IOrganizationQueries>()
+            .ResolveAccessAsync(userId, organizationSlug, TestContext.Current.CancellationToken);
     }
 
     private static async Task<OrganizationCreationAttempt> CaptureCreationAsync(
         IServiceProvider services,
         UserId userId,
         string name,
-        string proposedSlug)
+        string proposedSlug
+    )
     {
         CreateOrganizationResult result = await ExecuteCreateOrganizationAsync(
             services,
             userId,
             name,
-            proposedSlug);
+            proposedSlug
+        );
         return new OrganizationCreationAttempt(userId, result);
     }
 
@@ -1890,14 +2262,17 @@ public sealed class AccessModulePersistenceTests
         await using NpgsqlCommand command = connection.CreateCommand();
         command.CommandText = sql;
 
-        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException("Audit count query returned no value."));
+        return (long)(
+            await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("Audit count query returned no value.")
+        );
     }
 
     private static async Task<long> CountAuditEntriesAsync(
         string connectionString,
         OrganizationId organizationId,
-        string action)
+        string action
+    )
     {
         const string sql = """
             SELECT count(*)
@@ -1912,14 +2287,17 @@ public sealed class AccessModulePersistenceTests
         command.Parameters.AddWithValue("organization_id", organizationId.Value);
         command.Parameters.AddWithValue("action", action);
 
-        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException("Audit count query returned no value."));
+        return (long)(
+            await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("Audit count query returned no value.")
+        );
     }
 
     private static async Task<OrganizationCreatedAudit> ReadOrganizationCreatedAuditAsync(
         string connectionString,
         OrganizationId organizationId,
-        UserId actorUserId)
+        UserId actorUserId
+    )
     {
         const string sql = """
             SELECT schema_version,
@@ -1940,7 +2318,8 @@ public sealed class AccessModulePersistenceTests
         command.Parameters.AddWithValue("organization_id", organizationId.Value);
         command.Parameters.AddWithValue("actor_user_id", actorUserId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         var audit = new OrganizationCreatedAudit(
             reader.GetInt16(0),
@@ -1948,14 +2327,16 @@ public sealed class AccessModulePersistenceTests
             reader.GetString(2),
             reader.IsDBNull(3) ? null : reader.GetString(3),
             reader.GetString(4),
-            reader.GetString(5));
+            reader.GetString(5)
+        );
         Assert.False(await reader.ReadAsync(TestContext.Current.CancellationToken));
         return audit;
     }
 
     private static async Task<InvitationStorageFacts> ReadInvitationStorageFactsAsync(
         string connectionString,
-        InvitationId invitationId)
+        InvitationId invitationId
+    )
     {
         const string sql = """
             SELECT octet_length(i.secret_digest),
@@ -1976,19 +2357,22 @@ public sealed class AccessModulePersistenceTests
         command.CommandText = sql;
         command.Parameters.AddWithValue("invitation_id", invitationId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         var facts = new InvitationStorageFacts(
             reader.GetInt32(0),
             reader.GetString(1),
-            reader.GetString(2));
+            reader.GetString(2)
+        );
         Assert.False(await reader.ReadAsync(TestContext.Current.CancellationToken));
         return facts;
     }
 
     private static async Task<InvitationDeliveryLifecycle> ReadInvitationDeliveryLifecycleAsync(
         string connectionString,
-        InvitationId invitationId)
+        InvitationId invitationId
+    )
     {
         const string sql = """
             SELECT count(*),
@@ -2011,7 +2395,8 @@ public sealed class AccessModulePersistenceTests
         command.CommandText = sql;
         command.Parameters.AddWithValue("invitation_id", invitationId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         long deliveryCount = reader.GetInt64(0);
         long supersededCount = reader.GetInt64(1);
@@ -2022,12 +2407,14 @@ public sealed class AccessModulePersistenceTests
             deliveryCount,
             supersededCount,
             pendingCount,
-            reader.GetInt64(0));
+            reader.GetInt64(0)
+        );
     }
 
     private static async Task<InvitationAcceptanceFacts> ReadInvitationAcceptanceFactsAsync(
         string connectionString,
-        InvitationId invitationId)
+        InvitationId invitationId
+    )
     {
         const string sql = """
             SELECT i.status,
@@ -2049,7 +2436,8 @@ public sealed class AccessModulePersistenceTests
         command.CommandText = sql;
         command.Parameters.AddWithValue("invitation_id", invitationId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         return new InvitationAcceptanceFacts(
             reader.GetString(0),
@@ -2057,13 +2445,15 @@ public sealed class AccessModulePersistenceTests
             reader.IsDBNull(2) ? null : reader.GetFieldValue<DateTimeOffset>(2),
             reader.IsDBNull(3) ? null : reader.GetString(3),
             reader.IsDBNull(4) ? null : reader.GetInt16(4),
-            reader.IsDBNull(5) ? null : reader.GetGuid(5));
+            reader.IsDBNull(5) ? null : reader.GetGuid(5)
+        );
     }
 
     private static async Task<MembershipTenure[]> ReadMembershipTenuresAsync(
         string connectionString,
         OrganizationId organizationId,
-        UserId userId)
+        UserId userId
+    )
     {
         const string sql = """
             SELECT m.id,
@@ -2086,15 +2476,19 @@ public sealed class AccessModulePersistenceTests
         command.Parameters.AddWithValue("organization_id", organizationId.Value);
         command.Parameters.AddWithValue("user_id", userId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         var tenures = new List<MembershipTenure>();
         while (await reader.ReadAsync(TestContext.Current.CancellationToken))
         {
-            tenures.Add(new MembershipTenure(
-                reader.GetGuid(0),
-                reader.GetString(1),
-                reader.GetFieldValue<DateTimeOffset>(2),
-                reader.GetFieldValue<string[]>(3)));
+            tenures.Add(
+                new MembershipTenure(
+                    reader.GetGuid(0),
+                    reader.GetString(1),
+                    reader.GetFieldValue<DateTimeOffset>(2),
+                    reader.GetFieldValue<string[]>(3)
+                )
+            );
         }
 
         return [.. tenures];
@@ -2103,13 +2497,15 @@ public sealed class AccessModulePersistenceTests
     private static async Task WaitForDeliveredAsync(
         string connectionString,
         InvitationId invitationId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         while (true)
         {
             InvitationDeliveryState state = await ReadInvitationDeliveryStateAsync(
                 connectionString,
-                invitationId);
+                invitationId
+            );
             if (state.SentAt is not null)
             {
                 return;
@@ -2121,7 +2517,8 @@ public sealed class AccessModulePersistenceTests
 
     private static async Task<InvitationDeliveryState> ReadInvitationDeliveryStateAsync(
         string connectionString,
-        InvitationId invitationId)
+        InvitationId invitationId
+    )
     {
         const string sql = """
             SELECT attempt_count, sent_at, protected_payload
@@ -2135,21 +2532,25 @@ public sealed class AccessModulePersistenceTests
         command.CommandText = sql;
         command.Parameters.AddWithValue("invitation_id", invitationId.Value);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         return new InvitationDeliveryState(
             reader.GetInt32(0),
             reader.IsDBNull(1) ? null : reader.GetFieldValue<DateTimeOffset>(1),
-            reader.IsDBNull(2) ? null : reader.GetString(2));
+            reader.IsDBNull(2) ? null : reader.GetString(2)
+        );
     }
 
     private sealed record OrganizationCreationAttempt(
         UserId UserId,
-        CreateOrganizationResult Result);
+        CreateOrganizationResult Result
+    );
 
     private sealed record MembershipRoleReplacementAttempt(
         UserId ActorUserId,
-        ReplaceMembershipRolesResult Result);
+        ReplaceMembershipRolesResult Result
+    );
 
     private sealed record OrganizationCreatedAudit(
         short SchemaVersion,
@@ -2157,23 +2558,27 @@ public sealed class AccessModulePersistenceTests
         string Outcome,
         string? ReasonCode,
         string OrganizationName,
-        string OrganizationSlug);
+        string OrganizationSlug
+    );
 
     private sealed record InvitationStorageFacts(
         int SecretDigestLength,
         string ProtectedPayload,
-        string AuditAction);
+        string AuditAction
+    );
 
     private sealed record InvitationDeliveryLifecycle(
         long DeliveryCount,
         long SupersededCount,
         long PendingCount,
-        long ResentAuditCount);
+        long ResentAuditCount
+    );
 
     private sealed record InvitationDeliveryState(
         int AttemptCount,
         DateTimeOffset? SentAt,
-        string? ProtectedPayload);
+        string? ProtectedPayload
+    );
 
     private sealed record InvitationAcceptanceFacts(
         string Status,
@@ -2181,22 +2586,21 @@ public sealed class AccessModulePersistenceTests
         DateTimeOffset? AcceptedAt,
         string? AuditAction,
         short? AuditSchemaVersion,
-        Guid? MembershipId);
+        Guid? MembershipId
+    );
 
     private sealed record MembershipTenure(
         Guid MembershipId,
         string Status,
         DateTimeOffset CreatedAt,
-        IReadOnlyList<string> RoleIds);
+        IReadOnlyList<string> RoleIds
+    );
 
-    private sealed record DeliveredInvitation(
-        InvitationId InvitationId,
-        string Secret);
+    private sealed record DeliveredInvitation(InvitationId InvitationId, string Secret);
 
     private sealed class RecordingEmailTransport : IEmailTransport
     {
-        private readonly Channel<EmailMessage> _messages =
-            Channel.CreateUnbounded<EmailMessage>();
+        private readonly Channel<EmailMessage> _messages = Channel.CreateUnbounded<EmailMessage>();
 
         public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
         {
@@ -2225,7 +2629,8 @@ public sealed class AccessModulePersistenceTests
     {
         private readonly ConcurrentQueue<EmailMessage> _attempts = new();
         private readonly TaskCompletionSource _successfulRetry = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
         private int _attemptCount;
 
         internal EmailMessage[] Attempts => [.. _attempts];

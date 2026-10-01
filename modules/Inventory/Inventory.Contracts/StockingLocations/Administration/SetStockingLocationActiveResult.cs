@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record SetStockingLocationActiveResult
 {
-    private SetStockingLocationActiveResult()
-    {
-    }
+    private SetStockingLocationActiveResult() { }
 
     public sealed record Changed(StockingLocationView Location) : SetStockingLocationActiveResult;
 

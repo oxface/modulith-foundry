@@ -8,7 +8,8 @@ internal static class SalesApi
 {
     internal static IEndpointRouteBuilder MapSalesApi(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder sales = endpoints.MapGroup("/api/o/{organizationSlug}/sales")
+        RouteGroupBuilder sales = endpoints
+            .MapGroup("/api/o/{organizationSlug}/sales")
             .RequireAuthorization()
             .WithMetadata(OrganizationScopeMetadata.Instance);
         sales.MapCustomerEndpoints();

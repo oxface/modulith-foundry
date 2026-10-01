@@ -13,7 +13,9 @@ internal sealed class InvitationEmailDeliveryConfiguration
         delivery.Property(entity => entity.Id).HasColumnName("id");
         delivery.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
         delivery.Property(entity => entity.InvitationId).HasColumnName("invitation_id");
-        delivery.Property(entity => entity.InvitationGeneration).HasColumnName("invitation_generation");
+        delivery
+            .Property(entity => entity.InvitationGeneration)
+            .HasColumnName("invitation_generation");
         delivery.Property(entity => entity.ProtectedPayload).HasColumnName("protected_payload");
         delivery.Property(entity => entity.CreatedAt).HasColumnName("created_at");
         delivery.Property(entity => entity.AvailableAt).HasColumnName("available_at");
@@ -22,25 +24,29 @@ internal sealed class InvitationEmailDeliveryConfiguration
         delivery.Property(entity => entity.LeaseExpiresAt).HasColumnName("lease_expires_at");
         delivery.Property(entity => entity.SentAt).HasColumnName("sent_at");
         delivery.Property(entity => entity.SupersededAt).HasColumnName("superseded_at");
-        delivery.HasIndex(entity => new
-        {
-            entity.AvailableAt,
-            entity.SentAt,
-            entity.SupersededAt,
-            entity.LeaseExpiresAt,
-        })
+        delivery
+            .HasIndex(entity => new
+            {
+                entity.AvailableAt,
+                entity.SentAt,
+                entity.SupersededAt,
+                entity.LeaseExpiresAt,
+            })
             .HasDatabaseName("ix_invitation_email_deliveries_dispatch");
-        delivery.HasIndex(entity => new
-        {
-            entity.OrganizationId,
-            entity.InvitationId,
-            entity.InvitationGeneration,
-        })
+        delivery
+            .HasIndex(entity => new
+            {
+                entity.OrganizationId,
+                entity.InvitationId,
+                entity.InvitationGeneration,
+            })
             .IsUnique()
             .HasDatabaseName("ux_invitation_email_deliveries_invitation_generation");
-        delivery.HasIndex(entity => new { entity.InvitationId, entity.OrganizationId })
+        delivery
+            .HasIndex(entity => new { entity.InvitationId, entity.OrganizationId })
             .HasDatabaseName("ix_invitation_email_deliveries_invitation_organization");
-        delivery.HasOne<Invitation>()
+        delivery
+            .HasOne<Invitation>()
             .WithMany()
             .HasForeignKey(entity => new { entity.InvitationId, entity.OrganizationId })
             .HasPrincipalKey(entity => new { entity.Id, entity.OrganizationId })

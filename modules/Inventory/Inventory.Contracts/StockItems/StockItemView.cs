@@ -5,4 +5,5 @@ public sealed record StockItemView(
     string Sku,
     string Description,
     string BaseUnitCode,
-    bool IsActive);
+    bool IsActive
+);

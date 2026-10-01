@@ -5,4 +5,5 @@ public sealed record StockPositionHistoryView(
     string BaseUnitCode,
     long Version,
     IReadOnlyList<StockPositionHistoryEntry> Entries,
-    long? NextAfterVersion);
+    long? NextAfterVersion
+);

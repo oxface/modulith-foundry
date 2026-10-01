@@ -27,16 +27,19 @@ public sealed class ApiErrorHandlingTests
         using HttpClient client = app.GetTestClient();
         using HttpResponseMessage response = await client.GetAsync(
             "/missing",
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         using JsonDocument problem = JsonDocument.Parse(
-            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Equal(404, problem.RootElement.GetProperty("status").GetInt32());
         Assert.Equal("Not Found", problem.RootElement.GetProperty("title").GetString());
-        Assert.False(string.IsNullOrWhiteSpace(
-            problem.RootElement.GetProperty("traceId").GetString()));
+        Assert.False(
+            string.IsNullOrWhiteSpace(problem.RootElement.GetProperty("traceId").GetString())
+        );
     }
 
     [Fact]
@@ -44,16 +47,20 @@ public sealed class ApiErrorHandlingTests
     {
         await using WebApplication app = await StartApplicationAsync(static application =>
         {
-            application.MapGet("/failure", static IResult () =>
-                throw new InvalidOperationException("sensitive failure detail"));
+            application.MapGet(
+                "/failure",
+                static IResult () => throw new InvalidOperationException("sensitive failure detail")
+            );
         });
 
         using HttpClient client = app.GetTestClient();
         using HttpResponseMessage response = await client.GetAsync(
             "/failure?secret=must-not-leak",
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         string responseBody = await response.Content.ReadAsStringAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
@@ -61,9 +68,11 @@ public sealed class ApiErrorHandlingTests
         Assert.Equal(500, problem.RootElement.GetProperty("status").GetInt32());
         Assert.Equal(
             "An error occurred while processing your request.",
-            problem.RootElement.GetProperty("title").GetString());
-        Assert.False(string.IsNullOrWhiteSpace(
-            problem.RootElement.GetProperty("traceId").GetString()));
+            problem.RootElement.GetProperty("title").GetString()
+        );
+        Assert.False(
+            string.IsNullOrWhiteSpace(problem.RootElement.GetProperty("traceId").GetString())
+        );
         Assert.DoesNotContain("sensitive failure detail", responseBody, StringComparison.Ordinal);
         Assert.DoesNotContain("must-not-leak", responseBody, StringComparison.Ordinal);
         Assert.DoesNotContain("InvalidOperationException", responseBody, StringComparison.Ordinal);
@@ -76,23 +85,22 @@ public sealed class ApiErrorHandlingTests
         {
             application.MapPost(
                 "/invitations",
-                static (CreateInvitationRequest request) => Results.Ok(request));
+                static (CreateInvitationRequest request) => Results.Ok(request)
+            );
         });
 
         using HttpClient client = app.GetTestClient();
         using HttpResponseMessage response = await client.PostAsJsonAsync(
             "/invitations",
-            new
-            {
-                recipientEmail = "invited.person@example.test",
-                roleIds = (string[]?)null,
-            },
-            TestContext.Current.CancellationToken);
+            new { recipientEmail = "invited.person@example.test", roleIds = (string[]?)null },
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         using JsonDocument problem = JsonDocument.Parse(
-            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
         Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("RoleIds", out _));
     }
 
@@ -103,33 +111,32 @@ public sealed class ApiErrorHandlingTests
         {
             application.MapPost(
                 "/organizations",
-                static (CreateOrganizationRequest request) => Results.Ok(request));
+                static (CreateOrganizationRequest request) => Results.Ok(request)
+            );
         });
 
         using HttpClient client = app.GetTestClient();
         using HttpResponseMessage response = await client.PostAsJsonAsync(
             "/organizations",
-            new
-            {
-                name = (string?)null,
-                slug = "valid-organization",
-            },
-            TestContext.Current.CancellationToken);
+            new { name = (string?)null, slug = "valid-organization" },
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         using JsonDocument problem = JsonDocument.Parse(
-            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
         Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("Name", out _));
     }
 
     private static async Task<WebApplication> StartApplicationAsync(
-        Action<WebApplication> mapEndpoints)
+        Action<WebApplication> mapEndpoints
+    )
     {
-        WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
-        {
-            EnvironmentName = Environments.Production,
-        });
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(
+            new WebApplicationOptions { EnvironmentName = Environments.Production }
+        );
         builder.Logging.ClearProviders();
         builder.WebHost.UseTestServer();
         builder.Services.AddApiErrorHandling();

@@ -14,7 +14,9 @@ internal sealed class StockItemConfiguration : IEntityTypeConfiguration<StockIte
         item.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
         item.Property(entity => entity.Sku).HasColumnName("sku").HasMaxLength(64);
         item.Property(entity => entity.Description).HasColumnName("description").HasMaxLength(200);
-        item.Property(entity => entity.BaseUnitCode).HasColumnName("base_unit_code").HasMaxLength(16);
+        item.Property(entity => entity.BaseUnitCode)
+            .HasColumnName("base_unit_code")
+            .HasMaxLength(16);
         item.Property(entity => entity.IsActive).HasColumnName("is_active");
         item.Property(entity => entity.CreatedAt).HasColumnName("created_at");
         item.Property(entity => entity.UpdatedAt).HasColumnName("updated_at");

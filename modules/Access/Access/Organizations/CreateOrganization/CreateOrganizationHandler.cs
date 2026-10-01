@@ -6,13 +6,13 @@ using Npgsql;
 
 namespace ModulithFoundry.Modules.Access.Organizations.CreateOrganization;
 
-internal sealed class CreateOrganizationHandler(
-    AccessDbContext context,
-    TimeProvider timeProvider) : IOrganizationCreation
+internal sealed class CreateOrganizationHandler(AccessDbContext context, TimeProvider timeProvider)
+    : IOrganizationCreation
 {
     public async Task<CreateOrganizationResult> CreateOrganizationAsync(
         CreateOrganizationCommand command,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -24,7 +24,8 @@ internal sealed class CreateOrganizationHandler(
                 Guid.CreateVersion7(createdAt),
                 command.Name,
                 command.ProposedSlug,
-                createdAt);
+                createdAt
+            );
         }
         catch (InvalidOrganizationNameException exception)
         {
@@ -37,22 +38,26 @@ internal sealed class CreateOrganizationHandler(
 
         bool userExists = await context.Users.AnyAsync(
             user => user.Id == command.ActorUserId.Value,
-            cancellationToken);
+            cancellationToken
+        );
         if (!userExists)
         {
             throw new InvalidOperationException(
-                $"Product user '{command.ActorUserId.Value}' does not exist.");
+                $"Product user '{command.ActorUserId.Value}' does not exist."
+            );
         }
 
         Membership membership = Membership.CreateInitialAdministrator(
             Guid.CreateVersion7(createdAt),
             organization.Id,
             command.ActorUserId.Value,
-            createdAt);
+            createdAt
+        );
         AccessAuditEntry audit = OrganizationAuditEntries.Created(
             organization,
             command.ActorUserId.Value,
-            createdAt);
+            createdAt
+        );
 
         context.Organizations.Add(organization);
         context.Memberships.Add(membership);
@@ -67,17 +72,21 @@ internal sealed class CreateOrganizationHandler(
             return new CreateOrganizationResult.SlugUnavailable(organization.Slug.Value);
         }
 
-        return new CreateOrganizationResult.Created(new OrganizationMembership(
-            new OrganizationId(organization.Id),
-            organization.Name,
-            organization.Slug.Value,
-            [SystemRoleIds.OrganizationAdministrator]));
+        return new CreateOrganizationResult.Created(
+            new OrganizationMembership(
+                new OrganizationId(organization.Id),
+                organization.Name,
+                organization.Slug.Value,
+                [SystemRoleIds.OrganizationAdministrator]
+            )
+        );
     }
 
     private static bool IsUnavailableSlug(DbUpdateException exception) =>
-        exception.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: "ux_organizations_slug",
-        };
+        exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "ux_organizations_slug",
+            };
 }

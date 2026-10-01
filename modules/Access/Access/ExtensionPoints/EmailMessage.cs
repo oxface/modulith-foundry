@@ -4,4 +4,5 @@ public sealed record EmailMessage(
     string RecipientAddress,
     string Subject,
     string TextBody,
-    string HtmlBody);
+    string HtmlBody
+);

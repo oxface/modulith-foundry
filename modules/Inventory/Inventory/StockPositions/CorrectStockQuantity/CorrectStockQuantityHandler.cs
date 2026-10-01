@@ -12,10 +12,13 @@ internal sealed class CorrectStockQuantityHandler(
     InventoryDbContext context,
     StockPositionStore store,
     InventoryRequestAuthorization authorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<CorrectStockQuantityResult> HandleAsync(
-        CorrectStockQuantityCommand command, CancellationToken cancellationToken)
+        CorrectStockQuantityCommand command,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!authorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -23,13 +26,24 @@ internal sealed class CorrectStockQuantityHandler(
             return new CorrectStockQuantityResult.PermissionDenied();
         }
 
-        if (!await authorization.HasPermissionAsync(
-                command.ActorUserId, command.OrganizationId, InventoryPermissionIds.StockAdjust, cancellationToken))
+        if (
+            !await authorization.HasPermissionAsync(
+                command.ActorUserId,
+                command.OrganizationId,
+                InventoryPermissionIds.StockAdjust,
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value, command.ActorUserId.Value,
-                InventoryAuditActions.StockQuantityCorrectionDenied, InventoryAuditSubjectTypes.StockPosition,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockQuantityCorrectionDenied,
+                    InventoryAuditSubjectTypes.StockPosition,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new CorrectStockQuantityResult.PermissionDenied();
         }
@@ -40,16 +54,40 @@ internal sealed class CorrectStockQuantityHandler(
         try
         {
             string sku = InventoryCode.Normalize(command.Sku, "sku", 64);
-            string code = InventoryCode.Normalize(command.StockingLocationCode, "stockingLocationCode", 64);
+            string code = InventoryCode.Normalize(
+                command.StockingLocationCode,
+                "stockingLocationCode",
+                64
+            );
             _ = Quantity.NonNegative(command.OnHandQuantity);
             _ = StockCorrectionReason.Create(command.Reason);
-            item = await context.StockItems.SingleOrDefaultAsync(candidate => candidate.Sku == sku, cancellationToken);
-            location = await context.StockingLocations.SingleOrDefaultAsync(candidate => candidate.Code == code, cancellationToken);
-            if (item is null || location is null) { return new CorrectStockQuantityResult.NotFound(); }
+            item = await context.StockItems.SingleOrDefaultAsync(
+                candidate => candidate.Sku == sku,
+                cancellationToken
+            );
+            location = await context.StockingLocations.SingleOrDefaultAsync(
+                candidate => candidate.Code == code,
+                cancellationToken
+            );
+            if (item is null || location is null)
+            {
+                return new CorrectStockQuantityResult.NotFound();
+            }
 
-            await using var transaction = await store.BeginWriteAsync(command.OrganizationId, cancellationToken);
-            aggregate = await store.LoadForWritingAsync(item.Id, location.Id, command.ExpectedVersion, cancellationToken);
-            if (aggregate.State is null) { return new CorrectStockQuantityResult.NotFound(); }
+            await using var transaction = await store.BeginWriteAsync(
+                command.OrganizationId,
+                cancellationToken
+            );
+            aggregate = await store.LoadForWritingAsync(
+                item.Id,
+                location.Id,
+                command.ExpectedVersion,
+                cancellationToken
+            );
+            if (aggregate.State is null)
+            {
+                return new CorrectStockQuantityResult.NotFound();
+            }
             aggregate.CorrectQuantity(command.OnHandQuantity, command.Reason);
             if (aggregate.UncommittedEvents.Count == 0)
             {
@@ -57,13 +95,30 @@ internal sealed class CorrectStockQuantityHandler(
             }
 
             DateTimeOffset now = timeProvider.GetUtcNow();
-            await store.StageAppendAsync(command.OrganizationId, command.ActorUserId, aggregate, now, cancellationToken);
-            context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-                command.OrganizationId.Value, command.ActorUserId.Value,
-                InventoryAuditActions.StockQuantityCorrected, InventoryAuditSubjectTypes.StockPosition,
-                aggregate.StreamId,
-                new { item.Sku, StockingLocationCode = location.Code, command.OnHandQuantity, Version = aggregate.Version },
-                now));
+            await store.StageAppendAsync(
+                command.OrganizationId,
+                command.ActorUserId,
+                aggregate,
+                now,
+                cancellationToken
+            );
+            context.AuditEntries.Add(
+                InventoryAuditEntry.Succeeded(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockQuantityCorrected,
+                    InventoryAuditSubjectTypes.StockPosition,
+                    aggregate.StreamId,
+                    new
+                    {
+                        item.Sku,
+                        StockingLocationCode = location.Code,
+                        command.OnHandQuantity,
+                        Version = aggregate.Version,
+                    },
+                    now
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
@@ -74,13 +129,16 @@ internal sealed class CorrectStockQuantityHandler(
         catch (InvalidStockPositionValueException exception)
         {
             return new CorrectStockQuantityResult.Invalid(
-                exception.Field == "quantity" ? "onHandQuantity" : exception.Field, exception.Message);
+                exception.Field == "quantity" ? "onHandQuantity" : exception.Field,
+                exception.Message
+            );
         }
         catch (StockPositionConcurrencyException)
         {
             return new CorrectStockQuantityResult.VersionConflict();
         }
-        catch (DbUpdateException exception) when (StockPositionStore.IsConcurrencyConflict(exception))
+        catch (DbUpdateException exception)
+            when (StockPositionStore.IsConcurrencyConflict(exception))
         {
             return new CorrectStockQuantityResult.VersionConflict();
         }

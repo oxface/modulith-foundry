@@ -7,27 +7,34 @@ namespace ModulithFoundry.Api.Modules.Access.Organizations;
 
 internal static class OrganizationEndpoints
 {
-    internal static IEndpointRouteBuilder MapOrganizationEndpoints(this IEndpointRouteBuilder endpoints)
+    internal static IEndpointRouteBuilder MapOrganizationEndpoints(
+        this IEndpointRouteBuilder endpoints
+    )
     {
-        RouteGroupBuilder organizations = endpoints.MapGroup("/api/organizations")
+        RouteGroupBuilder organizations = endpoints
+            .MapGroup("/api/organizations")
             .RequireAuthorization();
 
-        organizations.MapPost("/", CreateOrganizationAsync)
-            .RequireBffAntiforgery();
+        organizations.MapPost("/", CreateOrganizationAsync).RequireBffAntiforgery();
         organizations.MapGet("/", ListOrganizationsAsync);
 
         return endpoints;
     }
 
     internal static IEndpointRouteBuilder MapOrganizationScopeEndpoints(
-        this IEndpointRouteBuilder endpoints)
+        this IEndpointRouteBuilder endpoints
+    )
     {
-        endpoints.MapGet("", (IOrganizationContextAccessor contextAccessor) =>
-        {
-            OrganizationAccessContext context = contextAccessor.OrganizationContext
-                ?? throw new InvalidOperationException("Organization context is not resolved.");
-            return TypedResults.Ok(ToResponse(context));
-        });
+        endpoints.MapGet(
+            "",
+            (IOrganizationContextAccessor contextAccessor) =>
+            {
+                OrganizationAccessContext context =
+                    contextAccessor.OrganizationContext
+                    ?? throw new InvalidOperationException("Organization context is not resolved.");
+                return TypedResults.Ok(ToResponse(context));
+            }
+        );
 
         return endpoints;
     }
@@ -36,26 +43,31 @@ internal static class OrganizationEndpoints
         CreateOrganizationRequest request,
         ClaimsPrincipal principal,
         IOrganizationCreation organizationCreation,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         CreateOrganizationResult result = await organizationCreation.CreateOrganizationAsync(
             new CreateOrganizationCommand(
                 principal.GetRequiredCurrentUser().UserId,
                 request.Name,
-                request.Slug),
-            cancellationToken);
+                request.Slug
+            ),
+            cancellationToken
+        );
 
         return result switch
         {
             CreateOrganizationResult.Created created => Results.Json(
                 ToResponse(created.Organization),
-                statusCode: StatusCodes.Status201Created),
+                statusCode: StatusCodes.Status201Created
+            ),
             CreateOrganizationResult.InvalidName invalid => InvalidOrganization(invalid.Detail),
             CreateOrganizationResult.InvalidSlug invalid => InvalidOrganization(invalid.Detail),
             CreateOrganizationResult.SlugUnavailable unavailable => Results.Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Organization slug unavailable",
-                detail: $"Organization slug '{unavailable.Slug}' is unavailable."),
+                detail: $"Organization slug '{unavailable.Slug}' is unavailable."
+            ),
             _ => throw new UnreachableException(),
         };
     }
@@ -63,34 +75,44 @@ internal static class OrganizationEndpoints
     private static async Task<IReadOnlyList<OrganizationResponse>> ListOrganizationsAsync(
         ClaimsPrincipal principal,
         IOrganizationQueries queries,
-        CancellationToken cancellationToken) =>
-        [.. (await queries.ListAccessibleToAsync(
-            principal.GetRequiredCurrentUser().UserId,
-            cancellationToken)).Select(ToResponse)];
+        CancellationToken cancellationToken
+    ) =>
+        [
+            .. (
+                await queries.ListAccessibleToAsync(
+                    principal.GetRequiredCurrentUser().UserId,
+                    cancellationToken
+                )
+            ).Select(ToResponse),
+        ];
 
     private static OrganizationResponse ToResponse(OrganizationMembership organization) =>
         new(
             organization.OrganizationId.Value,
             organization.Name,
             organization.Slug,
-            organization.RoleIds);
+            organization.RoleIds
+        );
 
     private static OrganizationResponse ToResponse(OrganizationAccessContext context) =>
         new(
             context.OrganizationId.Value,
             context.OrganizationName,
             context.OrganizationSlug,
-            context.RoleIds);
+            context.RoleIds
+        );
 
     private static IResult InvalidOrganization(string detail) =>
         Results.Problem(
             statusCode: StatusCodes.Status400BadRequest,
             title: "Invalid organization",
-            detail: detail);
+            detail: detail
+        );
 
     private sealed record OrganizationResponse(
         Guid OrganizationId,
         string Name,
         string Slug,
-        IReadOnlyList<string> RoleIds);
+        IReadOnlyList<string> RoleIds
+    );
 }

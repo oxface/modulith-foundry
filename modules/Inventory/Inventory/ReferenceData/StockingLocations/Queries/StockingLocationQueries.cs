@@ -7,26 +7,33 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.Quer
 
 internal sealed class StockingLocationQueries(
     InventoryDbContext context,
-    InventoryRequestAuthorization requestAuthorization)
+    InventoryRequestAuthorization requestAuthorization
+)
 {
     internal async Task<ListStockingLocationsResult> ListAsync(
         UserId actorUserId,
         OrganizationId organizationId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 actorUserId,
                 organizationId,
                 InventoryPermissionIds.LocationsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
             return new ListStockingLocationsResult.PermissionDenied();
         }
 
-        return new ListStockingLocationsResult.Listed(await context.StockingLocations
-            .AsNoTracking()
-            .OrderBy(location => location.Code)
-            .Select(location => location.ToView())
-            .ToArrayAsync(cancellationToken));
+        return new ListStockingLocationsResult.Listed(
+            await context
+                .StockingLocations.AsNoTracking()
+                .OrderBy(location => location.Code)
+                .Select(location => location.ToView())
+                .ToArrayAsync(cancellationToken)
+        );
     }
 }

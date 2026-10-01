@@ -5,7 +5,8 @@ internal sealed record StockPositionState(
     Guid StockingLocationId,
     string BaseUnitCode,
     Quantity OnHand,
-    Quantity Reserved)
+    Quantity Reserved
+)
 {
     internal Quantity Available => Quantity.Restore(checked(OnHand.Value - Reserved.Value));
 }

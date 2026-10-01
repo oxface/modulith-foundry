@@ -2,11 +2,7 @@ namespace ModulithFoundry.Modules.Access.Contracts;
 
 public sealed record ExternalIdentity
 {
-    private ExternalIdentity(
-        string issuer,
-        string subject,
-        string? email,
-        string? displayName)
+    private ExternalIdentity(string issuer, string subject, string? email, string? displayName)
     {
         Issuer = issuer;
         Subject = subject;
@@ -26,7 +22,8 @@ public sealed record ExternalIdentity
         string issuer,
         string subject,
         string? email,
-        string? displayName)
+        string? displayName
+    )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(issuer);
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);

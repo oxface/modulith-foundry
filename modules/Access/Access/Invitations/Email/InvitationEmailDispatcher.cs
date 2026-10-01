@@ -11,15 +11,16 @@ internal sealed partial class InvitationEmailDispatcher(
     TimeProvider timeProvider,
     InvitationEmailPayloadCodec payloadCodec,
     IEmailTransport emailTransport,
-    ILogger<InvitationEmailDispatcher> logger)
+    ILogger<InvitationEmailDispatcher> logger
+)
 {
     private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(2);
 
     internal async Task<bool> DispatchNextAsync(CancellationToken cancellationToken)
     {
         DateTimeOffset now = timeProvider.GetUtcNow();
-        Guid? deliveryId = await context.InvitationEmailDeliveries
-            .AsNoTracking()
+        Guid? deliveryId = await context
+            .InvitationEmailDeliveries.AsNoTracking()
             .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
             .Where(delivery => delivery.SentAt == null)
             .Where(delivery => delivery.SupersededAt == null)
@@ -36,8 +37,8 @@ internal sealed partial class InvitationEmailDispatcher(
         }
 
         Guid leaseId = Guid.CreateVersion7(now);
-        int claimed = await context.InvitationEmailDeliveries
-            .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+        int claimed = await context
+            .InvitationEmailDeliveries.IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
             .Where(delivery => delivery.Id == deliveryId.Value)
             .Where(delivery => delivery.SentAt == null)
             .Where(delivery => delivery.SupersededAt == null)
@@ -45,30 +46,34 @@ internal sealed partial class InvitationEmailDispatcher(
             .Where(delivery => delivery.AvailableAt <= now)
             .Where(delivery => delivery.LeaseExpiresAt == null || delivery.LeaseExpiresAt <= now)
             .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(delivery => delivery.LeaseId, leaseId)
-                    .SetProperty(delivery => delivery.LeaseExpiresAt, now.Add(LeaseDuration)),
-                cancellationToken);
+                setters =>
+                    setters
+                        .SetProperty(delivery => delivery.LeaseId, leaseId)
+                        .SetProperty(delivery => delivery.LeaseExpiresAt, now.Add(LeaseDuration)),
+                cancellationToken
+            );
         if (claimed == 0)
         {
             return true;
         }
 
-        InvitationEmailDelivery delivery = await context.InvitationEmailDeliveries
-            .IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
+        InvitationEmailDelivery delivery = await context
+            .InvitationEmailDeliveries.IgnoreQueryFilters([AccessDbContext.OrganizationScopeFilter])
             .SingleAsync(
-                candidate => candidate.Id == deliveryId.Value
-                    && candidate.LeaseId == leaseId,
-                cancellationToken);
+                candidate => candidate.Id == deliveryId.Value && candidate.LeaseId == leaseId,
+                cancellationToken
+            );
 
         try
         {
-            string protectedPayload = delivery.ProtectedPayload
+            string protectedPayload =
+                delivery.ProtectedPayload
                 ?? throw new InvalidOperationException("Claimed invitation email has no payload.");
             InvitationEmailPayload payload = payloadCodec.Unprotect(protectedPayload);
             await emailTransport.SendAsync(
                 InvitationEmailRenderer.Render(payload),
-                cancellationToken);
+                cancellationToken
+            );
             delivery.MarkSent(timeProvider.GetUtcNow());
             await context.SaveChangesAsync(cancellationToken);
         }
@@ -81,11 +86,7 @@ internal sealed partial class InvitationEmailDispatcher(
             DateTimeOffset failedAt = timeProvider.GetUtcNow();
             delivery.ReleaseAfterFailure(failedAt.Add(RetryDelay(delivery.AttemptCount)));
             await context.SaveChangesAsync(cancellationToken);
-            LogDeliveryFailure(
-                logger,
-                delivery.Id,
-                delivery.AttemptCount,
-                exception);
+            LogDeliveryFailure(logger, delivery.Id, delivery.AttemptCount, exception);
         }
 
         return true;
@@ -96,10 +97,12 @@ internal sealed partial class InvitationEmailDispatcher(
 
     [LoggerMessage(
         LogLevel.Warning,
-        "Invitation email delivery {DeliveryId} failed on attempt {AttemptCount}; it remains pending.")]
+        "Invitation email delivery {DeliveryId} failed on attempt {AttemptCount}; it remains pending."
+    )]
     private static partial void LogDeliveryFailure(
         ILogger logger,
         Guid deliveryId,
         int attemptCount,
-        Exception exception);
+        Exception exception
+    );
 }

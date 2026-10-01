@@ -13,11 +13,13 @@ internal static class InventoryAuditActions
     internal const string StockingLocationRenamed = "stocking-location.renamed";
     internal const string StockingLocationRenameDenied = "stocking-location.rename-denied";
     internal const string StockingLocationStatusChanged = "stocking-location.status-changed";
-    internal const string StockingLocationStatusChangeDenied = "stocking-location.status-change-denied";
+    internal const string StockingLocationStatusChangeDenied =
+        "stocking-location.status-change-denied";
     internal const string StockReceiptRecorded = "stock-position.receipt-recorded";
     internal const string StockReceiptRecordDenied = "stock-position.receipt-record-denied";
     internal const string StockQuantityCorrected = "stock-position.quantity-corrected";
-    internal const string StockQuantityCorrectionDenied = "stock-position.quantity-correction-denied";
+    internal const string StockQuantityCorrectionDenied =
+        "stock-position.quantity-correction-denied";
     internal const string StockPositionProjectionRebuilt = "stock-position.projection-rebuilt";
     internal const string StockPositionRebuildDenied = "stock-position.rebuild-denied";
 }

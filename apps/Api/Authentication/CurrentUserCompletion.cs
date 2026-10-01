@@ -7,7 +7,8 @@ internal sealed class CurrentUserCompletion(IExternalIdentityLinking identityLin
 {
     internal async Task<CompletedOidcIdentity> CompleteAsync(
         ClaimsPrincipal principal,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(principal);
 
@@ -15,10 +16,12 @@ internal sealed class CurrentUserCompletion(IExternalIdentityLinking identityLin
             principal.GetRequiredClaimValue("iss"),
             principal.GetRequiredClaimValue("sub"),
             principal.FindFirstValue("email"),
-            principal.FindFirstValue("name"));
+            principal.FindFirstValue("name")
+        );
         UserIdentityLink linked = await identityLinking.LinkAsync(
             externalIdentity,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (principal.Identity is not ClaimsIdentity claimsIdentity)
         {
@@ -31,16 +34,15 @@ internal sealed class CurrentUserCompletion(IExternalIdentityLinking identityLin
         string? verifiedProviderEmail = string.Equals(
             principal.FindFirstValue("email_verified"),
             "true",
-            StringComparison.OrdinalIgnoreCase)
+            StringComparison.OrdinalIgnoreCase
+        )
             ? externalIdentity.Email
             : null;
         RemoveClaims(claimsIdentity, "email_verified");
         return new CompletedOidcIdentity(
-            new CurrentUser(
-                linked.UserId,
-                linked.Email,
-                linked.DisplayName),
-            verifiedProviderEmail);
+            new CurrentUser(linked.UserId, linked.Email, linked.DisplayName),
+            verifiedProviderEmail
+        );
     }
 
     private static void ReplaceClaim(ClaimsIdentity identity, string type, string? value)

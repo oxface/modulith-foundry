@@ -7,7 +7,8 @@ namespace ModulithFoundry.Modules.Access.Invitations.Email;
 internal sealed partial class InvitationEmailDeliveryWorker(
     IServiceScopeFactory scopeFactory,
     TimeProvider timeProvider,
-    ILogger<InvitationEmailDeliveryWorker> logger) : BackgroundService
+    ILogger<InvitationEmailDeliveryWorker> logger
+) : BackgroundService
 {
     private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(2);
 
@@ -18,8 +19,8 @@ internal sealed partial class InvitationEmailDeliveryWorker(
             try
             {
                 await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
-                bool foundWork = await scope.ServiceProvider
-                    .GetRequiredService<InvitationEmailDispatcher>()
+                bool foundWork = await scope
+                    .ServiceProvider.GetRequiredService<InvitationEmailDispatcher>()
                     .DispatchNextAsync(stoppingToken);
                 if (!foundWork)
                 {
@@ -46,7 +47,5 @@ internal sealed partial class InvitationEmailDeliveryWorker(
     }
 
     [LoggerMessage(LogLevel.Error, "The invitation email delivery loop failed.")]
-    private static partial void LogDeliveryLoopFailure(
-        ILogger logger,
-        Exception exception);
+    private static partial void LogDeliveryLoopFailure(ILogger logger, Exception exception);
 }

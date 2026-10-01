@@ -13,7 +13,10 @@ internal readonly record struct OrderQuantity
     {
         if (value <= 0m || value > 9_999_999_999_999.999999m || decimal.Round(value, 6) != value)
         {
-            throw new InvalidSalesOrderInputException("quantity", "Quantity must be positive and fit 13 integer and 6 fractional digits.");
+            throw new InvalidSalesOrderInputException(
+                "quantity",
+                "Quantity must be positive and fit 13 integer and 6 fractional digits."
+            );
         }
 
         return new(value);

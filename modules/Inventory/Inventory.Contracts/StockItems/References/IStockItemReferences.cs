@@ -7,5 +7,6 @@ public interface IStockItemReferences
     Task<StockItemReferenceResolution> ResolveAsync(
         OrganizationId organizationId,
         IReadOnlyCollection<StockItemId> stockItemIds,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 }

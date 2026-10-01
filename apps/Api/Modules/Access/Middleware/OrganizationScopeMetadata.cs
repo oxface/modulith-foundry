@@ -4,7 +4,5 @@ internal sealed class OrganizationScopeMetadata
 {
     internal static OrganizationScopeMetadata Instance { get; } = new();
 
-    private OrganizationScopeMetadata()
-    {
-    }
+    private OrganizationScopeMetadata() { }
 }

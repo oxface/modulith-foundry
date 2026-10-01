@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record CreateStockItemResult
 {
-    private CreateStockItemResult()
-    {
-    }
+    private CreateStockItemResult() { }
 
     public sealed record Created(StockItemView Item) : CreateStockItemResult;
 

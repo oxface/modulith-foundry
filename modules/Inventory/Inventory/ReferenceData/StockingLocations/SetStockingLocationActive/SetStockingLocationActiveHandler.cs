@@ -7,11 +7,13 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.SetS
 internal sealed class SetStockingLocationActiveHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider
+)
 {
     internal async Task<SetStockingLocationActiveResult> HandleAsync(
         SetStockingLocationActiveCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!requestAuthorization.MatchesContext(command.ActorUserId, command.OrganizationId))
@@ -19,18 +21,24 @@ internal sealed class SetStockingLocationActiveHandler(
             return new SetStockingLocationActiveResult.PermissionDenied();
         }
 
-        if (!await requestAuthorization.HasPermissionAsync(
+        if (
+            !await requestAuthorization.HasPermissionAsync(
                 command.ActorUserId,
                 command.OrganizationId,
                 InventoryPermissionIds.LocationsManage,
-                cancellationToken))
+                cancellationToken
+            )
+        )
         {
-            context.AuditEntries.Add(InventoryAuditEntry.PermissionDenied(
-                command.OrganizationId.Value,
-                command.ActorUserId.Value,
-                InventoryAuditActions.StockingLocationStatusChangeDenied,
-                InventoryAuditSubjectTypes.StockingLocation,
-                timeProvider.GetUtcNow()));
+            context.AuditEntries.Add(
+                InventoryAuditEntry.PermissionDenied(
+                    command.OrganizationId.Value,
+                    command.ActorUserId.Value,
+                    InventoryAuditActions.StockingLocationStatusChangeDenied,
+                    InventoryAuditSubjectTypes.StockingLocation,
+                    timeProvider.GetUtcNow()
+                )
+            );
             await context.SaveChangesAsync(cancellationToken);
             return new SetStockingLocationActiveResult.PermissionDenied();
         }
@@ -47,7 +55,8 @@ internal sealed class SetStockingLocationActiveHandler(
 
         StockingLocation? location = await context.StockingLocations.SingleOrDefaultAsync(
             candidate => candidate.Code == code,
-            cancellationToken);
+            cancellationToken
+        );
         if (location is null)
         {
             return new SetStockingLocationActiveResult.NotFound();
@@ -59,14 +68,17 @@ internal sealed class SetStockingLocationActiveHandler(
             return new SetStockingLocationActiveResult.Unchanged(location.ToView());
         }
 
-        context.AuditEntries.Add(InventoryAuditEntry.Succeeded(
-            location.OrganizationId,
-            command.ActorUserId.Value,
-            InventoryAuditActions.StockingLocationStatusChanged,
-            InventoryAuditSubjectTypes.StockingLocation,
-            location.Id,
-            new { location.Code, location.IsActive },
-            now));
+        context.AuditEntries.Add(
+            InventoryAuditEntry.Succeeded(
+                location.OrganizationId,
+                command.ActorUserId.Value,
+                InventoryAuditActions.StockingLocationStatusChanged,
+                InventoryAuditSubjectTypes.StockingLocation,
+                location.Id,
+                new { location.Code, location.IsActive },
+                now
+            )
+        );
         await context.SaveChangesAsync(cancellationToken);
         return new SetStockingLocationActiveResult.Changed(location.ToView());
     }

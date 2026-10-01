@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record RecordStockReceiptResult
 {
-    private RecordStockReceiptResult()
-    {
-    }
+    private RecordStockReceiptResult() { }
 
     public sealed record Recorded(StockPositionView Position) : RecordStockReceiptResult;
 

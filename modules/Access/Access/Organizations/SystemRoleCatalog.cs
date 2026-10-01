@@ -17,8 +17,10 @@ internal sealed class SystemRoleCatalog
                     new(
                         SystemRoleIds.OrganizationAdministrator,
                         "Organization Administrator",
-                        [AccessPermissionIds.MembersManage]),
-                ]),
+                        [AccessPermissionIds.MembersManage]
+                    ),
+                ]
+            ),
             .. productManifests,
         ];
 
@@ -55,20 +57,24 @@ internal sealed class SystemRoleCatalog
     {
         EnsureUnique(
             manifests.Select(manifest => manifest.ModuleId),
-            "authorization manifest module IDs");
+            "authorization manifest module IDs"
+        );
         if (manifests.Any(manifest => string.IsNullOrWhiteSpace(manifest.ModuleId)))
         {
             throw new InvalidOperationException("An authorization manifest has no module ID.");
         }
 
         SystemPermissionDefinition[] permissions =
-            [.. manifests.SelectMany(manifest => manifest.Permissions)];
-        EnsureUnique(
-            permissions.Select(permission => permission.Id),
-            "system permission IDs");
-        if (permissions.Any(permission =>
-            string.IsNullOrWhiteSpace(permission.Id)
-            || string.IsNullOrWhiteSpace(permission.DisplayName)))
+        [
+            .. manifests.SelectMany(manifest => manifest.Permissions),
+        ];
+        EnsureUnique(permissions.Select(permission => permission.Id), "system permission IDs");
+        if (
+            permissions.Any(permission =>
+                string.IsNullOrWhiteSpace(permission.Id)
+                || string.IsNullOrWhiteSpace(permission.DisplayName)
+            )
+        )
         {
             throw new InvalidOperationException("A system permission has an invalid definition.");
         }
@@ -77,21 +83,25 @@ internal sealed class SystemRoleCatalog
         EnsureUnique(roles.Select(role => role.Id), "system role IDs");
         foreach (SystemRoleManifest manifest in manifests)
         {
-            HashSet<string> ownedPermissionIds = manifest.Permissions
-                .Select(permission => permission.Id)
+            HashSet<string> ownedPermissionIds = manifest
+                .Permissions.Select(permission => permission.Id)
                 .ToHashSet(StringComparer.Ordinal);
             foreach (SystemRoleDefinition role in manifest.Roles)
             {
-                if (string.IsNullOrWhiteSpace(role.Id)
+                if (
+                    string.IsNullOrWhiteSpace(role.Id)
                     || string.IsNullOrWhiteSpace(role.DisplayName)
                     || role.PermissionIds.Count == 0
                     || role.PermissionIds.Any(permissionId =>
-                        !ownedPermissionIds.Contains(permissionId))
+                        !ownedPermissionIds.Contains(permissionId)
+                    )
                     || role.PermissionIds.Distinct(StringComparer.Ordinal).Count()
-                        != role.PermissionIds.Count)
+                        != role.PermissionIds.Count
+                )
                 {
                     throw new InvalidOperationException(
-                        $"System role '{role.Id}' has an invalid definition.");
+                        $"System role '{role.Id}' has an invalid definition."
+                    );
                 }
             }
         }
@@ -100,14 +110,17 @@ internal sealed class SystemRoleCatalog
     private static void EnsureUnique(IEnumerable<string> values, string description)
     {
         string[] duplicates =
-        [.. values
-            .GroupBy(value => value, StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .Select(group => group.Key)];
+        [
+            .. values
+                .GroupBy(value => value, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key),
+        ];
         if (duplicates.Length > 0)
         {
             throw new InvalidOperationException(
-                $"Duplicate {description}: {string.Join(", ", duplicates)}.");
+                $"Duplicate {description}: {string.Join(", ", duplicates)}."
+            );
         }
     }
 }

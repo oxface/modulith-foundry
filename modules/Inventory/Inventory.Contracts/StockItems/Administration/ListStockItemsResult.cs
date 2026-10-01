@@ -2,9 +2,7 @@ namespace ModulithFoundry.Modules.Inventory.Contracts;
 
 public abstract record ListStockItemsResult
 {
-    private ListStockItemsResult()
-    {
-    }
+    private ListStockItemsResult() { }
 
     public sealed record Listed(IReadOnlyList<StockItemView> Items) : ListStockItemsResult;
 

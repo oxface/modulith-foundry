@@ -9,7 +9,8 @@ internal static class InvitationAuditEntries
         Invitation invitation,
         Guid actorUserId,
         IReadOnlyCollection<string> roleIds,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.Create(
             Guid.CreateVersion7(occurredAt),
             invitation.OrganizationId,
@@ -26,12 +27,14 @@ internal static class InvitationAuditEntries
             },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 
     internal static AccessAuditEntry Resent(
         Invitation invitation,
         Guid actorUserId,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.Create(
             Guid.CreateVersion7(occurredAt),
             invitation.OrganizationId,
@@ -43,21 +46,23 @@ internal static class InvitationAuditEntries
             new
             {
                 recipientEmail = invitation.RecipientEmail,
-                roleIds = invitation.RoleAssignments
-                    .Select(role => role.RoleId)
+                roleIds = invitation
+                    .RoleAssignments.Select(role => role.RoleId)
                     .Order(StringComparer.Ordinal),
                 invitation.ExpiresAt,
             },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 
     internal static AccessAuditEntry Accepted(
         Invitation invitation,
         Guid membershipId,
         Guid acceptedByUserId,
         IReadOnlyCollection<string> roleIds,
-        DateTimeOffset occurredAt) =>
+        DateTimeOffset occurredAt
+    ) =>
         AccessAuditEntry.Create(
             Guid.CreateVersion7(occurredAt),
             invitation.OrganizationId,
@@ -75,5 +80,6 @@ internal static class InvitationAuditEntries
             },
             Activity.Current?.RootId,
             Activity.Current?.TraceId.ToHexString(),
-            occurredAt);
+            occurredAt
+        );
 }

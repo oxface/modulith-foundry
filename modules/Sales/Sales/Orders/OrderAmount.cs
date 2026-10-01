@@ -6,10 +6,17 @@ internal static class OrderAmount
 
     internal static decimal Calculate(OrderQuantity quantity, UnitPrice price)
     {
-        decimal amount = decimal.Round(quantity.Value * price.Value, 2, MidpointRounding.AwayFromZero);
+        decimal amount = decimal.Round(
+            quantity.Value * price.Value,
+            2,
+            MidpointRounding.AwayFromZero
+        );
         if (amount > Maximum)
         {
-            throw new InvalidSalesOrderInputException("lines", "The line amount exceeds the supported range.");
+            throw new InvalidSalesOrderInputException(
+                "lines",
+                "The line amount exceeds the supported range."
+            );
         }
         return amount;
     }

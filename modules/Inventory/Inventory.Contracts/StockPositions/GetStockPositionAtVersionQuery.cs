@@ -7,4 +7,5 @@ public sealed record GetStockPositionAtVersionQuery(
     OrganizationId OrganizationId,
     string StockingLocationCode,
     string Sku,
-    long Version);
+    long Version
+);

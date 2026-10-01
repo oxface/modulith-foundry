@@ -9,13 +9,19 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations;
 internal sealed partial class UseStockPositionWriteModel : Migration
 {
     private static readonly string[] StreamIdentityColumns =
-        ["organization_id", "stream_type", "stocking_location_id", "stock_item_id"];
+    [
+        "organization_id",
+        "stream_type",
+        "stocking_location_id",
+        "stock_item_id",
+    ];
 
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.Sql(
-            """
+        migrationBuilder
+            .Sql(
+                """
                 DO $$
                 BEGIN
                     IF EXISTS (
@@ -34,22 +40,27 @@ internal sealed partial class UseStockPositionWriteModel : Migration
                     END IF;
                 END;
                 $$;
-                """).Annotation("ModulithFoundry:OwnedSchema", "inventory");
+                """
+            )
+            .Annotation("ModulithFoundry:OwnedSchema", "inventory");
 
         migrationBuilder.DropIndex(
             name: "ux_stock_position_stream_identity",
             schema: "inventory",
-            table: "event_streams");
+            table: "event_streams"
+        );
 
         migrationBuilder.DropColumn(
             name: "stock_item_id",
             schema: "inventory",
-            table: "event_streams");
+            table: "event_streams"
+        );
 
         migrationBuilder.DropColumn(
             name: "stocking_location_id",
             schema: "inventory",
-            table: "event_streams");
+            table: "event_streams"
+        );
     }
 
     /// <inheritdoc />
@@ -60,17 +71,20 @@ internal sealed partial class UseStockPositionWriteModel : Migration
             schema: "inventory",
             table: "event_streams",
             type: "uuid",
-            nullable: true);
+            nullable: true
+        );
 
         migrationBuilder.AddColumn<Guid>(
             name: "stocking_location_id",
             schema: "inventory",
             table: "event_streams",
             type: "uuid",
-            nullable: true);
+            nullable: true
+        );
 
-        migrationBuilder.Sql(
-            """
+        migrationBuilder
+            .Sql(
+                """
                 UPDATE inventory.event_streams AS stream
                 SET stock_item_id = position.stock_item_id,
                     stocking_location_id = position.stocking_location_id
@@ -78,21 +92,38 @@ internal sealed partial class UseStockPositionWriteModel : Migration
                 WHERE position.stream_id = stream.id
                   AND position.organization_id = stream.organization_id
                   AND stream.stream_type = 'inventory.stock-position';
-                """).Annotation("ModulithFoundry:OwnedSchema", "inventory");
+                """
+            )
+            .Annotation("ModulithFoundry:OwnedSchema", "inventory");
         // The old schema cannot represent streams without this Stock Position identity.
         // Fail the downgrade instead of inventing empty business identifiers.
         migrationBuilder.AlterColumn<Guid>(
-            name: "stock_item_id", schema: "inventory", table: "event_streams",
-            type: "uuid", nullable: false, oldClrType: typeof(Guid), oldType: "uuid", oldNullable: true);
+            name: "stock_item_id",
+            schema: "inventory",
+            table: "event_streams",
+            type: "uuid",
+            nullable: false,
+            oldClrType: typeof(Guid),
+            oldType: "uuid",
+            oldNullable: true
+        );
         migrationBuilder.AlterColumn<Guid>(
-            name: "stocking_location_id", schema: "inventory", table: "event_streams",
-            type: "uuid", nullable: false, oldClrType: typeof(Guid), oldType: "uuid", oldNullable: true);
+            name: "stocking_location_id",
+            schema: "inventory",
+            table: "event_streams",
+            type: "uuid",
+            nullable: false,
+            oldClrType: typeof(Guid),
+            oldType: "uuid",
+            oldNullable: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_stock_position_stream_identity",
             schema: "inventory",
             table: "event_streams",
             columns: StreamIdentityColumns,
-            unique: true);
+            unique: true
+        );
     }
 }

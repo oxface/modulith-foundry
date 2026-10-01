@@ -27,11 +27,11 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.ReferenceData.InventoryAuditEntry", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.ReferenceData.InventoryAuditEntry",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("Action")
                         .IsRequired()
@@ -76,9 +76,7 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("source_module");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subject_id");
+                    b.Property<Guid>("SubjectId").HasColumnType("uuid").HasColumnName("subject_id");
 
                     b.Property<string>("SubjectType")
                         .IsRequired()
@@ -86,20 +84,20 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("subject_type");
 
-                    b.HasKey("Id")
-                        .HasName("pk_audit_entries");
+                    b.HasKey("Id").HasName("pk_audit_entries");
 
                     b.HasIndex("OrganizationId", "OccurredAt")
                         .HasDatabaseName("ix_audit_entries_organization_occurred_at");
 
                     b.ToTable("audit_entries", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.StockItem", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.StockItem",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("BaseUnitCode")
                         .IsRequired()
@@ -135,8 +133,7 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_stock_items");
+                    b.HasKey("Id").HasName("pk_stock_items");
 
                     b.HasIndex("OrganizationId", "IsActive")
                         .HasDatabaseName("ix_stock_items_organization_active");
@@ -146,13 +143,14 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasDatabaseName("ux_stock_items_organization_sku");
 
                     b.ToTable("stock_items", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.StockingLocation", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.StockingLocation",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -182,8 +180,7 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_stocking_locations");
+                    b.HasKey("Id").HasName("pk_stocking_locations");
 
                     b.HasIndex("OrganizationId", "Code")
                         .IsUnique()
@@ -193,13 +190,14 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasDatabaseName("ix_stocking_locations_organization_active");
 
                     b.ToTable("stocking_locations", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream",
+                b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -224,20 +222,20 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("version");
 
-                    b.HasKey("Id")
-                        .HasName("pk_event_streams");
+                    b.HasKey("Id").HasName("pk_event_streams");
 
                     b.HasIndex("OrganizationId", "StreamType")
                         .HasDatabaseName("ix_event_streams_organization_type");
 
                     b.ToTable("event_streams", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionCurrent", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionCurrent",
+                b =>
                 {
-                    b.Property<Guid>("StreamId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("stream_id");
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
 
                     b.Property<decimal>("AvailableQuantity")
                         .HasPrecision(19, 6)
@@ -276,30 +274,38 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<long>("Version")
-                        .HasColumnType("bigint")
-                        .HasColumnName("version");
+                    b.Property<long>("Version").HasColumnType("bigint").HasColumnName("version");
 
-                    b.HasKey("StreamId")
-                        .HasName("pk_stock_position_current");
+                    b.HasKey("StreamId").HasName("pk_stock_position_current");
 
                     b.HasIndex("OrganizationId", "StockingLocationId", "StockItemId")
                         .IsUnique()
                         .HasDatabaseName("ux_stock_position_current_identity");
 
-                    b.ToTable("stock_position_current", "inventory", t =>
+                    b.ToTable(
+                        "stock_position_current",
+                        "inventory",
+                        t =>
                         {
-                            t.HasCheckConstraint("ck_stock_position_current_non_negative", "on_hand_quantity >= 0 AND reserved_quantity >= 0 AND available_quantity >= 0");
+                            t.HasCheckConstraint(
+                                "ck_stock_position_current_non_negative",
+                                "on_hand_quantity >= 0 AND reserved_quantity >= 0 AND available_quantity >= 0"
+                            );
 
-                            t.HasCheckConstraint("ck_stock_position_current_quantity_balance", "reserved_quantity <= on_hand_quantity AND available_quantity = on_hand_quantity - reserved_quantity");
-                        });
-                });
+                            t.HasCheckConstraint(
+                                "ck_stock_position_current_quantity_balance",
+                                "reserved_quantity <= on_hand_quantity AND available_quantity = on_hand_quantity - reserved_quantity"
+                            );
+                        }
+                    );
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionStreamIdentity", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionStreamIdentity",
+                b =>
                 {
-                    b.Property<Guid>("StreamId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("stream_id");
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -313,21 +319,21 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("stocking_location_id");
 
-                    b.HasKey("StreamId")
-                        .HasName("pk_stock_position_stream_identities");
+                    b.HasKey("StreamId").HasName("pk_stock_position_stream_identities");
 
                     b.HasIndex("OrganizationId", "StockingLocationId", "StockItemId")
                         .IsUnique()
                         .HasDatabaseName("ux_stock_position_stream_identity");
 
                     b.ToTable("stock_position_stream_identities", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StoredEvent", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StoredEvent",
+                b =>
                 {
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("event_id");
+                    b.Property<Guid>("EventId").HasColumnType("uuid").HasColumnName("event_id");
 
                     b.Property<string>("EventName")
                         .IsRequired()
@@ -340,7 +346,9 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("global_sequence");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("GlobalSequence"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(
+                        b.Property<long>("GlobalSequence")
+                    );
 
                     b.Property<JsonElement>("Metadata")
                         .HasColumnType("jsonb")
@@ -362,16 +370,13 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("schema_version");
 
-                    b.Property<Guid>("StreamId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("stream_id");
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
 
                     b.Property<long>("StreamVersion")
                         .HasColumnType("bigint")
                         .HasColumnName("stream_version");
 
-                    b.HasKey("EventId")
-                        .HasName("pk_events");
+                    b.HasKey("EventId").HasName("pk_events");
 
                     b.HasIndex("GlobalSequence")
                         .IsUnique()
@@ -385,36 +390,61 @@ namespace ModulithFoundry.Modules.Inventory.Persistence.Migrations
                         .HasDatabaseName("ux_events_stream_version");
 
                     b.ToTable("events", "inventory");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionCurrent", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionCurrent",
+                b =>
                 {
-                    b.HasOne("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream", null)
+                    b.HasOne(
+                            "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream",
+                            null
+                        )
                         .WithOne()
-                        .HasForeignKey("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionCurrent", "StreamId")
+                        .HasForeignKey(
+                            "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionCurrent",
+                            "StreamId"
+                        )
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_stock_position_current_event_streams_stream_id");
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionStreamIdentity", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionStreamIdentity",
+                b =>
                 {
-                    b.HasOne("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream", null)
+                    b.HasOne(
+                            "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream",
+                            null
+                        )
                         .WithOne()
-                        .HasForeignKey("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionStreamIdentity", "StreamId")
+                        .HasForeignKey(
+                            "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StockPositionStreamIdentity",
+                            "StreamId"
+                        )
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-                });
+                }
+            );
 
-            modelBuilder.Entity("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StoredEvent", b =>
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.StoredEvent",
+                b =>
                 {
-                    b.HasOne("ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream", null)
+                    b.HasOne(
+                            "ModulithFoundry.Modules.Inventory.StockPositions.Persistence.EventStream",
+                            null
+                        )
                         .WithMany()
                         .HasForeignKey("StreamId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_events_event_streams_stream_id");
-                });
+                }
+            );
 #pragma warning restore 612, 618
         }
     }

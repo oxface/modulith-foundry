@@ -26,7 +26,10 @@ internal sealed class StockPositionAggregate
     internal static StockPositionAggregate Empty(Guid streamId) => new(streamId, 0, state: null);
 
     internal static StockPositionAggregate FromState(
-        Guid streamId, long version, StockPositionState state)
+        Guid streamId,
+        long version,
+        StockPositionState state
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(version);
         ArgumentNullException.ThrowIfNull(state);
@@ -35,7 +38,8 @@ internal sealed class StockPositionAggregate
 
     internal static StockPositionAggregate Rehydrate(
         Guid streamId,
-        IReadOnlyList<IStockPositionEvent> events)
+        IReadOnlyList<IStockPositionEvent> events
+    )
     {
         var aggregate = Empty(streamId);
         foreach (IStockPositionEvent @event in events)
@@ -50,11 +54,17 @@ internal sealed class StockPositionAggregate
         Guid stockItemId,
         Guid stockingLocationId,
         string baseUnitCode,
-        decimal quantity)
+        decimal quantity
+    )
     {
         Quantity validated = Quantity.Positive(quantity);
         IReadOnlyList<IStockPositionEvent> events = StockPositionDecider.DecideReceipt(
-            State, stockItemId, stockingLocationId, baseUnitCode, validated);
+            State,
+            stockItemId,
+            stockingLocationId,
+            baseUnitCode,
+            validated
+        );
         AcceptDecision(events);
     }
 
@@ -74,9 +84,17 @@ internal sealed class StockPositionAggregate
 
     internal void CorrectQuantity(decimal onHandQuantity, string reason)
     {
-        if (State is null) { throw new InvalidOperationException("Cannot correct an unopened Stock Position."); }
-        AcceptDecision(StockPositionDecider.DecideCorrection(
-            State, Quantity.NonNegative(onHandQuantity), StockCorrectionReason.Create(reason)));
+        if (State is null)
+        {
+            throw new InvalidOperationException("Cannot correct an unopened Stock Position.");
+        }
+        AcceptDecision(
+            StockPositionDecider.DecideCorrection(
+                State,
+                Quantity.NonNegative(onHandQuantity),
+                StockCorrectionReason.Create(reason)
+            )
+        );
     }
 
     private void ApplyHistorical(IStockPositionEvent @event)

@@ -4,5 +4,6 @@ public interface IExternalIdentityLinking
 {
     Task<UserIdentityLink> LinkAsync(
         ExternalIdentity identity,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 }

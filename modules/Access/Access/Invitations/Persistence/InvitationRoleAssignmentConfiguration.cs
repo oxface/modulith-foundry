@@ -13,9 +13,7 @@ internal sealed class InvitationRoleAssignmentConfiguration
             .HasName("pk_invitation_role_assignments");
         role.Property(entity => entity.InvitationId).HasColumnName("invitation_id");
         role.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
-        role.Property(entity => entity.RoleId)
-            .HasColumnName("role_id")
-            .HasMaxLength(100);
+        role.Property(entity => entity.RoleId).HasColumnName("role_id").HasMaxLength(100);
         role.HasIndex(entity => new { entity.OrganizationId, entity.InvitationId })
             .HasDatabaseName("ix_invitation_roles_organization_invitation");
         role.HasIndex(entity => new { entity.InvitationId, entity.OrganizationId })

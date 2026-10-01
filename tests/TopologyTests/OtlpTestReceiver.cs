@@ -36,11 +36,13 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
         application.MapPost("/v1/traces", receiver.ReceiveTracesAsync);
         await application.StartAsync(cancellationToken);
 
-        IServerAddressesFeature addresses = application.Services
-            .GetRequiredService<IServer>()
-            .Features
-            .Get<IServerAddressesFeature>()
-            ?? throw new InvalidOperationException("The OTLP test receiver has no server addresses.");
+        IServerAddressesFeature addresses =
+            application
+                .Services.GetRequiredService<IServer>()
+                .Features.Get<IServerAddressesFeature>()
+            ?? throw new InvalidOperationException(
+                "The OTLP test receiver has no server addresses."
+            );
         receiver.Endpoint = new Uri(addresses.Addresses.Single(), UriKind.Absolute);
         return receiver;
     }
@@ -55,7 +57,8 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
             }
 
             nextLogExport = new TaskCompletionSource(
-                TaskCreationOptions.RunContinuationsAsynchronously);
+                TaskCreationOptions.RunContinuationsAsynchronously
+            );
             return nextLogExport.Task.WaitAsync(cancellationToken);
         }
     }
@@ -64,8 +67,9 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
     {
         lock (sync)
         {
-            return logPayloads.Any(payload => Encoding.UTF8.GetString(payload)
-                .Contains(value, StringComparison.Ordinal));
+            return logPayloads.Any(payload =>
+                Encoding.UTF8.GetString(payload).Contains(value, StringComparison.Ordinal)
+            );
         }
     }
 
@@ -151,9 +155,7 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
         context.Response.StatusCode = StatusCodes.Status200OK;
     }
 
-    private async Task WaitForTraceTextCoreAsync(
-        string value,
-        CancellationToken cancellationToken)
+    private async Task WaitForTraceTextCoreAsync(string value, CancellationToken cancellationToken)
     {
         while (true)
         {
@@ -167,11 +169,14 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
 
                 if (nextTraceExport is not null)
                 {
-                    throw new InvalidOperationException("A telemetry export expectation is already pending.");
+                    throw new InvalidOperationException(
+                        "A telemetry export expectation is already pending."
+                    );
                 }
 
                 nextTraceExport = new TaskCompletionSource(
-                    TaskCreationOptions.RunContinuationsAsynchronously);
+                    TaskCreationOptions.RunContinuationsAsynchronously
+                );
                 nextExport = nextTraceExport.Task;
             }
 
@@ -180,6 +185,7 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
     }
 
     private static bool ContainsText(IEnumerable<byte[]> payloads, string value) =>
-        payloads.Any(payload => Encoding.UTF8.GetString(payload)
-            .Contains(value, StringComparison.Ordinal));
+        payloads.Any(payload =>
+            Encoding.UTF8.GetString(payload).Contains(value, StringComparison.Ordinal)
+        );
 }

@@ -6,4 +6,5 @@ public sealed record OrganizationInvitation(
     string RecipientEmail,
     IReadOnlyList<string> RoleIds,
     DateTimeOffset ExpiresAt,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);

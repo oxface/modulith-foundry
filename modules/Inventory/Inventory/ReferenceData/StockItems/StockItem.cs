@@ -17,7 +17,8 @@ internal sealed class StockItem : IOrganizationOwned
         string sku,
         string description,
         string baseUnitCode,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt
+    )
     {
         Id = id;
         OrganizationId = organizationId;
@@ -51,14 +52,16 @@ internal sealed class StockItem : IOrganizationOwned
         string sku,
         string description,
         string baseUnitCode,
-        DateTimeOffset createdAt) =>
+        DateTimeOffset createdAt
+    ) =>
         new(
             id,
             organizationId,
             InventoryCode.Normalize(sku, "sku", 64),
             InventoryCode.NormalizeText(description, "description", 200),
             InventoryCode.Normalize(baseUnitCode, "baseUnitCode", 16),
-            createdAt);
+            createdAt
+        );
 
     internal bool ChangeDescription(string description, DateTimeOffset changedAt)
     {

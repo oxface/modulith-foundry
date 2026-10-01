@@ -527,13 +527,13 @@ Use GitHub Actions on Ubuntu runners as the initial CI implementation. Pull requ
 
 ### Quality gates — **Decided baseline**
 
-- Commit a root `.editorconfig`, enable nullable reference types and SDK analyzers, treat warnings as errors, and verify deterministic formatting with `dotnet format` in CI.
+- Commit a root `.editorconfig`, enable nullable reference types and SDK analyzers, treat warnings as errors, and verify deterministic C#/XML layout with the pinned local CSharpier tool in CI. Keep `dotnet format style` and `dotnet format analyzers` for semantic checks; do not run competing whitespace formatters.
 - Unit/architecture tests on every change.
 - PostgreSQL integration tests in CI.
 - Auth/browser tests in a slower CI lane.
 - Migration and deployed smoke tests before promotion.
 - Persisted event/message fixtures become compatibility tests; deleting or renaming a CLR type cannot silently orphan stored data.
-- When the JavaScript workspace exists, use Prettier, commitlint, and Lefthook; hooks improve local feedback while CI remains authoritative. Defer CSharpier unless `dotnet format` proves insufficient.
+- When the JavaScript workspace exists, use Prettier, commitlint, and Lefthook; hooks improve local feedback while CI remains authoritative. CSharpier owns C#/XML layout because the SDK formatter did not consistently produce readable wrapping. Adopt/update its formatting baseline separately from business changes.
 
 When frontend work begins, use Vite with a directly pinned pnpm 12 release and commit `pnpm-lock.yaml`. Declare the pnpm version in `package.json` and install that exact version in CI; Corepack may be a developer convenience but is not a repository or build prerequisite. The frontend framework remains deferred until the minimal frontend slice. The C# AppHost does not require npm or another JavaScript host.
 

@@ -18,7 +18,8 @@ public sealed class ModuleMigrationsTests
 
         Assert.Contains(
             "Module schema 'shipping' was not migrated",
-            MigrationCoveragePolicy.SchemaViolations(expected, actual));
+            MigrationCoveragePolicy.SchemaViolations(expected, actual)
+        );
     }
 
     [Fact]
@@ -29,7 +30,8 @@ public sealed class ModuleMigrationsTests
 
         Assert.Contains(
             "Unexpected module schema 'shipping' was migrated",
-            MigrationCoveragePolicy.SchemaViolations(expected, actual));
+            MigrationCoveragePolicy.SchemaViolations(expected, actual)
+        );
     }
 
     [Fact]
@@ -49,9 +51,12 @@ public sealed class ModuleMigrationsTests
         IReadOnlyList<(string Schema, long Count)> secondCounts =
             await ReadMigrationHistoryCountsAsync(connectionString);
 
-        Assert.Empty(MigrationCoveragePolicy.SchemaViolations(
-            ExpectedModuleSchemas(),
-            firstCounts.Select(history => history.Schema)));
+        Assert.Empty(
+            MigrationCoveragePolicy.SchemaViolations(
+                ExpectedModuleSchemas(),
+                firstCounts.Select(history => history.Schema)
+            )
+        );
         Assert.All(firstCounts, history => Assert.True(history.Count > 0));
         Assert.Equal(firstCounts, secondCounts);
     }
@@ -69,7 +74,8 @@ public sealed class ModuleMigrationsTests
 
         using Process process = StartMigrator(connectionString);
         Task<string> standardError = process.StandardError.ReadToEndAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         try
         {
@@ -79,15 +85,20 @@ public sealed class ModuleMigrationsTests
                     process.StandardOutput,
                     "Waiting for the PostgreSQL migration advisory lock",
                     MigratorTimeout,
-                    TestContext.Current.CancellationToken);
+                    TestContext.Current.CancellationToken
+                );
 
                 Assert.Contains(
                     "Waiting for the PostgreSQL migration advisory lock",
                     outputBeforeRelease,
-                    StringComparison.Ordinal);
-                Assert.True(await WaitForBlockedAdvisoryLockAsync(
-                    inspectionConnectionString,
-                    MigratorTimeout));
+                    StringComparison.Ordinal
+                );
+                Assert.True(
+                    await WaitForBlockedAdvisoryLockAsync(
+                        inspectionConnectionString,
+                        MigratorTimeout
+                    )
+                );
                 Assert.Empty(await ReadMigrationHistorySchemasAsync(inspectionConnectionString));
             }
             finally
@@ -97,12 +108,16 @@ public sealed class ModuleMigrationsTests
 
             await WaitForExitWithinTimeoutAsync(process);
             string remainingOutput = await process.StandardOutput.ReadToEndAsync(
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
             ProcessResult result = new(process.ExitCode, remainingOutput, await standardError);
             AssertMigratorSucceeded(result);
-            Assert.Empty(MigrationCoveragePolicy.SchemaViolations(
-                ExpectedModuleSchemas(),
-                await ReadMigrationHistorySchemasAsync(inspectionConnectionString)));
+            Assert.Empty(
+                MigrationCoveragePolicy.SchemaViolations(
+                    ExpectedModuleSchemas(),
+                    await ReadMigrationHistorySchemasAsync(inspectionConnectionString)
+                )
+            );
         }
         finally
         {
@@ -113,32 +128,36 @@ public sealed class ModuleMigrationsTests
     private static PostgreSqlContainer CreatePostgresContainer() =>
         new PostgreSqlBuilder("postgres:18.6").Build();
 
-    private static string[] ExpectedModuleSchemas() => [.. RepositoryTopology.Modules()
-        .Select(module => module.Schema)
-        .Order(StringComparer.Ordinal)];
+    private static string[] ExpectedModuleSchemas() =>
+        [
+            .. RepositoryTopology
+                .Modules()
+                .Select(module => module.Schema)
+                .Order(StringComparer.Ordinal),
+        ];
 
     private static string WithSingleConnectionPool(string connectionString)
     {
-        var builder = new NpgsqlConnectionStringBuilder(connectionString)
-        {
-            MaxPoolSize = 1,
-        };
+        var builder = new NpgsqlConnectionStringBuilder(connectionString) { MaxPoolSize = 1 };
         return builder.ConnectionString;
     }
 
     private static string WithPoolingDisabled(string connectionString)
     {
-        var builder = new NpgsqlConnectionStringBuilder(connectionString)
-        {
-            Pooling = false,
-        };
+        var builder = new NpgsqlConnectionStringBuilder(connectionString) { Pooling = false };
         return builder.ConnectionString;
     }
 
     private static Process StartMigrator(string connectionString)
     {
-        string migratorPath = Path.Combine(AppContext.BaseDirectory, "ModulithFoundry.Migrator.dll");
-        Assert.True(File.Exists(migratorPath), $"Migrator executable was not found at '{migratorPath}'.");
+        string migratorPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "ModulithFoundry.Migrator.dll"
+        );
+        Assert.True(
+            File.Exists(migratorPath),
+            $"Migrator executable was not found at '{migratorPath}'."
+        );
 
         var startInfo = new ProcessStartInfo("dotnet", migratorPath)
         {
@@ -156,9 +175,11 @@ public sealed class ModuleMigrationsTests
     {
         using Process process = StartMigrator(connectionString);
         Task<string> standardOutput = process.StandardOutput.ReadToEndAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         Task<string> standardError = process.StandardError.ReadToEndAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         try
         {
@@ -174,14 +195,16 @@ public sealed class ModuleMigrationsTests
     private static async Task WaitForExitWithinTimeoutAsync(Process process)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         deadline.CancelAfter(MigratorTimeout);
 
         try
         {
             await process.WaitForExitAsync(deadline.Token);
         }
-        catch (OperationCanceledException) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (!TestContext.Current.CancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException($"Migrator did not exit within {MigratorTimeout}.");
         }
@@ -199,13 +222,15 @@ public sealed class ModuleMigrationsTests
     private static void AssertMigratorSucceeded(ProcessResult result) =>
         Assert.True(
             result.ExitCode == 0,
-            $"Migrator exited with {result.ExitCode}. stdout: {result.StandardOutput} stderr: {result.StandardError}");
+            $"Migrator exited with {result.ExitCode}. stdout: {result.StandardOutput} stderr: {result.StandardError}"
+        );
 
     private static async Task<string> ReadUntilAsync(
         StreamReader reader,
         string expected,
         TimeSpan timeout,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(timeout);
@@ -232,7 +257,8 @@ public sealed class ModuleMigrationsTests
 
     private static async Task<bool> WaitForBlockedAdvisoryLockAsync(
         string connectionString,
-        TimeSpan timeout)
+        TimeSpan timeout
+    )
     {
         var deadline = Stopwatch.StartNew();
         while (deadline.Elapsed < timeout)
@@ -246,8 +272,11 @@ public sealed class ModuleMigrationsTests
                     WHERE locktype = 'advisory' AND NOT granted);
                 """;
             await using var command = new NpgsqlCommand(sql, connection);
-            if ((bool)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)
-                ?? false))
+            if (
+                (bool)(
+                    await command.ExecuteScalarAsync(TestContext.Current.CancellationToken) ?? false
+                )
+            )
             {
                 return true;
             }
@@ -268,8 +297,9 @@ public sealed class ModuleMigrationsTests
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
-    private static async Task<IReadOnlyList<(string Schema, long Count)>>
-        ReadMigrationHistoryCountsAsync(string connectionString)
+    private static async Task<
+        IReadOnlyList<(string Schema, long Count)>
+    > ReadMigrationHistoryCountsAsync(string connectionString)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -286,7 +316,8 @@ public sealed class ModuleMigrationsTests
             """;
         await using var command = new NpgsqlCommand(sql, connection);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         var histories = new List<(string Schema, long Count)>();
         while (await reader.ReadAsync(TestContext.Current.CancellationToken))
         {
@@ -297,7 +328,8 @@ public sealed class ModuleMigrationsTests
     }
 
     private static async Task<IReadOnlyList<string>> ReadMigrationHistorySchemasAsync(
-        string connectionString)
+        string connectionString
+    )
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -309,7 +341,8 @@ public sealed class ModuleMigrationsTests
             """;
         await using var command = new NpgsqlCommand(sql, connection);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
         var schemas = new List<string>();
         while (await reader.ReadAsync(TestContext.Current.CancellationToken))
         {
@@ -319,8 +352,5 @@ public sealed class ModuleMigrationsTests
         return schemas;
     }
 
-    private sealed record ProcessResult(
-        int ExitCode,
-        string StandardOutput,
-        string StandardError);
+    private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
 }
