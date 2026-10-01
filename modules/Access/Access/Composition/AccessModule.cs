@@ -41,6 +41,7 @@ public static class AccessModule
             serviceProvider.GetRequiredService<OrganizationMembershipQueries>()
         );
         services.AddScoped<MembershipAdministrationConsistency>();
+        services.AddScoped<IOrganizationAuthorizationGuard, OrganizationAuthorizationGuard>();
         services.AddScoped<ChangeMembershipStatusHandler>();
         services.AddScoped<ReplaceMembershipRolesHandler>();
         services.AddScoped<IOrganizationMembershipAdministration, MembershipAdministration>();

@@ -11,7 +11,9 @@ using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Customers;
 using ModulithFoundry.Modules.Sales.Customers.CreateCustomer;
 using ModulithFoundry.Modules.Sales.Customers.Queries;
+using ModulithFoundry.Modules.Sales.Fulfilment.Queries;
 using ModulithFoundry.Modules.Sales.Orders;
+using ModulithFoundry.Modules.Sales.Orders.ApproveSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.Persistence;
 using ModulithFoundry.Modules.Sales.Orders.Queries;
@@ -35,6 +37,8 @@ public static class SalesModule
         services.AddScoped<SalesOrderNumberAllocator>();
         services.AddScoped<CreateDraftSalesOrderHandler>();
         services.AddScoped<SubmitSalesOrderHandler>();
+        services.AddScoped<ISalesOrderApproval, ApproveSalesOrderHandler>();
+        services.AddScoped<OrderFulfilmentQueries>();
         services.AddScoped<SalesOrderQueries>();
         services.AddScoped<ISalesOrderOperations, SalesOrderOperations>();
         services.AddScoped<SetSalesApprovalAuthorityHandler>();

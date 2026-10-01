@@ -4,6 +4,12 @@ namespace ModulithFoundry.Modules.Sales.Contracts;
 
 public interface ISalesOrderOperations
 {
+    Task<GetOrderFulfilmentResult> GetFulfilmentAsync(
+        UserId actorUserId,
+        OrganizationId organizationId,
+        long orderNumber,
+        CancellationToken cancellationToken = default
+    );
     Task<SubmitSalesOrderResult> SubmitAsync(
         SubmitSalesOrderCommand command,
         CancellationToken cancellationToken = default

@@ -2,6 +2,8 @@ namespace ModulithFoundry.Modules.Sales.Audit;
 
 internal static class SalesAuditActions
 {
+    internal const string OrderApproved = "sales-order.approved";
+    internal const string OrderApproveDenied = "sales-order.approve-denied";
     internal const string ApprovalAuthoritySet = "approval-authority.set";
     internal const string ApprovalAuthoritySetDenied = "approval-authority.set-denied";
     internal const string ApprovalAuthorityRevoked = "approval-authority.revoked";

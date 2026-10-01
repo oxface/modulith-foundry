@@ -26,7 +26,9 @@ internal static class SalesOrderResponses
             SalesOrderStatusValues.ToValue(order.Status),
             order.Version,
             order.SubmittedBy?.Value,
-            order.SubmittedAt
+            order.SubmittedAt,
+            order.ApprovedBy?.Value,
+            order.ApprovedAt
         );
 
     internal sealed record Order(
@@ -39,7 +41,9 @@ internal static class SalesOrderResponses
         string Status,
         long Version,
         Guid? SubmittedBy,
-        DateTimeOffset? SubmittedAt
+        DateTimeOffset? SubmittedAt,
+        Guid? ApprovedBy,
+        DateTimeOffset? ApprovedAt
     );
 
     internal sealed record Line(

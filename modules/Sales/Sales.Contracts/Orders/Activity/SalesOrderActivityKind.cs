@@ -4,4 +4,5 @@ public enum SalesOrderActivityKind
 {
     Created = 1,
     Submitted = 2,
+    Approved = 3,
 }

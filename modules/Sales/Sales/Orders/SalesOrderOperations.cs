@@ -1,5 +1,6 @@
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Sales.Contracts;
+using ModulithFoundry.Modules.Sales.Fulfilment.Queries;
 using ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.Queries;
 using ModulithFoundry.Modules.Sales.Orders.SubmitSalesOrder;
@@ -9,9 +10,17 @@ namespace ModulithFoundry.Modules.Sales.Orders;
 internal sealed class SalesOrderOperations(
     CreateDraftSalesOrderHandler create,
     SalesOrderQueries queries,
-    SubmitSalesOrderHandler submit
+    SubmitSalesOrderHandler submit,
+    OrderFulfilmentQueries fulfilment
 ) : ISalesOrderOperations
 {
+    public Task<GetOrderFulfilmentResult> GetFulfilmentAsync(
+        UserId actorUserId,
+        OrganizationId organizationId,
+        long orderNumber,
+        CancellationToken cancellationToken = default
+    ) => fulfilment.GetAsync(actorUserId, organizationId, orderNumber, cancellationToken);
+
     public Task<SubmitSalesOrderResult> SubmitAsync(
         SubmitSalesOrderCommand command,
         CancellationToken cancellationToken = default

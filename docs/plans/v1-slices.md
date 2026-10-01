@@ -276,6 +276,7 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 - Add isolated Sales endpoint, Sales-local inbox/outbox, relay, concrete process state, per-line operation IDs, attempts/deadlines, and Inventory outcome handlers.
 - Have approval atomically create process state and outbox commands; do not publish from an in-memory post-commit handler.
+- Start any existing `pending-dispatch` processes from Increment 4.2c through the same idempotent command-enqueue path; introducing the broker must not strand already-approved orders.
 - Keep process transitions explicit in Sales application code and persist them with inbox, audit/activity, deadlines, and outgoing messages.
 - Compare the two real inbox/outbox implementations; extract only identical EF/Rebus mechanics in a dedicated behavior-preserving change if the deletion test justifies it.
 

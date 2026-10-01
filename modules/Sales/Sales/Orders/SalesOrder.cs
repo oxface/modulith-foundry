@@ -40,7 +40,20 @@ internal sealed class SalesOrder : IOrganizationOwned
     internal long Version { get; private set; } = 1;
     internal Guid? SubmittedBy { get; private set; }
     internal DateTimeOffset? SubmittedAt { get; private set; }
+    internal Guid? ApprovedBy { get; private set; }
+    internal DateTimeOffset? ApprovedAt { get; private set; }
     internal IReadOnlyCollection<SalesOrderLine> Lines => _lines;
+
+    internal bool TryApprove(Guid actorUserId, DateTimeOffset approvedAt)
+    {
+        if (Status != SalesOrderStatus.AwaitingApproval || SubmittedBy == actorUserId)
+            return false;
+        Status = SalesOrderStatus.Approved;
+        ApprovedBy = actorUserId;
+        ApprovedAt = approvedAt;
+        Version = checked(Version + 1);
+        return true;
+    }
 
     internal bool TrySubmit(Guid actorUserId, DateTimeOffset submittedAt)
     {

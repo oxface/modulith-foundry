@@ -12,5 +12,7 @@ public sealed record SalesOrderView(
     SalesOrderStatus Status,
     long Version,
     UserId? SubmittedBy,
-    DateTimeOffset? SubmittedAt
+    DateTimeOffset? SubmittedAt,
+    UserId? ApprovedBy,
+    DateTimeOffset? ApprovedAt
 );

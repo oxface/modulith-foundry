@@ -19,6 +19,10 @@ internal static class SalesOrderEndpoints
             .MapPost("/{orderNumber:long}/submit", SalesOrderSubmissionEndpoint.HandleAsync)
             .RequireBffAntiforgery();
         orders.MapGet("/{orderNumber:long}/activity", SalesOrderActivityEndpoint.HandleAsync);
+        orders
+            .MapPost("/{orderNumber:long}/approve", SalesOrderApprovalEndpoint.HandleAsync)
+            .RequireBffAntiforgery();
+        orders.MapGet("/{orderNumber:long}/fulfilment", OrderFulfilmentEndpoint.HandleAsync);
         return sales;
     }
 

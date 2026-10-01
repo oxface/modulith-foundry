@@ -32,6 +32,8 @@ internal sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOr
         order.Property(entity => entity.Version).HasColumnName("version").IsConcurrencyToken();
         order.Property(entity => entity.SubmittedBy).HasColumnName("submitted_by");
         order.Property(entity => entity.SubmittedAt).HasColumnName("submitted_at");
+        order.Property(entity => entity.ApprovedBy).HasColumnName("approved_by");
+        order.Property(entity => entity.ApprovedAt).HasColumnName("approved_at");
         order
             .HasIndex(entity => new { entity.OrganizationId, entity.OrderNumber })
             .IsUnique()

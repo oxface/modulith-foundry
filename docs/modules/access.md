@@ -78,6 +78,15 @@ Ordinary membership administration lists only active and suspended Memberships. 
 remain available to audit and deliberately historical queries; lifecycle visibility is not hidden by
 a global persistence filter.
 
+For the concrete Sales approval commit-time proof, `IOrganizationAuthorizationGuard` returns an
+async-disposable guard only for the exact verified actor/Organization/active Membership and current
+permission. Access owns its read-only read-committed transaction and shared Organization-row lock;
+the existing exclusive lock in role/status changes protects the checked grants until disposal. The
+caller must hold it only through one short local database operation and dispose it after commit or
+rollback. This does not share a DbContext/transaction or permit another module to read Access tables.
+It deliberately shares the existing coarse administration serialization point, consumes a connection
+while held, and is not a remote authorization-provider or durable-workflow abstraction.
+
 ## Explicit exclusions
 
 - Creating or inviting identity-provider accounts through provider administration APIs.

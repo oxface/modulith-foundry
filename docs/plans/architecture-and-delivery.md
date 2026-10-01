@@ -439,6 +439,17 @@ Build inbox/outbox mechanics concretely with the first real producer and consume
 - Workflow-only capabilities use the trusted WorkflowActor and explicit business validation rather than impersonating a human or acquiring a universal system bypass.
 - Do not cache roles or permissions in the authentication ticket. Resolve current membership/grants for the request and add distributed authorization caching only after measured need and an explicit revocation policy.
 
+The 4.2c Sales approval proof adds a narrowly used Access-owned async-disposable authorization guard
+to keep the checked tenure/grants stable through the Sales commit. It shares Access's existing
+Organization-row serialization point; Sales separately locks its authority row. Both modules retain
+their own persistence and transactions, and Access performs no business write. This is not the
+deferred shared multi-module write-transaction spike or a distributed authorization guarantee. The
+[Sales](../modules/sales.md#approval-and-initial-fulfilment-proof-boundary) and
+[Access](../modules/access.md#authorization) charters record lifetime, lock ordering, contention and
+extraction limits. The mechanism follows PostgreSQL's [shared row-lock conflicts and transaction
+lifetime](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-ROWS) and EF Core's
+[explicit transaction lifecycle](https://learn.microsoft.com/en-us/ef/core/saving/transactions).
+
 OpenFGA is **Deferred**. Revisit it only when the product has an actual relationship graph such as per-object sharing, nested groups, deep permission inheritance, delegated partner relationships, or reverse “which objects/users are reachable?” queries. If adopted, keep amount/state/invariant checks in their modules and introduce one graph-policy family through snapshot, tail, reconciliation, shadow checks, and a pinned model version. Do not add an `IAuthorizationProvider` switch or tuple-shaped application API in v1.
 
 ### Organization and identity lifecycle — **Decided baseline**

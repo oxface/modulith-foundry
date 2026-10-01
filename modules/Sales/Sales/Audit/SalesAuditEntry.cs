@@ -93,15 +93,34 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
         string subjectType,
         DateTimeOffset occurredAt
     ) =>
+        Denied(
+            organizationId,
+            actorUserId,
+            action,
+            subjectType,
+            Guid.Empty,
+            SalesAuditReasonCodes.PermissionDenied,
+            occurredAt
+        );
+
+    internal static SalesAuditEntry Denied(
+        Guid organizationId,
+        Guid actorUserId,
+        string action,
+        string subjectType,
+        Guid subjectId,
+        string reasonCode,
+        DateTimeOffset occurredAt
+    ) =>
         new(
             Guid.CreateVersion7(occurredAt),
             organizationId,
             actorUserId,
             action,
             subjectType,
-            Guid.Empty,
+            subjectId,
             SalesAuditOutcomes.Denied,
-            SalesAuditReasonCodes.PermissionDenied,
+            reasonCode,
             JsonSerializer.SerializeToElement(new { }),
             occurredAt
         );
