@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Customers;
+using ModulithFoundry.Modules.Sales.Orders;
+using ModulithFoundry.Modules.Sales.Orders.Persistence;
 using ModulithFoundry.Persistence;
 
 namespace ModulithFoundry.Modules.Sales.Persistence;
@@ -14,6 +16,8 @@ internal sealed class SalesDbContext(
     internal const string OrganizationScopeFilter = "OrganizationScope";
 
     internal DbSet<Customer> Customers => Set<Customer>();
+    internal DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+    internal DbSet<SalesOrderNumber> SalesOrderNumbers => Set<SalesOrderNumber>();
     internal DbSet<SalesAuditEntry> AuditEntries => Set<SalesAuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

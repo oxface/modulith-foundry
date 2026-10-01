@@ -16,6 +16,7 @@ internal static class ProjectDependencyRules
         "modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
         "modules/Purchasing/Purchasing.Contracts/Purchasing.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
         "modules/Sales/Sales.Contracts/Sales.Contracts.csproj -> modules/Access/Access.Contracts/Access.Contracts.csproj",
+        "modules/Sales/Sales.Contracts/Sales.Contracts.csproj -> modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj",
     };
 
     internal static IReadOnlyCollection<string> ReferenceViolations(

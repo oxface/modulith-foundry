@@ -36,6 +36,15 @@ Queries:
 
 The order-creation use case performs one batched Inventory contract query to validate Stock Item identities and capture their display/base-unit snapshot. It does not retain an `IQueryable`, Inventory entity, or DbContext.
 
+## Draft-order proof boundary
+
+- `ISalesOrderOperations` creates a draft for a Customer code and retrieves it by short Organization-scoped order number. HTTP ingress is `POST /api/o/{organizationSlug}/sales/orders` and `GET /api/o/{organizationSlug}/sales/orders/{orderNumber}`.
+- A draft has 1–100 aggregate-owned lines. Each retains the Inventory-owned Stock Item ID and an immutable SKU/description/base-unit snapshot captured at creation. Repeated items remain separate lines; one batch lookup resolves distinct item IDs. Missing/foreign references are reported as missing; inactive references cannot create new lines.
+- Quantity is positive with at most six fractional digits; unit price is non-negative with at most four. The sample supports USD/EUR only. Each line amount rounds quantity × price to two decimals, midpoint away from zero; the total sums those rounded line amounts. PostgreSQL numeric ranges are validated before persistence. Zero-price lines are valid; tax, discounts, pricing engines, other currency conventions and conversion are not implemented.
+- Customer, actor/context and current Sales permission checks precede persistence. Creation requires `sales.orders.create`; lookup requires `sales.orders.view`. Stock validation is a point-in-time in-process query, not a cross-module atomicity guarantee; Inventory remains responsible for later reservation eligibility.
+- Sales allocates an Organization-local positive number with one atomic PostgreSQL counter upsert in a separate committed connection. Gaps after validation, failed persistence or cancellation are allowed. Number uniqueness is also constrained on the order table. Order, owned lines and success audit commit together in the owning Sales `SaveChanges` transaction; the counter is intentionally outside it.
+- A creation retry is a new order attempt, not a deduplicated business operation. No order list, editing, lifecycle/status transitions, approval, fulfilment, broker or event sourcing is added by 4.1b. Those capabilities remain in their subsequent increments.
+
 ## Durable collaboration
 
 Sales owns orchestration. Its outbox sends Inventory-owned `ReserveStock` and `ReleaseReservation` integration commands and, after a shortage, a Purchasing-owned `CreateReplenishmentRequirement` command. Sales consumes Inventory reservation-outcome events and Purchasing's requirement-created event through its module endpoint.

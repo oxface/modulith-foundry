@@ -12,6 +12,10 @@ A **slice** is a capability and acceptance unit. An **increment** is the normal 
 
 If an increment becomes difficult to review in one sitting, split it at a vertical, independently verifiable outcome. Do not split by creating speculative layers, empty abstractions, temporary architecture, or knowingly broken intermediate states.
 
+### Proposed formatter follow-up
+
+Evaluate [CSharpier](https://csharpier.com/docs/Installation) in a separate tooling/formatting-only increment, not mixed with a business slice. Pin a repository-local tool version, retain compiler/analyzer policy, and align editor, Lefthook and CI formatting checks so two formatters do not fight over whitespace. The repository owner raised this because existing formatting checks do not consistently produce readable layout. Adoption and the mechanical baseline diff require their own review; no formatter switch is part of draft-order implementation.
+
 ## Reference outcome and invariants
 
 The primary journey starts with a Sales Clerk and requires a distinct Sales Approver, with Organization Administrator, Sales Manager, Inventory Manager, and Purchasing Agent setup roles around it. The first valuable workflow is:

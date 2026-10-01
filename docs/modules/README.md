@@ -11,6 +11,8 @@ The reference product is a wholesale-operations ERP with four business modules. 
 
 ## Dependency map
 
+Draft Sales Orders exercise the Sales implementation → Inventory.Contracts query. Sales.Contracts also references Inventory.Contracts solely for the Inventory-owned `StockItemId` in its line inputs/results; snapshot DTOs remain Sales-owned. This exceptional Contracts edge is allowlisted and participates in cycle checks.
+
 These cross-module arrows describe accepted use-case direction. Add each Contracts reference only when the implementing slice actually uses it; the initial skeleton does not carry speculative references.
 
 ```text
