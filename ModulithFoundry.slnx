@@ -28,6 +28,7 @@
     <Project Path="tests/ApplicationTests/ApplicationTests.csproj" />
     <Project Path="tests/ArchitectureSupport/ArchitectureSupport.csproj" />
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
+    <Project Path="tests/BrokerTests/BrokerTests.csproj" />
     <Project Path="tests/PersistenceTests/PersistenceTests.csproj" />
     <Project Path="tests/TopologyTests/TopologyTests.csproj" />
   </Folder>

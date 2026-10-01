@@ -2,7 +2,7 @@
 
 `apps` contains executable entry points. Business capabilities remain first-class siblings under [`modules`](../modules); directory placement does not reverse the dependency rule that applications compose modules and modules never depend on applications.
 
-- `AppHost` is the conventional C# Aspire orchestration project. It starts PostgreSQL, Redis, and Keycloak; runs the finite Migrator; and starts the API only after its required resources are ready.
+- `AppHost` is the conventional C# Aspire orchestration project. It starts PostgreSQL, Redis, RabbitMQ, Keycloak and Mailpit; runs the finite Migrator; and starts the API only after its required resources are ready.
 - `Api` is the composition root and HTTP entry point. It registers the modules and owns the OIDC/cookie adapter, but no business workflow.
 - `Migrator` applies module-owned migrations in declared order under one PostgreSQL advisory lock and exits nonzero on failure.
 
@@ -32,6 +32,8 @@ Before the first persistent local run, store stable development credentials in A
 ```bash
 aspire secret set Parameters:postgres-password '<strong-local-password>' \
   --apphost apps/AppHost/ModulithFoundry.AppHost.csproj
+aspire secret set Parameters:rabbitmq-password '<strong-local-broker-password>' \
+  --apphost apps/AppHost/ModulithFoundry.AppHost.csproj
 aspire secret set Parameters:keycloak-password '<strong-local-admin-password>' \
   --apphost apps/AppHost/ModulithFoundry.AppHost.csproj
 aspire secret set Parameters:oidc-client-secret '<strong-local-client-secret>' \
@@ -43,6 +45,8 @@ aspire secret set Parameters:keycloak-test-user-password '<local-alice-password>
 Interactive local runs expose PostgreSQL on `55432`, Redis on `56379`, Keycloak HTTPS on `58080`, API HTTP on `5080`, and API HTTPS on `5443`; topology tests randomize ports. Aspire supplies and propagates trust for its local developer certificate to Keycloak and the API. Run `aspire certs trust` before the first interactive start; on Linux, follow Aspire's output if the OpenSSL trust path must be added to `SSL_CERT_DIR`. The Keycloak Aspire hosting integration is a preview orchestration adapter isolated to `AppHost`; runtime authentication uses the standard ASP.NET Core OpenID Connect handler and has no Keycloak-specific production dependency.
 
 Redis stores only Data-Protection-protected authentication tickets under a versioned application namespace. The browser receives an opaque secure cookie. Redis loss signs users out, Redis unavailability never falls back to a client-side ticket, and local Data Protection keys are separate from Redis. Production key-ring persistence remains a deployment concern described in ADR 0006.
+
+RabbitMQ exposes AMQP on `55673` and its management UI on `55672` in interactive runs; topology tests randomize those ports and remove persistent volumes. Its named data volume requires a stable `rabbitmq-password` secret across starts. The Inventory endpoint and relay run in the API process, not another application service. They use a separate handler provider and the same production-neutral PostgreSQL registration. Broker credentials and queue permissions are the workflow trust boundary; a message header naming Sales is a consistency check, not authentication. See [Inventory messaging](../docs/modules/inventory.md#durable-reservation-receiver) for delivery and recovery limits.
 
 The same process-wide Data Protection key ring protects recoverable pending invitation-email payloads. Local single-host development can use the framework's user-profile key ring. Every multi-replica or container deployment must configure a shared durable key ring before serving traffic; Azure uses Blob Storage with Key Vault protection. Losing or replacing the ring strands pending deliveries because the application intentionally stores no second plaintext copy of invitation bearer secrets. See [the invitation delivery research](../docs/research/2026-09-26-invitation-email-delivery.md).
 

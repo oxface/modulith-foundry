@@ -16,7 +16,7 @@ internal sealed class InventoryAuditEntry : IOrganizationOwned
     private InventoryAuditEntry(
         Guid id,
         Guid organizationId,
-        Guid actorUserId,
+        Guid? actorUserId,
         string action,
         string subjectType,
         Guid subjectId,
@@ -44,7 +44,9 @@ internal sealed class InventoryAuditEntry : IOrganizationOwned
 
     public Guid OrganizationId { get; private set; }
 
-    internal Guid ActorUserId { get; private set; }
+    internal Guid? ActorUserId { get; private set; }
+
+    internal string? SystemActor { get; private set; }
 
     internal string Action { get; private set; }
 
@@ -105,4 +107,29 @@ internal sealed class InventoryAuditEntry : IOrganizationOwned
             JsonSerializer.SerializeToElement(new { }),
             occurredAt
         );
+
+    internal static InventoryAuditEntry WorkflowDecision(
+        Guid organizationId,
+        string action,
+        Guid operationId,
+        string outcome,
+        string? reasonCode,
+        object details,
+        DateTimeOffset occurredAt
+    ) =>
+        new(
+            Guid.CreateVersion7(occurredAt),
+            organizationId,
+            null,
+            action,
+            "reservation-operation",
+            operationId,
+            outcome,
+            reasonCode,
+            JsonSerializer.SerializeToElement(details),
+            occurredAt
+        )
+        {
+            SystemActor = "sales.order-fulfilment",
+        };
 }

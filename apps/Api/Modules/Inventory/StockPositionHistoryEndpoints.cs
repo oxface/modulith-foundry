@@ -66,6 +66,7 @@ internal static class StockPositionHistoryEndpoints
                         StockPositionHistoryAction.Opened => "opened",
                         StockPositionHistoryAction.Received => "received",
                         StockPositionHistoryAction.QuantityCorrected => "quantity-corrected",
+                        StockPositionHistoryAction.Reserved => "reserved",
                         _ => throw new UnreachableException(),
                     },
                     entry.Quantity,

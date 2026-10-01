@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Inventory.Messaging.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems;
+using ModulithFoundry.Modules.Inventory.Reservations;
 using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 using ModulithFoundry.Persistence;
 
@@ -22,12 +24,33 @@ internal sealed class InventoryDbContext(
 
     internal DbSet<InventoryAuditEntry> AuditEntries => Set<InventoryAuditEntry>();
 
+    internal DbSet<InventoryInboxReceipt> InboxReceipts => Set<InventoryInboxReceipt>();
+
+    internal DbSet<InventoryOutboxMessage> OutboxMessages => Set<InventoryOutboxMessage>();
+
+    internal DbSet<ReservationOperation> ReservationOperations => Set<ReservationOperation>();
+
     internal DbSet<EventStream> EventStreams => Set<EventStream>();
 
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();
 
     internal DbSet<StockPositionWriteModel> StockPositionWriteModels =>
         Set<StockPositionWriteModel>();
+
+    private Guid? workflowOrganizationId;
+
+    internal void UseWorkflowOrganization(Guid organizationId)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(organizationId, Guid.Empty);
+        if (
+            organizationContextAccessor.OrganizationContext is not null
+            || workflowOrganizationId.HasValue
+        )
+            throw new InvalidOperationException(
+                "Workflow scope requires a fresh non-human Inventory context."
+            );
+        workflowOrganizationId = organizationId;
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,5 +64,6 @@ internal sealed class InventoryDbContext(
     }
 
     private Guid? CurrentOrganizationId =>
-        organizationContextAccessor.OrganizationContext?.OrganizationId.Value;
+        organizationContextAccessor.OrganizationContext?.OrganizationId.Value
+        ?? workflowOrganizationId;
 }

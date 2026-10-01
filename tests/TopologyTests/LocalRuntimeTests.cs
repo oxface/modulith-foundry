@@ -140,6 +140,7 @@ public sealed partial class LocalRuntimeTests
             );
 
         builder.Configuration["Parameters:postgres-password"] = "topology-test-password";
+        builder.Configuration["Parameters:rabbitmq-password"] = "topology-rabbitmq-password";
         builder.Configuration["Parameters:keycloak-password"] = "topology-keycloak-password";
         builder.Configuration["Parameters:oidc-client-secret"] = "topology-client-secret";
         builder.Configuration["Parameters:keycloak-test-user-password"] = "topology-user-password";

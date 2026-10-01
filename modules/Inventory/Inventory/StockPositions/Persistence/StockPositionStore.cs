@@ -104,7 +104,7 @@ internal sealed class StockPositionStore(
         CancellationToken cancellationToken
     ) => eventReader.LoadAtVersionAsync(streamId, version: null, cancellationToken);
 
-    internal async Task StageAppendAsync(
+    internal Task StageAppendAsync(
         OrganizationId organizationId,
         UserId actorUserId,
         StockPositionAggregate aggregate,
@@ -112,22 +112,39 @@ internal sealed class StockPositionStore(
         CancellationToken cancellationToken
     )
     {
+        ArgumentOutOfRangeException.ThrowIfEqual(actorUserId.Value, Guid.Empty);
+        string? traceId = Activity.Current?.TraceId.ToString();
+        return StageAppendAsync(
+            organizationId,
+            new StockPositionEventMetadata(
+                organizationId.Value,
+                actorUserId.Value,
+                traceId,
+                null,
+                traceId
+            ),
+            aggregate,
+            recordedAt,
+            cancellationToken
+        );
+    }
+
+    internal async Task StageAppendAsync(
+        OrganizationId organizationId,
+        StockPositionEventMetadata metadata,
+        StockPositionAggregate aggregate,
+        DateTimeOffset recordedAt,
+        CancellationToken cancellationToken
+    )
+    {
         RequireWriteTransaction();
         ArgumentOutOfRangeException.ThrowIfEqual(organizationId.Value, Guid.Empty);
-        ArgumentOutOfRangeException.ThrowIfEqual(actorUserId.Value, Guid.Empty);
+        if (metadata.OrganizationId != organizationId.Value)
+            throw new InvalidOperationException("Append metadata does not match its organization.");
         if (aggregate.State is null)
         {
             throw new InvalidOperationException("Cannot append an empty Stock Position.");
         }
-
-        string? traceId = Activity.Current?.TraceId.ToString();
-        var metadata = new StockPositionEventMetadata(
-            organizationId.Value,
-            actorUserId.Value,
-            traceId,
-            CausationId: null,
-            traceId
-        );
 
         if (aggregate.ExpectedVersion == 0)
         {

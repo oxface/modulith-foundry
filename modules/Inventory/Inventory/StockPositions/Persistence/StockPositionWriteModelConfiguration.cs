@@ -53,6 +53,11 @@ internal sealed class StockPositionWriteModelConfiguration
         position.Property(entity => entity.Version).HasColumnName("version").IsConcurrencyToken();
         position.Property(entity => entity.UpdatedAt).HasColumnName("updated_at");
         position
+            .Property(entity => entity.Reservations)
+            .HasColumnName("reservations")
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb");
+        position
             .HasIndex(entity => new
             {
                 entity.OrganizationId,

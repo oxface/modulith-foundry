@@ -100,6 +100,10 @@ internal sealed class StockPositionProjectionRebuilder(
             && current.OnHandQuantity == state.OnHand.Value
             && current.ReservedQuantity == state.Reserved.Value
             && current.AvailableQuantity == state.Available.Value
+            && System.Text.Json.JsonElement.DeepEquals(
+                current.Reservations,
+                System.Text.Json.JsonSerializer.SerializeToElement(state.Reservations ?? [])
+            )
             && current.Version == stream.Version
             && current.UpdatedAt == recordedAt;
         if (current is null)

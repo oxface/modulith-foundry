@@ -4,6 +4,22 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions;
 
 internal static class StockPositionDecider
 {
+    internal static IReadOnlyList<IStockPositionEvent> DecideReservation(
+        StockPositionState? state,
+        Guid reservationId,
+        Guid operationId,
+        Quantity quantity
+    )
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(reservationId, Guid.Empty);
+        ArgumentOutOfRangeException.ThrowIfEqual(operationId, Guid.Empty);
+        if (state is null || state.Available.Value < quantity.Value)
+            return [];
+        if (state.Reservations?.Any(reservation => reservation.OperationId == operationId) is true)
+            throw new InvalidOperationException("Reservation operation has already been applied.");
+        return [new StockReserved(reservationId, operationId, quantity.Value)];
+    }
+
     internal static IReadOnlyList<IStockPositionEvent> DecideCorrection(
         StockPositionState state,
         Quantity onHand,

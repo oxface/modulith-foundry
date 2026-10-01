@@ -21,6 +21,8 @@ These conventions keep module code navigable without introducing a mediator, gen
 
 ## Commands and queries
 
+Broker ingress lives in a concrete module-owned messaging adapter, named `{Command}MessageHandler`. It owns Rebus interfaces, ambient message headers, envelope matching and transport/host cancellation. It calls the ordinary application handler with a typed input and cancellation token; the application handler retains payload/business validation and its transaction without reading `MessageContext`. Do not introduce a generic envelope/pipeline library until repeated real adapters justify extraction. Producer headers are consistency checks, not authentication.
+
 Use pragmatic CQRS inside each module: writes and reads may share the module's database and DbContext, but their code and models have different responsibilities.
 
 - One command handler executes one application operation and normally owns its transaction. Name it `{Verb}{Noun}Handler` and place it with that vertical operation, for example `CreateOrganization/CreateOrganizationHandler`.
@@ -52,6 +54,7 @@ Prefer a precise domain term over any suffix in this table.
 ## Reusable EF queries
 
 - Module DbContexts expose internal, meaningfully named `DbSet` properties for mapped aggregate roots, technical records, and entities queried directly by projections. Module code uses those properties instead of ad hoc `Set<T>()`; this is a navigability convention, not an authorization boundary.
+- Separate DbSet properties with a blank line. CSharpier checks and preserves layout but does not insert this member separation automatically; the pre-commit formatter check is not a substitute for this readability convention.
 - Do not expose a child entity as a `DbSet` merely to mutate it independently. Querying a child table directly for a read projection is allowed when aggregate hydration would add no value.
 - Extract reusable semantic predicates as internal `IQueryable<T>` extensions named `{Subject}QueryExtensions`, such as `Active`, `AccessibleTo`, or `Available`.
 - Keep trivial one-off comparisons inline. A wrapper must add domain meaning or prevent meaningful rule duplication.

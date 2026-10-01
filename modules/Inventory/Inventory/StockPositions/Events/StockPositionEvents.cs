@@ -18,3 +18,10 @@ internal sealed record StockQuantityCorrected(
     [property: JsonRequired] decimal OnHandQuantity,
     [property: JsonRequired] string Reason
 ) : IStockPositionEvent;
+
+[StoredEventType("inventory.stock-position.reserved", 1)]
+internal sealed record StockReserved(
+    [property: JsonRequired] Guid ReservationId,
+    [property: JsonRequired] Guid OperationId,
+    [property: JsonRequired] decimal Quantity
+) : IStockPositionEvent;

@@ -31,6 +31,16 @@ IResourceBuilder<RedisResource> redis = builder
     .WithImageTag("8.2.10")
     .WithDataVolume();
 
+IResourceBuilder<ParameterResource> rabbitmqPassword = builder.AddParameter(
+    "rabbitmq-password",
+    secret: true
+);
+IResourceBuilder<RabbitMQServerResource> rabbitmq = builder
+    .AddRabbitMQ("rabbitmq", password: rabbitmqPassword, port: 55673)
+    .WithManagementPlugin(port: 55672)
+    .WithImageTag("4.3.6-management")
+    .WithDataVolume();
+
 IResourceBuilder<KeycloakResource> keycloak = builder
     .AddKeycloak("keycloak", 58080, adminPassword: keycloakPassword)
     .WithImageTag("26.7.4")
@@ -56,6 +66,7 @@ IResourceBuilder<ProjectResource> api = builder
     .AddProject<Projects.ModulithFoundry_Api>("api")
     .WithReference(database)
     .WithReference(redis)
+    .WithReference(rabbitmq)
     .WithReference(keycloak)
     .WithEnvironment(
         "Authentication__Oidc__Authority",
@@ -81,6 +92,7 @@ IResourceBuilder<ProjectResource> api = builder
     .WithHttpsEndpoint(port: 5443, name: "https")
     .WaitForCompletion(migrator)
     .WaitFor(redis)
+    .WaitFor(rabbitmq)
     .WaitFor(keycloak)
     .WaitFor(mailpit)
     .WithHttpHealthCheck("/health");

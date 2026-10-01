@@ -18,6 +18,7 @@ builder.Services.AddAccessApi();
 
 builder.Services.AddAccessModule(builder.Configuration);
 builder.Services.AddInventoryModule();
+builder.Host.AddInventoryMessaging(builder.Configuration);
 builder.Services.AddPurchasingModule();
 builder.Services.AddSalesModule();
 

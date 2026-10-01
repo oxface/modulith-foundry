@@ -34,4 +34,5 @@ internal enum StockPositionIntegrityFailure
     RecordedTimeRegression = 8,
     StreamMissing = 9,
     WriteModelIdentityMismatch = 10,
+    WriteModelUnreadable = 11,
 }

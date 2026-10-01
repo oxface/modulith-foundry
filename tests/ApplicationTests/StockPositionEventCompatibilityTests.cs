@@ -132,6 +132,27 @@ public sealed class StockPositionEventCompatibilityTests
         Assert.Empty(aggregate.UncommittedEvents);
     }
 
+    [Fact]
+    public void ReadPersistedReservationFixture_ReconstructsReservationIdentityAndQuantity()
+    {
+        Guid streamId = Guid.NewGuid();
+        StockPositionAggregate aggregate = StockPositionAggregate.Rehydrate(
+            streamId,
+            [
+                ReadFixture("opened.v1.json", streamId, 1),
+                ReadFixture("received.v1.json", streamId, 2),
+                ReadFixture("reserved.v1.json", streamId, 3),
+            ]
+        );
+
+        Assert.Equal(4m, aggregate.State!.Reserved.Value);
+        Assert.Equal(6.125m, aggregate.State.Available.Value);
+        StockReservationState reservation = Assert.Single(aggregate.State.Reservations!);
+        Assert.Equal(Guid.Parse("33333333-3333-3333-3333-333333333333"), reservation.ReservationId);
+        Assert.Equal(Guid.Parse("44444444-4444-4444-4444-444444444444"), reservation.OperationId);
+        Assert.Empty(aggregate.UncommittedEvents);
+    }
+
     private static IStockPositionEvent ReadFixture(string fileName, Guid streamId, long version)
     {
         string path = Path.Combine(

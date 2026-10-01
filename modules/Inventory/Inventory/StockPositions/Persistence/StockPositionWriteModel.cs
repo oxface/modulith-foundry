@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
@@ -54,14 +55,32 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
 
     internal DateTimeOffset UpdatedAt { get; private set; }
 
-    internal StockPositionState ToState() =>
-        new(
-            StockItemId,
-            StockingLocationId,
-            BaseUnitCode,
-            Quantity.Restore(OnHandQuantity),
-            Quantity.Restore(ReservedQuantity)
-        );
+    internal JsonElement Reservations { get; private set; } =
+        JsonSerializer.SerializeToElement(Array.Empty<StockReservationState>());
+
+    internal StockPositionState ToState()
+    {
+        try
+        {
+            return new(
+                StockItemId,
+                StockingLocationId,
+                BaseUnitCode,
+                Quantity.Restore(OnHandQuantity),
+                Quantity.Restore(ReservedQuantity),
+                Reservations.Deserialize<StockReservationState[]>() ?? []
+            );
+        }
+        catch (JsonException exception)
+        {
+            throw new StockPositionIntegrityException(
+                StreamId,
+                StockPositionIntegrityFailure.WriteModelUnreadable,
+                observedVersion: Version,
+                innerException: exception
+            );
+        }
+    }
 
     internal static StockPositionWriteModel Create(
         Guid streamId,
@@ -70,7 +89,7 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
         long version,
         DateTimeOffset updatedAt
     ) =>
-        new(
+        new StockPositionWriteModel(
             streamId,
             organizationId,
             state.StockItemId,
@@ -81,7 +100,10 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
             state.Available.Value,
             version,
             updatedAt
-        );
+        )
+        {
+            Reservations = JsonSerializer.SerializeToElement(state.Reservations ?? []),
+        };
 
     internal void Update(StockPositionState state, long version, DateTimeOffset updatedAt)
     {
@@ -98,6 +120,7 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
         AvailableQuantity = state.Available.Value;
         Version = version;
         UpdatedAt = updatedAt;
+        Reservations = JsonSerializer.SerializeToElement(state.Reservations ?? []);
     }
 
     internal void Restore(StockPositionState state, long version, DateTimeOffset updatedAt)

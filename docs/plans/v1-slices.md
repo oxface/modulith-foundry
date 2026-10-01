@@ -268,6 +268,11 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** PostgreSQL/Topology/Broker tests prove full-line reserve/shortage, duplicate message ID, repeated business-operation ID under a new message ID, conflicting operation reuse, concurrent reservation, handler crash before/after commit, relay crash after publish, redelivery, and Inventory-only poison/error routing.
 
+**Review-sized delivery:**
+
+- **5.1a — Receiver and failure windows:** real RabbitMQ/Rebus composition, module-owned inbox/semantic-operation/outbox persistence, atomic event-source reservation, publisher-confirmed relay, broker-seam tests and a CI lane. Inject failures before commit, after commit before ACK, and after publish before dispatch marking; verify rollback, redelivery and expired-lease recovery. These deterministic probes are not abrupt process termination.
+- **5.1b — Abrupt restart proof:** run the actual receiver in a disposable process, terminate at controlled pre/post-commit and post-publish boundaries, restart against retained PostgreSQL/RabbitMQ and prove one stock effect with stable outgoing identity. Keep this acceptance item open rather than substituting graceful restart or injected exceptions. Replica isolation/shutdown/reconciliation remain in the broader 5.6 matrix.
+
 ### Increment 5.2 — Sales Order Fulfilment Process round trip
 
 **Outcome:** approving an order durably sends one reservation command per line and Sales records independent reservation/shortage outcomes until the process reaches its correct aggregate status.
@@ -278,7 +283,7 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 - Have approval atomically create process state and outbox commands; do not publish from an in-memory post-commit handler.
 - Start any existing `pending-dispatch` processes from Increment 4.2c through the same idempotent command-enqueue path; introducing the broker must not strand already-approved orders.
 - Keep process transitions explicit in Sales application code and persist them with inbox, audit/activity, deadlines, and outgoing messages.
-- Compare the two real inbox/outbox implementations; extract only identical EF/Rebus mechanics in a dedicated behavior-preserving change if the deletion test justifies it.
+- Compare and record the two real inbox/outbox implementations. Any justified extraction of shared EF/Rebus mechanics is a separate review-sized increment after the round trip is proven, never bundled into the feature increment; apply the deletion test before adding a library.
 
 **Acceptance:** multi-line tests prove all-reserved, mixed reserved/shortage, out-of-order/duplicate/concurrent outcomes, restart, stale/foreign tenant messages, no hidden API workflow, and correct process/activity state.
 

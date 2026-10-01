@@ -97,6 +97,21 @@ internal sealed class StockPositionAggregate
         );
     }
 
+    internal bool TryReserve(Guid reservationId, Guid operationId, decimal quantity)
+    {
+        Quantity requested = Quantity.Positive(quantity);
+        IReadOnlyList<IStockPositionEvent> decision = StockPositionDecider.DecideReservation(
+            State,
+            reservationId,
+            operationId,
+            requested
+        );
+        if (decision.Count == 0)
+            return false;
+        AcceptDecision(decision);
+        return true;
+    }
+
     private void ApplyHistorical(IStockPositionEvent @event)
     {
         State = StockPositionEvolution.Evolve(State, @event);

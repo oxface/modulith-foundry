@@ -19,6 +19,15 @@ internal static class StockPositionEvolution
             {
                 OnHand = Quantity.Restore(corrected.OnHandQuantity),
             },
+            StockReserved reserved when state is not null => state with
+            {
+                Reserved = state.Reserved.ApplyRecordedIncrease(reserved.Quantity),
+                Reservations =
+                [
+                    .. state.Reservations ?? [],
+                    new(reserved.ReservationId, reserved.OperationId, reserved.Quantity),
+                ],
+            },
             _ => throw new InvalidOperationException(
                 $"Event '{@event.GetType().Name}' is invalid for the current Stock Position state."
             ),

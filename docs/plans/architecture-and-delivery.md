@@ -410,7 +410,7 @@ Do not split command and event queues in v1. Add a separate endpoint only when m
 
 Rebus module endpoints use independent `AddRebusService` providers rather than several keyed buses sharing the application provider: keyed buses do not isolate compatible handler resolution. Stable module queue names provide a useful extraction seam, but extraction still requires redesigning synchronous dependencies and bootstrapping/reconciling a new consumer's current state.
 
-**Decision:** use Rebus core 8.9.4 with its RabbitMQ transport locally and Azure Service Bus transport in Azure, subject to the mandatory failure/compatibility proofs. Do not use Rebus saga or PostgreSQL outbox persistence merely because Rebus is selected for transport. Rebus.PostgreSql 9.1.1 has an unresolved 2026 report concerning outbox transaction ordering/current .NET compatibility, so the baseline is a narrow application-owned EF outbox and inbox. Do not adopt the archived third-party `Rebus.Outbox` package as a workaround.
+**Decision:** use Rebus core 8.9.5 with its RabbitMQ transport locally and Azure Service Bus transport in Azure, subject to the mandatory failure/compatibility proofs. The Slice 5 entry-point [version/source audit](../research/2026-10-01-inventory-messaging.md) selects the error-forwarding failure fix in 8.9.5. Do not use Rebus saga or PostgreSQL outbox persistence merely because Rebus is selected for transport. Rebus.PostgreSql 9.1.1 has an unresolved 2026 report concerning outbox transaction ordering/current .NET compatibility, so the baseline is a narrow application-owned EF outbox and inbox. Do not adopt the archived third-party `Rebus.Outbox` package as a workaround.
 
 **Risk:** an outbox plus Rebus transport creates two durable queues. The design must assign ownership and deletion/recovery semantics clearly and avoid redundant layers.
 
@@ -646,7 +646,7 @@ Versions here are the researched stable baseline as of 2026-09-23, not floating 
 | Mailpit | 1.31.2 | MIT | Local/test only; pin image version/digest |
 | Redis | 8.2.10 extended line | AGPLv3 selected from Redis 8's tri-license | Adopt locally for BFF tickets only; product-data caching remains deferred |
 | RabbitMQ | 4.3.6 | MPL-2.0 | Adopt for local acknowledgement/redelivery/fan-out failure tests; keep an active upgrade cadence |
-| Rebus core / ServiceProvider / RabbitMQ / Azure Service Bus | 8.9.4 / 10.7.2 / 10.1.1 / 10.7.1 | MIT | Adopt only when Slice 5 begins; recheck package compatibility then |
+| Rebus core / ServiceProvider / RabbitMQ / Azure Service Bus | 8.9.5 / 10.7.2 / 10.1.1 / 10.7.1 | MIT | RabbitMQ endpoint enters in 5.1; Azure transport remains deferred pending compatibility proof |
 | ArchUnitNET | 0.13.4 | Apache-2.0 | Adopt and pin; active and expressive, but pre-1.0 |
 | Testcontainers for .NET | 4.15.0 | MIT | Adopt for focused real-infrastructure integration tests |
 | OpenTelemetry .NET | 1.18.0 | Apache-2.0 | Adopt through the repository-owned Service Defaults project |

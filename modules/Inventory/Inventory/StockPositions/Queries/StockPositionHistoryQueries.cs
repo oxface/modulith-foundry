@@ -97,6 +97,12 @@ internal sealed class StockPositionHistoryQueries(
                 corrected.OnHandQuantity,
                 corrected.Reason
             ),
+            StockReserved reserved => new(
+                stored.StreamVersion,
+                stored.RecordedAt,
+                StockPositionHistoryAction.Reserved,
+                reserved.Quantity
+            ),
             _ => throw new StockPositionIntegrityException(
                 stored.StreamId,
                 StockPositionIntegrityFailure.UnknownEvent,

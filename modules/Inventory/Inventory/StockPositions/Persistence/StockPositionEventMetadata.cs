@@ -4,10 +4,11 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
 internal sealed record StockPositionEventMetadata(
     Guid OrganizationId,
-    Guid ActorUserId,
+    Guid? ActorUserId,
     string? CorrelationId,
     string? CausationId,
-    string? TraceId
+    string? TraceId,
+    string? SystemActor = null
 )
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(
