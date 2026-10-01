@@ -49,7 +49,13 @@ internal sealed class ReservationFixture : IAsyncDisposable
             []
         );
 
-    internal static async Task<ReservationFixture> StartAsync()
+    internal CancellationToken CancellationToken => timeout.Token;
+
+    internal string DatabaseConnectionString => postgres.GetConnectionString();
+
+    internal string BrokerConnectionString => rabbit.GetConnectionString();
+
+    internal static async Task<ReservationFixture> StartAsync(bool startReceiver = true)
     {
         var fixture = new ReservationFixture();
         fixture.timeout.CancelAfter(TimeSpan.FromSeconds(90));
@@ -154,7 +160,8 @@ internal sealed class ReservationFixture : IAsyncDisposable
                 })
                 .Build();
             await fixture.observer.StartAsync(fixture.timeout.Token);
-            await fixture.receiver.StartAsync(fixture.timeout.Token);
+            if (startReceiver)
+                await fixture.receiver.StartAsync(fixture.timeout.Token);
             return fixture;
         }
         catch

@@ -15,6 +15,14 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../modules/Inventory/Inventory/Inventory.csproj" />
+    <ProjectReference Include="../BrokerReceiver/BrokerReceiver.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
+  <Target Name="CopyBrokerReceiverRuntimeFiles" AfterTargets="Build">
+    <ItemGroup>
+      <ReceiverRuntimeFile Include="../BrokerReceiver/bin/$(Configuration)/$(TargetFramework)/BrokerReceiver.runtimeconfig.json" />
+      <ReceiverRuntimeFile Include="../BrokerReceiver/bin/$(Configuration)/$(TargetFramework)/BrokerReceiver.deps.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ReceiverRuntimeFile)" DestinationFolder="$(OutDir)" />
+  </Target>
 </Project>

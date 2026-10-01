@@ -1,0 +1,125 @@
+using System.Diagnostics;
+using System.Threading.Channels;
+using ModulithFoundry.BrokerReceiver;
+using Npgsql;
+
+namespace ModulithFoundry.BrokerTests;
+
+internal sealed class ReceiverProcess : IAsyncDisposable
+{
+    private readonly Process process;
+    private readonly Channel<string> signals = Channel.CreateUnbounded<string>();
+    private readonly Task output;
+    private readonly Task<string> errors;
+
+    private ReceiverProcess(Process process, string applicationName)
+    {
+        this.process = process;
+        ApplicationName = applicationName;
+        errors = process.StandardError.ReadToEndAsync();
+        output = ReadSignalsAsync();
+    }
+
+    internal string ApplicationName { get; }
+
+    internal static async Task<ReceiverProcess> StartAsync(
+        ReservationFixture fixture,
+        bool pauseAfterCommit = false
+    )
+    {
+        string applicationName = $"receiver-test-{Guid.NewGuid():N}";
+        var database = new NpgsqlConnectionStringBuilder(fixture.DatabaseConnectionString)
+        {
+            ApplicationName = applicationName,
+            // Do not release a test SQL barrier before PostgreSQL detects the dead client.
+            Options = "-c client_connection_check_interval=100ms",
+        };
+        var start = new ProcessStartInfo("dotnet")
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        start.ArgumentList.Add("exec");
+        start.ArgumentList.Add(typeof(ReceiverProcessMarker).Assembly.Location);
+        // Credentials travel through the private child environment, never CLI arguments or signals.
+        start.Environment["ConnectionStrings__database"] = database.ConnectionString;
+        start.Environment["ConnectionStrings__rabbitmq"] = fixture.BrokerConnectionString;
+        start.Environment["ReceiverTest__PauseAfterCommit"] = pauseAfterCommit ? "true" : "false";
+        var child = new ReceiverProcess(
+            Process.Start(start)
+                ?? throw new InvalidOperationException("Could not start the test receiver."),
+            applicationName
+        );
+        try
+        {
+            await child.WaitForSignalAsync("ready", fixture.CancellationToken);
+            return child;
+        }
+        catch
+        {
+            await child.DisposeAsync();
+            throw;
+        }
+    }
+
+    internal async Task WaitForSignalAsync(string signal, CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (await signals.Reader.ReadAsync(cancellationToken) != signal) { }
+        }
+        catch (ChannelClosedException exception)
+        {
+            string diagnostics = await errors.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                cancellationToken
+            );
+            throw new InvalidOperationException(
+                $"Receiver exited before '{signal}'. {diagnostics}",
+                exception
+            );
+        }
+    }
+
+    private async Task ReadSignalsAsync()
+    {
+        try
+        {
+            while (await process.StandardOutput.ReadLineAsync() is { } line)
+                await signals.Writer.WriteAsync(line);
+        }
+        finally
+        {
+            signals.Writer.TryComplete();
+        }
+    }
+
+    internal async Task KillAsync()
+    {
+        Assert.False(
+            process.HasExited,
+            "The receiver must still be running at the controlled crash boundary."
+        );
+        process.Kill(entireProcessTree: true);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await process.WaitForExitAsync(timeout.Token);
+        Assert.NotEqual(0, process.ExitCode);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!process.HasExited)
+            process.Kill(entireProcessTree: true);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+            await Task.WhenAll(output, errors).WaitAsync(timeout.Token);
+        }
+        finally
+        {
+            process.Dispose();
+        }
+    }
+}
