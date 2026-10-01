@@ -225,6 +225,11 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** domain/application/PostgreSQL/contract tests prove positive quantity, monetary rules, inactive/foreign/missing item rejection, one batched lookup, immutable snapshots, number-race handling, tenant isolation, permissions, and audit.
 
+**Review-sized delivery:**
+
+- **4.1a — Customer creation and lookup:** minimal state-stored Customer, organization-unique stable user-supplied code, Sales-owned Contracts/authorization/audit/persistence, and authenticated organization-scoped HTTP adapters. PostgreSQL tests cover validation, uniqueness/concurrent creation, tenancy, permission/context denial and audit rollback; the topology lane covers the HTTP path, CSRF and current role revocation. No draft order or Inventory dependency in this checkpoint.
+- **4.1b — Draft Sales Order:** aggregate-owned lines, one batched Inventory contract lookup, immutable line snapshots, quantity/money/currency rules and short organization-scoped order numbering. No submit/approve transition or broker yet.
+
 ### Increment 4.2 — Submit, approval authority, and activity
 
 **Outcome:** a Sales Clerk submits a valid order and a different authorized member approves it within current Sales-owned authority.

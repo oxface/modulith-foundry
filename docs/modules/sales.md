@@ -29,6 +29,7 @@ User-facing commands:
 
 Queries:
 
+- get a Customer by its Organization-scoped stable code;
 - get an Organization-scoped Sales Order by its short business order number;
 - list the limited order set needed by the exercise UI;
 - get fulfilment status and a curated activity timeline.
@@ -43,6 +44,8 @@ No Sales integration event is published in v1 without an actual consumer. Starti
 
 ## Invariants
 
+- A Customer has one immutable user-supplied code unique within its Organization and a required display name. The reference creation flow canonicalizes codes to uppercase ASCII (1–64 letters/digits, hyphens, underscores or periods; first character alphanumeric), trims names (1–200 characters) and rejects name control characters. Codes identify HTTP resources; customer names need not be unique.
+- Customer creation and its success audit commit together. Current actor/Organization context and `sales.customers.manage` are required for creation and administrative lookup; Organization Administrator alone does not grant Sales permissions. The v1 Customer proof deliberately excludes addresses, contacts, editing and lifecycle operations.
 - A draft belongs to one Organization and Customer and contains at least one line before submission.
 - Each line has a positive quantity and money expressed in the order's single currency.
 - Submitted line snapshots do not change when an Inventory description changes later.

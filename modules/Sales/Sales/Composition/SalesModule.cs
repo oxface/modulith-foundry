@@ -1,6 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Sales.Authorization;
 using ModulithFoundry.Modules.Sales.Contracts;
+using ModulithFoundry.Modules.Sales.Customers;
+using ModulithFoundry.Modules.Sales.Customers.CreateCustomer;
+using ModulithFoundry.Modules.Sales.Customers.Queries;
 using ModulithFoundry.Modules.Sales.Persistence;
 using Npgsql;
 
@@ -12,12 +18,18 @@ public static class SalesModule
     {
         services.AddSalesPersistence();
         services.AddSingleton(SalesAuthorizationManifest.Instance);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<SalesRequestAuthorization>();
+        services.AddScoped<CreateCustomerHandler>();
+        services.AddScoped<CustomerQueries>();
+        services.AddScoped<ICustomerAdministration, CustomerAdministration>();
 
         return services;
     }
 
     public static IServiceCollection AddSalesPersistence(this IServiceCollection services)
     {
+        services.TryAddScoped<IOrganizationContextAccessor, UnresolvedOrganizationContextAccessor>();
         services.AddDbContext<SalesDbContext>((serviceProvider, options) =>
             options.UseNpgsql(serviceProvider.GetRequiredService<NpgsqlDataSource>(), postgres =>
             {

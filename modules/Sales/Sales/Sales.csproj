@@ -19,5 +19,6 @@
   <ItemGroup>
     <ProjectReference Include="../../Access/Access.Contracts/Access.Contracts.csproj" />
     <ProjectReference Include="../Sales.Contracts/Sales.Contracts.csproj" />
+    <ProjectReference Include="../../../shared/Persistence/ModulithFoundry.Persistence.csproj" />
   </ItemGroup>
 </Project>
