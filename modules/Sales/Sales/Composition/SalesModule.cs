@@ -12,6 +12,7 @@ using ModulithFoundry.Modules.Sales.Customers;
 using ModulithFoundry.Modules.Sales.Customers.CreateCustomer;
 using ModulithFoundry.Modules.Sales.Customers.Queries;
 using ModulithFoundry.Modules.Sales.Fulfilment.Queries;
+using ModulithFoundry.Modules.Sales.Fulfilment.QueuePendingFulfilment;
 using ModulithFoundry.Modules.Sales.Orders;
 using ModulithFoundry.Modules.Sales.Orders.ApproveSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
@@ -39,6 +40,7 @@ public static class SalesModule
         services.AddScoped<SubmitSalesOrderHandler>();
         services.AddScoped<ISalesOrderApproval, ApproveSalesOrderHandler>();
         services.AddScoped<OrderFulfilmentQueries>();
+        services.AddScoped<QueuePendingFulfilmentHandler>();
         services.AddScoped<SalesOrderQueries>();
         services.AddScoped<ISalesOrderOperations, SalesOrderOperations>();
         services.AddScoped<SetSalesApprovalAuthorityHandler>();

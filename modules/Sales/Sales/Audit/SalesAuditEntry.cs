@@ -16,7 +16,7 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
     private SalesAuditEntry(
         Guid id,
         Guid organizationId,
-        Guid actorUserId,
+        Guid? actorUserId,
         string action,
         string subjectType,
         Guid subjectId,
@@ -44,7 +44,9 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
 
     public Guid OrganizationId { get; private set; }
 
-    internal Guid ActorUserId { get; private set; }
+    internal Guid? ActorUserId { get; private set; }
+
+    internal string? SystemActor { get; private set; }
 
     internal string Action { get; private set; }
 
@@ -85,6 +87,31 @@ internal sealed class SalesAuditEntry : IOrganizationOwned
             JsonSerializer.SerializeToElement(details),
             occurredAt
         );
+
+    internal static SalesAuditEntry WorkflowDecision(
+        Guid organizationId,
+        string action,
+        Guid processId,
+        string outcome,
+        string? reasonCode,
+        object details,
+        DateTimeOffset occurredAt
+    ) =>
+        new(
+            Guid.CreateVersion7(occurredAt),
+            organizationId,
+            null,
+            action,
+            SalesAuditSubjectTypes.OrderFulfilmentProcess,
+            processId,
+            outcome,
+            reasonCode,
+            JsonSerializer.SerializeToElement(details),
+            occurredAt
+        )
+        {
+            SystemActor = Fulfilment.OrderFulfilmentProcess.SystemActor,
+        };
 
     internal static SalesAuditEntry PermissionDenied(
         Guid organizationId,

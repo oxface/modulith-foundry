@@ -462,15 +462,17 @@ public sealed partial class SalesOrderPersistenceTests
         );
         services.AddInventoryModule();
         ServiceDescriptor references = services.Single(descriptor =>
-            descriptor.ServiceType == typeof(IStockItemReferences)
+            descriptor.ServiceType == typeof(IStockItemReferenceResolver)
         );
         services.Remove(references);
         services.AddSingleton<TestReferenceCalls>();
-        services.AddScoped<IStockItemReferences>(provider => new CountingStockItemReferences(
-            (IStockItemReferences)
-                ActivatorUtilities.CreateInstance(provider, references.ImplementationType!),
-            provider.GetRequiredService<TestReferenceCalls>()
-        ));
+        services.AddScoped<IStockItemReferenceResolver>(
+            provider => new CountingStockItemReferenceResolver(
+                (IStockItemReferenceResolver)
+                    ActivatorUtilities.CreateInstance(provider, references.ImplementationType!),
+                provider.GetRequiredService<TestReferenceCalls>()
+            )
+        );
         services.AddSalesModule();
         ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         await provider.MigrateInventoryAsync(TestContext.Current.CancellationToken);
@@ -563,10 +565,10 @@ public sealed partial class SalesOrderPersistenceTests
             new();
     }
 
-    private sealed class CountingStockItemReferences(
-        IStockItemReferences inner,
+    private sealed class CountingStockItemReferenceResolver(
+        IStockItemReferenceResolver inner,
         TestReferenceCalls calls
-    ) : IStockItemReferences
+    ) : IStockItemReferenceResolver
     {
         public Task<StockItemReferenceResolution> ResolveAsync(
             OrganizationId organizationId,

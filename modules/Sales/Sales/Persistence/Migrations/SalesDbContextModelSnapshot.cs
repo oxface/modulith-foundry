@@ -80,7 +80,7 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("action");
 
-                    b.Property<Guid>("ActorUserId")
+                    b.Property<Guid?>("ActorUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
 
@@ -124,6 +124,11 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("subject_type");
+
+                    b.Property<string>("SystemActor")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("system_actor");
 
                     b.HasKey("Id").HasName("pk_audit_entries");
 
@@ -182,6 +187,10 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
 
                     b.Property<Guid>("OrderId").HasColumnType("uuid").HasColumnName("order_id");
 
+                    b.Property<long>("OrderNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("order_number");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
@@ -191,6 +200,15 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("status");
+
+                    b.Property<Guid?>("StockingLocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("stocking_location_id");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
 
                     b.HasKey("Id").HasName("pk_fulfilment_processes");
 
@@ -205,12 +223,90 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
             );
 
             modelBuilder.Entity(
+                "ModulithFoundry.Modules.Sales.Messaging.Persistence.SalesInboxReceipt",
+                b =>
+                {
+                    b.Property<Guid>("MessageId").HasColumnType("uuid").HasColumnName("message_id");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.HasKey("MessageId").HasName("pk_inbox_receipts");
+
+                    b.ToTable("inbox_receipts", "sales");
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Sales.Messaging.Persistence.SalesOutboxMessage",
+                b =>
+                {
+                    b.Property<Guid>("MessageId").HasColumnType("uuid").HasColumnName("message_id");
+
+                    b.Property<int>("Attempts").HasColumnType("integer").HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("AvailableAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("available_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dispatched_at");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_token");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("message_type");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<JsonElement>("Payload")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.HasKey("MessageId").HasName("pk_outbox_messages");
+
+                    b.HasIndex("AvailableAt")
+                        .HasDatabaseName("ix_outbox_messages_pending")
+                        .HasFilter("dispatched_at IS NULL");
+
+                    b.ToTable("outbox_messages", "sales");
+                }
+            );
+
+            modelBuilder.Entity(
                 "ModulithFoundry.Modules.Sales.Orders.Activity.SalesOrderActivity",
                 b =>
                 {
                     b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
-                    b.Property<Guid>("ActorUserId")
+                    b.Property<Guid?>("ActorUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
 
@@ -219,6 +315,10 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("kind");
+
+                    b.Property<int?>("LineNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_number");
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone")
@@ -233,6 +333,15 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<long?>("ProcessVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("process_version");
+
+                    b.Property<string>("SystemActor")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("system_actor");
 
                     b.HasKey("Id").HasName("pk_order_activity");
 
@@ -345,6 +454,93 @@ namespace ModulithFoundry.Modules.Sales.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_fulfilment_processes_orders");
+
+                    b.OwnsMany(
+                        "ModulithFoundry.Modules.Sales.Fulfilment.OrderFulfilmentLine",
+                        "Lines",
+                        b1 =>
+                        {
+                            b1.Property<Guid>("process_id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("process_id");
+
+                            b1.Property<int>("LineNumber")
+                                .HasColumnType("integer")
+                                .HasColumnName("line_number");
+
+                            b1.Property<int>("AttemptCount")
+                                .HasColumnType("integer")
+                                .HasColumnName("attempt_count");
+
+                            b1.Property<decimal?>("AvailableQuantity")
+                                .HasPrecision(19, 6)
+                                .HasColumnType("numeric(19,6)")
+                                .HasColumnName("available_quantity");
+
+                            b1.Property<string>("BaseUnitCode")
+                                .IsRequired()
+                                .HasMaxLength(16)
+                                .HasColumnType("character varying(16)")
+                                .HasColumnName("base_unit_code");
+
+                            b1.Property<Guid>("CommandMessageId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("command_message_id");
+
+                            b1.Property<Guid>("OperationId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("operation_id");
+
+                            b1.Property<string>("OutcomeFingerprint")
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)")
+                                .HasColumnName("outcome_fingerprint");
+
+                            b1.Property<decimal>("Quantity")
+                                .HasPrecision(19, 6)
+                                .HasColumnType("numeric(19,6)")
+                                .HasColumnName("quantity");
+
+                            b1.Property<string>("ReasonCode")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("reason_code");
+
+                            b1.Property<Guid?>("ReservationId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("reservation_id");
+
+                            b1.Property<DateTimeOffset?>("ResponseDeadline")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("response_deadline");
+
+                            b1.Property<string>("Status")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("character varying(32)")
+                                .HasColumnName("status");
+
+                            b1.Property<Guid>("StockItemId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("stock_item_id");
+
+                            b1.HasKey("process_id", "LineNumber").HasName("pk_fulfilment_lines");
+
+                            b1.HasIndex("CommandMessageId")
+                                .IsUnique()
+                                .HasDatabaseName("ux_fulfilment_lines_command");
+
+                            b1.HasIndex("OperationId")
+                                .IsUnique()
+                                .HasDatabaseName("ux_fulfilment_lines_operation");
+
+                            b1.ToTable("fulfilment_lines", "sales");
+
+                            b1.WithOwner().HasForeignKey("process_id");
+                        }
+                    );
+
+                    b.Navigation("Lines");
                 }
             );
 

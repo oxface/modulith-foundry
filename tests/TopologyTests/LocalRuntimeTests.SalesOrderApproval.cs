@@ -20,7 +20,7 @@ public sealed partial class LocalRuntimeTests
     private static readonly string[] NonApproverRoleIds = ["sales-clerk"];
 
     [Fact]
-    public async Task SalesOrderApproval_IndependentAuthenticatedMember_ApprovesAndReadsPendingFulfilment()
+    public async Task SalesOrderApproval_IndependentAuthenticatedMember_CompletesReservationRoundTrip()
     {
         using var timeout = new CancellationTokenSource(StartupTimeout);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
@@ -145,6 +145,24 @@ public sealed partial class LocalRuntimeTests
             await item.Content.ReadAsStringAsync(timeout.Token)
         );
         Guid stockItemId = itemJson.RootElement.GetProperty("stockItemId").GetGuid();
+        using HttpResponseMessage location = await SendCommandAsync(
+            alice,
+            HttpMethod.Post,
+            root + "/inventory/locations",
+            aliceCsrf,
+            new { code = "main", name = "Main" },
+            timeout.Token
+        );
+        location.EnsureSuccessStatusCode();
+        using HttpResponseMessage receipt = await SendCommandAsync(
+            alice,
+            HttpMethod.Post,
+            root + "/inventory/stock-positions/main/bolt/receipts",
+            aliceCsrf,
+            new { quantity = 10m, expectedVersion = 0 },
+            timeout.Token
+        );
+        receipt.EnsureSuccessStatusCode();
         using HttpResponseMessage draft = await SendCommandAsync(
             alice,
             HttpMethod.Post,
@@ -223,16 +241,43 @@ public sealed partial class LocalRuntimeTests
             approvedJson.RootElement.GetProperty("submittedBy").GetGuid(),
             approvedJson.RootElement.GetProperty("approvedBy").GetGuid()
         );
-        using HttpResponseMessage process = await bob.GetAsync(
-            orderUrl + "/fulfilment",
+        using var reservationTimeout = CancellationTokenSource.CreateLinkedTokenSource(
             timeout.Token
         );
-        process.EnsureSuccessStatusCode();
-        using JsonDocument processJson = JsonDocument.Parse(
-            await process.Content.ReadAsStringAsync(timeout.Token)
+        reservationTimeout.CancelAfter(TimeSpan.FromSeconds(30));
+        while (true)
+        {
+            using HttpResponseMessage process = await bob.GetAsync(
+                orderUrl + "/fulfilment",
+                reservationTimeout.Token
+            );
+            process.EnsureSuccessStatusCode();
+            using JsonDocument processJson = JsonDocument.Parse(
+                await process.Content.ReadAsStringAsync(reservationTimeout.Token)
+            );
+            if (processJson.RootElement.GetProperty("status").GetString() == "reserved")
+            {
+                Assert.Equal(number, processJson.RootElement.GetProperty("orderNumber").GetInt64());
+                Assert.Equal(
+                    "reserved",
+                    Assert
+                        .Single(processJson.RootElement.GetProperty("lines").EnumerateArray())
+                        .GetProperty("status")
+                        .GetString()
+                );
+                break;
+            }
+            await Task.Delay(100, reservationTimeout.Token);
+        }
+        using HttpResponseMessage stock = await alice.GetAsync(
+            root + "/inventory/stock-positions/main/bolt",
+            timeout.Token
         );
-        Assert.Equal("pending-dispatch", processJson.RootElement.GetProperty("status").GetString());
-        Assert.Equal(number, processJson.RootElement.GetProperty("orderNumber").GetInt64());
+        stock.EnsureSuccessStatusCode();
+        using JsonDocument stockJson = JsonDocument.Parse(
+            await stock.Content.ReadAsStringAsync(timeout.Token)
+        );
+        Assert.Equal(2m, stockJson.RootElement.GetProperty("reservedQuantity").GetDecimal());
         using HttpResponseMessage activity = await bob.GetAsync(
             orderUrl + "/activity",
             timeout.Token
@@ -242,7 +287,7 @@ public sealed partial class LocalRuntimeTests
             await activity.Content.ReadAsStringAsync(timeout.Token)
         );
         Assert.Equal(
-            "approved",
+            "stock-reserved",
             activityJson.RootElement.EnumerateArray().Last().GetProperty("kind").GetString()
         );
         using HttpResponseMessage retry = await SendCommandAsync(

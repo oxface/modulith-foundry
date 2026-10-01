@@ -41,7 +41,15 @@ internal sealed class ReceiverProcess : IAsyncDisposable
             RedirectStandardError = true,
         };
         start.ArgumentList.Add("exec");
-        start.ArgumentList.Add(typeof(ReceiverProcessMarker).Assembly.Location);
+        // The independently hosted child needs its own complete dependency set. The test host's
+        // framework references may otherwise prune assemblies required by the child's deps.json.
+        start.ArgumentList.Add(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "receiver",
+                Path.GetFileName(typeof(ReceiverProcessMarker).Assembly.Location)
+            )
+        );
         // Credentials travel through the private child environment, never CLI arguments or signals.
         start.Environment["ConnectionStrings__database"] = database.ConnectionString;
         start.Environment["ConnectionStrings__rabbitmq"] = fixture.BrokerConnectionString;

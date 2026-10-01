@@ -4,7 +4,10 @@ namespace ModulithFoundry.Modules.Sales.Contracts;
 
 public sealed record SalesOrderActivityEntry(
     SalesOrderActivityKind Kind,
-    UserId ActorUserId,
+    UserId? ActorUserId,
     long OrderVersion,
-    DateTimeOffset OccurredAt
+    DateTimeOffset OccurredAt,
+    string? SystemActor = null,
+    long? ProcessVersion = null,
+    int? LineNumber = null
 );

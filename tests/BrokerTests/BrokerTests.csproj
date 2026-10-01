@@ -11,18 +11,24 @@
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.RabbitMq" />
     <PackageReference Include="xunit.v3.mtp-v2" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../../modules/Inventory/Inventory/Inventory.csproj" />
+    <ProjectReference Include="../../modules/Access/Access/Access.csproj" />
+    <ProjectReference Include="../../modules/Sales/Sales/Sales.csproj" />
     <ProjectReference Include="../BrokerReceiver/BrokerReceiver.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
   <Target Name="CopyBrokerReceiverRuntimeFiles" AfterTargets="Build">
     <ItemGroup>
-      <ReceiverRuntimeFile Include="../BrokerReceiver/bin/$(Configuration)/$(TargetFramework)/BrokerReceiver.runtimeconfig.json" />
-      <ReceiverRuntimeFile Include="../BrokerReceiver/bin/$(Configuration)/$(TargetFramework)/BrokerReceiver.deps.json" />
+      <ReceiverRuntimeFile Include="../BrokerReceiver/bin/$(Configuration)/$(TargetFramework)/**/*" />
+      <FileWrites Include="@(ReceiverRuntimeFile->'$(OutDir)receiver/%(RecursiveDir)%(Filename)%(Extension)')" />
     </ItemGroup>
-    <Copy SourceFiles="@(ReceiverRuntimeFile)" DestinationFolder="$(OutDir)" />
+    <Copy
+      SourceFiles="@(ReceiverRuntimeFile)"
+      DestinationFiles="@(ReceiverRuntimeFile->'$(OutDir)receiver/%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true"
+    />
   </Target>
 </Project>

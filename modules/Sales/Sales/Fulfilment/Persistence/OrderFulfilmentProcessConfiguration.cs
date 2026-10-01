@@ -26,6 +26,59 @@ internal sealed class OrderFulfilmentProcessConfiguration
                 value => OrderFulfilmentStatusValues.FromValue(value)
             );
         process.Property(entity => entity.CreatedAt).HasColumnName("created_at");
+        process.Property(entity => entity.Version).HasColumnName("version").IsConcurrencyToken();
+        process.Property(entity => entity.OrderNumber).HasColumnName("order_number");
+        process.Property(entity => entity.StockingLocationId).HasColumnName("stocking_location_id");
+        process.OwnsMany(
+            entity => entity.Lines,
+            line =>
+            {
+                line.ToTable("fulfilment_lines");
+                line.WithOwner().HasForeignKey("process_id");
+                line.Property<Guid>("process_id").HasColumnName("process_id");
+                line.HasKey("process_id", nameof(OrderFulfilmentLine.LineNumber))
+                    .HasName("pk_fulfilment_lines");
+                line.Property(entity => entity.LineNumber)
+                    .HasColumnName("line_number")
+                    .ValueGeneratedNever();
+                line.Property(entity => entity.StockItemId).HasColumnName("stock_item_id");
+                line.Property(entity => entity.Quantity)
+                    .HasColumnName("quantity")
+                    .HasPrecision(19, 6);
+                line.Property(entity => entity.BaseUnitCode)
+                    .HasColumnName("base_unit_code")
+                    .HasMaxLength(16);
+                line.Property(entity => entity.OperationId).HasColumnName("operation_id");
+                line.Property(entity => entity.CommandMessageId)
+                    .HasColumnName("command_message_id");
+                line.Property(entity => entity.Status)
+                    .HasColumnName("status")
+                    .HasMaxLength(32)
+                    .HasConversion(
+                        value => OrderFulfilmentLineStatusValues.ToValue(value),
+                        value => OrderFulfilmentLineStatusValues.FromValue(value)
+                    );
+                line.Property(entity => entity.ReservationId).HasColumnName("reservation_id");
+                line.Property(entity => entity.AvailableQuantity)
+                    .HasColumnName("available_quantity")
+                    .HasPrecision(19, 6);
+                line.Property(entity => entity.ReasonCode)
+                    .HasColumnName("reason_code")
+                    .HasMaxLength(100);
+                line.Property(entity => entity.OutcomeFingerprint)
+                    .HasColumnName("outcome_fingerprint")
+                    .HasMaxLength(64);
+                line.Property(entity => entity.AttemptCount).HasColumnName("attempt_count");
+                line.Property(entity => entity.ResponseDeadline).HasColumnName("response_deadline");
+                line.HasIndex(entity => entity.OperationId)
+                    .IsUnique()
+                    .HasDatabaseName("ux_fulfilment_lines_operation");
+                line.HasIndex(entity => entity.CommandMessageId)
+                    .IsUnique()
+                    .HasDatabaseName("ux_fulfilment_lines_command");
+            }
+        );
+        process.Navigation(entity => entity.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         process
             .HasIndex(entity => new { entity.OrganizationId, entity.OrderId })
             .IsUnique()

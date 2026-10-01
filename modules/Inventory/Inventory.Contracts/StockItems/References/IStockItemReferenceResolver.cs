@@ -2,7 +2,7 @@ using ModulithFoundry.Modules.Access.Contracts;
 
 namespace ModulithFoundry.Modules.Inventory.Contracts;
 
-public interface IStockItemReferences
+public interface IStockItemReferenceResolver
 {
     Task<StockItemReferenceResolution> ResolveAsync(
         OrganizationId organizationId,

@@ -15,6 +15,12 @@ internal sealed class SalesOrderActivityConfiguration : IEntityTypeConfiguration
         activity.Property(entry => entry.OrganizationId).HasColumnName("organization_id");
         activity.Property(entry => entry.OrderId).HasColumnName("order_id");
         activity.Property(entry => entry.ActorUserId).HasColumnName("actor_user_id");
+        activity
+            .Property(entry => entry.SystemActor)
+            .HasColumnName("system_actor")
+            .HasMaxLength(100);
+        activity.Property(entry => entry.ProcessVersion).HasColumnName("process_version");
+        activity.Property(entry => entry.LineNumber).HasColumnName("line_number");
         activity.Property(entry => entry.OrderVersion).HasColumnName("order_version");
         activity.Property(entry => entry.OccurredAt).HasColumnName("occurred_at");
         activity

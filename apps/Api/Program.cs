@@ -18,9 +18,12 @@ builder.Services.AddAccessApi();
 
 builder.Services.AddAccessModule(builder.Configuration);
 builder.Services.AddInventoryModule();
-builder.Host.AddInventoryMessaging(builder.Configuration);
 builder.Services.AddPurchasingModule();
 builder.Services.AddSalesModule();
+
+// Establish the durable outcome subscription before Inventory can publish recovered outbox work.
+builder.Host.AddSalesMessaging(builder.Configuration);
+builder.Host.AddInventoryMessaging(builder.Configuration);
 
 WebApplication app = builder.Build();
 app.UseApiErrorHandling();

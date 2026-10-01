@@ -44,7 +44,8 @@ public static class InventoryModule
         services.AddScoped<StockingLocationQueries>();
         services.AddScoped<IStockItemAdministration, StockItemAdministration>();
         services.AddScoped<IStockingLocationAdministration, StockingLocationAdministration>();
-        services.AddScoped<IStockItemReferences, StockItemReferences>();
+        services.AddScoped<IStockItemReferenceResolver, StockItemReferenceResolver>();
+        services.AddScoped<IStockingLocationReferenceResolver, StockingLocationReferenceResolver>();
         services.AddScoped<StockPositionStore>();
         services.AddScoped<StockPositionWriteGate>();
         services.AddScoped<IStockPositionProjectionRebuilder, StockPositionProjectionRebuilder>();

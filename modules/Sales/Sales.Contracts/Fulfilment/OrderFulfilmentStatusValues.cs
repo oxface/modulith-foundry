@@ -3,11 +3,19 @@ namespace ModulithFoundry.Modules.Sales.Contracts;
 public static class OrderFulfilmentStatusValues
 {
     public const string PendingDispatch = "pending-dispatch";
+    public const string AwaitingReservations = "awaiting-reservations";
+    public const string Reserved = "reserved";
+    public const string AwaitingReplenishment = "awaiting-replenishment";
+    public const string AttentionRequired = "attention-required";
 
     public static string ToValue(OrderFulfilmentStatus status) =>
         status switch
         {
             OrderFulfilmentStatus.PendingDispatch => PendingDispatch,
+            OrderFulfilmentStatus.AwaitingReservations => AwaitingReservations,
+            OrderFulfilmentStatus.Reserved => Reserved,
+            OrderFulfilmentStatus.AwaitingReplenishment => AwaitingReplenishment,
+            OrderFulfilmentStatus.AttentionRequired => AttentionRequired,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(status),
                 status,
@@ -19,6 +27,10 @@ public static class OrderFulfilmentStatusValues
         value switch
         {
             PendingDispatch => OrderFulfilmentStatus.PendingDispatch,
+            AwaitingReservations => OrderFulfilmentStatus.AwaitingReservations,
+            Reserved => OrderFulfilmentStatus.Reserved,
+            AwaitingReplenishment => OrderFulfilmentStatus.AwaitingReplenishment,
+            AttentionRequired => OrderFulfilmentStatus.AttentionRequired,
             _ => throw new InvalidOperationException($"Unknown fulfilment status '{value}'."),
         };
 }

@@ -12,6 +12,10 @@ internal sealed class SalesAuditEntryConfiguration : IEntityTypeConfiguration<Sa
         audit.Property(entity => entity.Id).HasColumnName("id").ValueGeneratedNever();
         audit.Property(entity => entity.OrganizationId).HasColumnName("organization_id");
         audit.Property(entity => entity.ActorUserId).HasColumnName("actor_user_id");
+        audit
+            .Property(entity => entity.SystemActor)
+            .HasColumnName("system_actor")
+            .HasMaxLength(100);
         audit.Property(entity => entity.Action).HasColumnName("action").HasMaxLength(100);
         audit
             .Property(entity => entity.SubjectType)

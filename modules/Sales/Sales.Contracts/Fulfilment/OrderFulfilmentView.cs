@@ -4,5 +4,8 @@ public sealed record OrderFulfilmentView(
     Guid ProcessId,
     long OrderNumber,
     OrderFulfilmentStatus Status,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    long Version,
+    Guid? StockingLocationId,
+    IReadOnlyList<OrderFulfilmentLineView> Lines
 );

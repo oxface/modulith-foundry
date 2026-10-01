@@ -27,9 +27,12 @@ internal static class SalesOrderActivityEndpoint
                 found
                     .Entries.Select(entry => new ActivityResponse(
                         SalesOrderActivityKindValues.ToValue(entry.Kind),
-                        entry.ActorUserId.Value,
+                        entry.ActorUserId?.Value,
                         entry.OrderVersion,
-                        entry.OccurredAt
+                        entry.OccurredAt,
+                        entry.SystemActor,
+                        entry.ProcessVersion,
+                        entry.LineNumber
                     ))
                     .ToArray()
             ),
@@ -41,8 +44,11 @@ internal static class SalesOrderActivityEndpoint
 
     private sealed record ActivityResponse(
         string Kind,
-        Guid ActorUserId,
+        Guid? ActorUserId,
         long OrderVersion,
-        DateTimeOffset OccurredAt
+        DateTimeOffset OccurredAt,
+        string? SystemActor,
+        long? ProcessVersion,
+        int? LineNumber
     );
 }

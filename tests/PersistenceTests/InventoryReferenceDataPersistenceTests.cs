@@ -48,7 +48,7 @@ public sealed class InventoryReferenceDataPersistenceTests
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
             resolved = await scope
-                .ServiceProvider.GetRequiredService<IStockItemReferences>()
+                .ServiceProvider.GetRequiredService<IStockItemReferenceResolver>()
                 .ResolveAsync(
                     firstOrganization.OrganizationId,
                     [first.StockItemId, second.StockItemId, missingId, first.StockItemId],
@@ -73,8 +73,8 @@ public sealed class InventoryReferenceDataPersistenceTests
         Assert.IsType<CreateStockItemResult.Created>(sameSkuOtherTenant);
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            IStockItemReferences references =
-                scope.ServiceProvider.GetRequiredService<IStockItemReferences>();
+            IStockItemReferenceResolver references =
+                scope.ServiceProvider.GetRequiredService<IStockItemReferenceResolver>();
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 references.ResolveAsync(
                     firstOrganization.OrganizationId,

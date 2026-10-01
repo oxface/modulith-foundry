@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Sales.ApprovalAuthorities;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Authorization;
@@ -18,7 +19,8 @@ internal sealed class ApproveSalesOrderHandler(
     SalesRequestAuthorization authorization,
     IOrganizationContextAccessor contextAccessor,
     IOrganizationAuthorizationGuard authorizationGuard,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    IStockingLocationReferenceResolver locations
 ) : ISalesOrderApproval
 {
     public async Task<ApproveSalesOrderResult> ApproveAsync(
@@ -124,7 +126,8 @@ internal sealed class ApproveSalesOrderHandler(
         DateTimeOffset now = new(timestamp.UtcTicks - timestamp.UtcTicks % 10, TimeSpan.Zero);
         if (!order.TryApprove(command.ActorUserId.Value, now))
             throw new UnreachableException();
-        context.FulfilmentProcesses.Add(OrderFulfilmentProcess.Start(order, now));
+        OrderFulfilmentProcess process = OrderFulfilmentProcess.Start(order, now);
+        context.FulfilmentProcesses.Add(process);
         context.OrderActivity.Add(
             SalesOrderActivity.Record(
                 order,
@@ -152,6 +155,13 @@ internal sealed class ApproveSalesOrderHandler(
                 now
             )
         );
+        StockingLocationId? location = await locations.FindActiveAsync(
+            command.OrganizationId,
+            ReservationCommandStaging.DefaultLocationCode,
+            cancellationToken
+        );
+        if (location is { } activeLocation)
+            ReservationCommandStaging.Stage(context, process, order, activeLocation.Value, now);
         try
         {
             await context.SaveChangesAsync(cancellationToken);

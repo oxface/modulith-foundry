@@ -5,10 +5,10 @@ using ModulithFoundry.Modules.Inventory.Persistence;
 
 namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems;
 
-internal sealed class StockItemReferences(
+internal sealed class StockItemReferenceResolver(
     InventoryDbContext context,
     IOrganizationContextAccessor organizationContextAccessor
-) : IStockItemReferences
+) : IStockItemReferenceResolver
 {
     public async Task<StockItemReferenceResolution> ResolveAsync(
         OrganizationId organizationId,

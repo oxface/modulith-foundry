@@ -13,7 +13,7 @@ namespace ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
 internal sealed class CreateDraftSalesOrderHandler(
     SalesDbContext context,
     SalesRequestAuthorization authorization,
-    IStockItemReferences references,
+    IStockItemReferenceResolver references,
     SalesOrderNumberAllocator numbers,
     TimeProvider timeProvider
 )

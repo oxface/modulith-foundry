@@ -147,13 +147,14 @@ public sealed class SalesOrderApprovalPersistenceTests
         Assert.IsType<ApproveSalesOrderResult.NotAwaitingApproval>(
             await ApproveAsync(fixture, order.OrderNumber, 3)
         );
-        Assert.Equal(
+        Assert.Equivalent(
             first,
             Assert
                 .IsType<GetOrderFulfilmentResult.Found>(
                     await GetProcessAsync(fixture, order.OrderNumber)
                 )
-                .Process
+                .Process,
+            strict: true
         );
     }
 

@@ -2,6 +2,11 @@ namespace ModulithFoundry.Modules.Sales.Audit;
 
 internal static class SalesAuditActions
 {
+    internal const string FulfilmentQueued = "order-fulfilment.queued";
+    internal const string ReservationOutcomeRecorded =
+        "order-fulfilment.reservation-outcome-recorded";
+    internal const string ReservationOutcomeIgnored =
+        "order-fulfilment.reservation-outcome-ignored";
     internal const string OrderApproved = "sales-order.approved";
     internal const string OrderApproveDenied = "sales-order.approve-denied";
     internal const string ApprovalAuthoritySet = "approval-authority.set";

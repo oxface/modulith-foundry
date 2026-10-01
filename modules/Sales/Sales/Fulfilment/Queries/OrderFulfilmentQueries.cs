@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Sales.Authorization;
 using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Persistence;
@@ -34,7 +35,28 @@ internal sealed class OrderFulfilmentQueries(
                 item.OrganizationId == organizationId.Value
                 && order.OrganizationId == organizationId.Value
                 && order.OrderNumber == orderNumber
-            select new OrderFulfilmentView(item.Id, order.OrderNumber, item.Status, item.CreatedAt)
+            select new OrderFulfilmentView(
+                item.Id,
+                order.OrderNumber,
+                item.Status,
+                item.CreatedAt,
+                item.Version,
+                item.StockingLocationId,
+                item.Lines.OrderBy(line => line.LineNumber)
+                    .Select(line => new OrderFulfilmentLineView(
+                        line.LineNumber,
+                        new StockItemId(line.StockItemId),
+                        line.Quantity,
+                        line.BaseUnitCode,
+                        line.Status,
+                        line.ReservationId,
+                        line.AvailableQuantity,
+                        line.ReasonCode,
+                        line.AttemptCount,
+                        line.ResponseDeadline
+                    ))
+                    .ToArray()
+            )
         ).SingleOrDefaultAsync(cancellationToken);
         return process is null
             ? new GetOrderFulfilmentResult.NotFound()

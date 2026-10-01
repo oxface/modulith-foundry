@@ -46,11 +46,17 @@ internal sealed class SalesOrderQueries(
                 entry.OrganizationId == organizationId.Value && entry.OrderId == orderId.Value
             )
             .OrderBy(entry => entry.OrderVersion)
+            .ThenBy(entry => entry.ProcessVersion ?? 0)
+            .ThenBy(entry => entry.OccurredAt)
+            .ThenBy(entry => entry.Id)
             .Select(entry => new SalesOrderActivityEntry(
                 entry.Kind,
-                new UserId(entry.ActorUserId),
+                entry.ActorUserId.HasValue ? new UserId(entry.ActorUserId.Value) : null,
                 entry.OrderVersion,
-                entry.OccurredAt
+                entry.OccurredAt,
+                entry.SystemActor,
+                entry.ProcessVersion,
+                entry.LineNumber
             ))
             .ToArrayAsync(cancellationToken);
         return new GetSalesOrderActivityResult.Found(entries);

@@ -28,7 +28,23 @@ internal static class OrderFulfilmentEndpoint
                     found.Process.ProcessId,
                     found.Process.OrderNumber,
                     OrderFulfilmentStatusValues.ToValue(found.Process.Status),
-                    found.Process.CreatedAt
+                    found.Process.CreatedAt,
+                    found.Process.Version,
+                    found.Process.StockingLocationId,
+                    [
+                        .. found.Process.Lines.Select(line => new LineResponse(
+                            line.LineNumber,
+                            line.StockItemId.Value,
+                            line.Quantity,
+                            line.BaseUnitCode,
+                            OrderFulfilmentLineStatusValues.ToValue(line.Status),
+                            line.ReservationId,
+                            line.AvailableQuantity,
+                            line.ReasonCode,
+                            line.AttemptCount,
+                            line.ResponseDeadline
+                        )),
+                    ]
                 )
             ),
             GetOrderFulfilmentResult.NotFound => Results.NotFound(),
@@ -41,6 +57,22 @@ internal static class OrderFulfilmentEndpoint
         Guid ProcessId,
         long OrderNumber,
         string Status,
-        DateTimeOffset CreatedAt
+        DateTimeOffset CreatedAt,
+        long Version,
+        Guid? StockingLocationId,
+        IReadOnlyList<LineResponse> Lines
+    );
+
+    private sealed record LineResponse(
+        int LineNumber,
+        Guid StockItemId,
+        decimal Quantity,
+        string BaseUnitCode,
+        string Status,
+        Guid? ReservationId,
+        decimal? AvailableQuantity,
+        string? ReasonCode,
+        int AttemptCount,
+        DateTimeOffset? ResponseDeadline
     );
 }
