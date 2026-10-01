@@ -1083,7 +1083,7 @@ public sealed class AccessModulePersistenceTests
         CreateOrganizationInvitationResult result;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            result = await scope.ServiceProvider.GetRequiredService<IOrganizationInvitations>()
+            result = await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
                 .CreateInvitationAsync(
                     new CreateOrganizationInvitationCommand(
                         administrator.UserId,
@@ -1757,7 +1757,7 @@ public sealed class AccessModulePersistenceTests
         IReadOnlyCollection<string> roleIds)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitations>()
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
             .CreateInvitationAsync(
                 new CreateOrganizationInvitationCommand(
                     actorUserId,
@@ -1774,7 +1774,7 @@ public sealed class AccessModulePersistenceTests
         InvitationId invitationId)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitations>()
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
             .ResendInvitationAsync(
                 new ResendOrganizationInvitationCommand(
                     actorUserId,
@@ -1791,7 +1791,7 @@ public sealed class AccessModulePersistenceTests
         string verifiedProviderEmail)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitations>()
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationInvitationOperations>()
             .AcceptInvitationAsync(
                 new AcceptOrganizationInvitationCommand(
                     userId,

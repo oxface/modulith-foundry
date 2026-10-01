@@ -5,10 +5,10 @@ using ModulithFoundry.Modules.Access.Invitations.ResendInvitation;
 
 namespace ModulithFoundry.Modules.Access.Invitations;
 
-internal sealed class OrganizationInvitations(
+internal sealed class OrganizationInvitationOperations(
     CreateInvitationHandler createInvitation,
     ResendInvitationHandler resendInvitation,
-    AcceptInvitationHandler acceptInvitation) : IOrganizationInvitations
+    AcceptInvitationHandler acceptInvitation) : IOrganizationInvitationOperations
 {
     public Task<CreateOrganizationInvitationResult> CreateInvitationAsync(
         CreateOrganizationInvitationCommand command,

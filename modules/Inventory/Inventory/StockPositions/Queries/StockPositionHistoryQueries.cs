@@ -48,22 +48,15 @@ internal sealed class StockPositionHistoryQueries(
     private static StockPositionHistoryEntry ToEntry(StoredEvent stored)
     {
         IStockPositionEvent @event = StockPositionEventSerializer.Deserialize(stored);
-        try
+        return @event switch
         {
-            return @event switch
-            {
-                StockPositionOpened => new(stored.StreamVersion, stored.RecordedAt, StockPositionHistoryAction.Opened, null),
-                StockReceived received => new(stored.StreamVersion, stored.RecordedAt,
-                    StockPositionHistoryAction.Received, Quantity.Positive(received.Quantity).Value),
-                _ => throw new StockPositionIntegrityException(
-                    stored.StreamId, StockPositionIntegrityFailure.UnknownEvent, observedVersion: stored.StreamVersion),
-            };
-        }
-        catch (ArgumentException exception)
-        {
-            throw new StockPositionIntegrityException(
-                stored.StreamId, StockPositionIntegrityFailure.InvalidEventPayload,
-                observedVersion: stored.StreamVersion, innerException: exception);
-        }
+            StockPositionOpened => new(stored.StreamVersion, stored.RecordedAt, StockPositionHistoryAction.Opened, null),
+            StockReceived received => new(stored.StreamVersion, stored.RecordedAt,
+                StockPositionHistoryAction.Received, received.Quantity),
+            StockQuantityCorrected corrected => new(stored.StreamVersion, stored.RecordedAt,
+                StockPositionHistoryAction.QuantityCorrected, corrected.OnHandQuantity, corrected.Reason),
+            _ => throw new StockPositionIntegrityException(
+                stored.StreamId, StockPositionIntegrityFailure.UnknownEvent, observedVersion: stored.StreamVersion),
+        };
     }
 }

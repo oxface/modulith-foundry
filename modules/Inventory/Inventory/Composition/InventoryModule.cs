@@ -16,6 +16,7 @@ using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.CreateStockItem
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Queries;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.SetStockItemActive;
 using ModulithFoundry.Modules.Inventory.StockPositions;
+using ModulithFoundry.Modules.Inventory.StockPositions.CorrectStockQuantity;
 using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 using ModulithFoundry.Modules.Inventory.StockPositions.Queries;
 using ModulithFoundry.Modules.Inventory.StockPositions.RecordStockReceipt;
@@ -47,10 +48,11 @@ public static class InventoryModule
         services.AddScoped<StockPositionEventReader>();
         services.AddScoped<StockPositionInlineProjection>();
         services.AddScoped<RecordStockReceiptHandler>();
+        services.AddScoped<CorrectStockQuantityHandler>();
         services.AddScoped<StockPositionQueries>();
         services.AddScoped<StockPositionTemporalQueries>();
         services.AddScoped<StockPositionHistoryQueries>();
-        services.AddScoped<IStockPositions, StockPositionOperations>();
+        services.AddScoped<IStockPositionOperations, StockPositionOperations>();
 
         return services;
     }

@@ -12,7 +12,11 @@ internal static class StockPositionEvolution
             StockPositionOpened opened when state is null => Open(opened),
             StockReceived received when state is not null => state with
             {
-                OnHand = state.OnHand.Add(Quantity.Positive(received.Quantity)),
+                OnHand = state.OnHand.ApplyRecordedIncrease(received.Quantity),
+            },
+            StockQuantityCorrected corrected when state is not null => state with
+            {
+                OnHand = Quantity.Restore(corrected.OnHandQuantity),
             },
             _ => throw new InvalidOperationException(
                 $"Event '{@event.GetType().Name}' is invalid for the current Stock Position state."),
@@ -20,10 +24,7 @@ internal static class StockPositionEvolution
 
     private static StockPositionState Open(StockPositionOpened opened)
     {
-        ArgumentOutOfRangeException.ThrowIfEqual(opened.StockItemId, Guid.Empty);
-        ArgumentOutOfRangeException.ThrowIfEqual(opened.StockingLocationId, Guid.Empty);
-        ArgumentException.ThrowIfNullOrWhiteSpace(opened.BaseUnitCode);
         return new(opened.StockItemId, opened.StockingLocationId, opened.BaseUnitCode,
-            Quantity.FromStored(0m), Quantity.FromStored(0m));
+            Quantity.Restore(0m), Quantity.Restore(0m));
     }
 }

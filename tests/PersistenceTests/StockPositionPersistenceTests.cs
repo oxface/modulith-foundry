@@ -206,7 +206,7 @@ public sealed partial class StockPositionPersistenceTests
         RecordStockReceiptResult result;
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
-            result = await scope.ServiceProvider.GetRequiredService<IStockPositions>()
+            result = await scope.ServiceProvider.GetRequiredService<IStockPositionOperations>()
                 .RecordReceiptAsync(
                     new RecordStockReceiptCommand(
                         organization.UserId,
@@ -227,7 +227,7 @@ public sealed partial class StockPositionPersistenceTests
 
         await using AsyncServiceScope readScope = services.CreateAsyncScope();
         GetStockPositionResult read = await readScope.ServiceProvider
-            .GetRequiredService<IStockPositions>()
+            .GetRequiredService<IStockPositionOperations>()
             .GetCurrentAsync(
                 new GetStockPositionQuery(
                     organization.UserId,
@@ -266,7 +266,7 @@ public sealed partial class StockPositionPersistenceTests
 
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         GetStockPositionResult current = await scope.ServiceProvider
-            .GetRequiredService<IStockPositions>()
+            .GetRequiredService<IStockPositionOperations>()
             .GetCurrentAsync(
                 new GetStockPositionQuery(
                     organization.UserId,
@@ -413,7 +413,7 @@ public sealed partial class StockPositionPersistenceTests
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
             GetStockPositionResult result = await scope.ServiceProvider
-                .GetRequiredService<IStockPositions>()
+                .GetRequiredService<IStockPositionOperations>()
                 .GetCurrentAsync(
                     new GetStockPositionQuery(
                         secondOrganization.UserId,
@@ -555,7 +555,7 @@ public sealed partial class StockPositionPersistenceTests
         long expectedVersion)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IStockPositions>()
+        return await scope.ServiceProvider.GetRequiredService<IStockPositionOperations>()
             .RecordReceiptAsync(
                 new RecordStockReceiptCommand(
                     organization.UserId,

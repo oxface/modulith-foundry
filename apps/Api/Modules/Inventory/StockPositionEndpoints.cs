@@ -14,6 +14,8 @@ internal static class StockPositionEndpoints
         endpoints.MapGet("/{locationCode}/{sku}", GetAsync);
         endpoints.MapPost("/{locationCode}/{sku}/receipts", RecordReceiptAsync)
             .RequireBffAntiforgery();
+        endpoints.MapPost("/{locationCode}/{sku}/corrections", CorrectQuantityAsync)
+            .RequireBffAntiforgery();
         return endpoints;
     }
 
@@ -23,7 +25,7 @@ internal static class StockPositionEndpoints
         long? version,
         DateTimeOffset? recordedAt,
         IOrganizationContextAccessor contextAccessor,
-        IStockPositions stockPositions,
+        IStockPositionOperations stockPositions,
         CancellationToken cancellationToken)
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
@@ -57,7 +59,7 @@ internal static class StockPositionEndpoints
         string sku,
         RecordStockReceiptRequest request,
         IOrganizationContextAccessor contextAccessor,
-        IStockPositions stockPositions,
+        IStockPositionOperations stockPositions,
         CancellationToken cancellationToken)
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
@@ -90,6 +92,33 @@ internal static class StockPositionEndpoints
         };
     }
 
+    private static async Task<IResult> CorrectQuantityAsync(
+        string locationCode,
+        string sku,
+        CorrectStockQuantityRequest request,
+        IOrganizationContextAccessor contextAccessor,
+        IStockPositionOperations stockPositions,
+        CancellationToken cancellationToken)
+    {
+        OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
+        CorrectStockQuantityResult result = await stockPositions.CorrectQuantityAsync(
+            new(context.UserId, context.OrganizationId, locationCode, sku,
+                request.OnHandQuantity, request.Reason, request.ExpectedVersion), cancellationToken);
+        return result switch
+        {
+            CorrectStockQuantityResult.Corrected corrected => TypedResults.Ok(ToResponse(corrected.Position)),
+            CorrectStockQuantityResult.Unchanged unchanged => TypedResults.Ok(ToResponse(unchanged.Position)),
+            CorrectStockQuantityResult.Invalid invalid => InvalidStockPosition(invalid.Field, invalid.Detail),
+            CorrectStockQuantityResult.NotFound => Results.NotFound(),
+            CorrectStockQuantityResult.PermissionDenied => Results.Forbid(),
+            CorrectStockQuantityResult.VersionConflict => Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Stock position version conflict",
+                detail: "The Stock Position changed after it was read."),
+            _ => throw new UnreachableException(),
+        };
+    }
+
     private static IResult InvalidStockPosition(string field, string detail) =>
         Results.Problem(
             statusCode: StatusCodes.Status400BadRequest,
@@ -111,6 +140,8 @@ internal static class StockPositionEndpoints
             position.Version);
 
     private sealed record RecordStockReceiptRequest(decimal Quantity, long ExpectedVersion);
+
+    private sealed record CorrectStockQuantityRequest(decimal OnHandQuantity, string Reason, long ExpectedVersion);
 
     private sealed record StockPositionResponse(
         Guid StockPositionId,

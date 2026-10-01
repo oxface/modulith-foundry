@@ -1,7 +1,11 @@
 namespace ModulithFoundry.Modules.Inventory.Contracts;
 
-public interface IStockPositions
+public interface IStockPositionOperations
 {
+    Task<CorrectStockQuantityResult> CorrectQuantityAsync(
+        CorrectStockQuantityCommand command,
+        CancellationToken cancellationToken = default);
+
     Task<RecordStockReceiptResult> RecordReceiptAsync(
         RecordStockReceiptCommand command,
         CancellationToken cancellationToken = default);

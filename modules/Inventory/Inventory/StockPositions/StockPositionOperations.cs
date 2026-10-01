@@ -1,15 +1,22 @@
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Inventory.StockPositions.CorrectStockQuantity;
 using ModulithFoundry.Modules.Inventory.StockPositions.Queries;
 using ModulithFoundry.Modules.Inventory.StockPositions.RecordStockReceipt;
 
 namespace ModulithFoundry.Modules.Inventory.StockPositions;
 
 internal sealed class StockPositionOperations(
+    CorrectStockQuantityHandler correctQuantity,
     RecordStockReceiptHandler recordReceipt,
     StockPositionQueries queries,
     StockPositionTemporalQueries temporalQueries,
-    StockPositionHistoryQueries historyQueries) : IStockPositions
+    StockPositionHistoryQueries historyQueries) : IStockPositionOperations
 {
+    public Task<CorrectStockQuantityResult> CorrectQuantityAsync(
+        CorrectStockQuantityCommand command,
+        CancellationToken cancellationToken = default) =>
+        correctQuantity.HandleAsync(command, cancellationToken);
+
     public Task<RecordStockReceiptResult> RecordReceiptAsync(
         RecordStockReceiptCommand command,
         CancellationToken cancellationToken = default) =>

@@ -146,6 +146,40 @@ public sealed partial class LocalRuntimeTests
             timeout.Token);
         await AssertProblemAsync(staleReceipt, HttpStatusCode.Conflict, timeout.Token);
 
+        using HttpResponseMessage correction = await SendCommandAsync(
+            client, HttpMethod.Post,
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/corrections",
+            csrfToken, new { onHandQuantity = 9m, reason = "Count confirmed", expectedVersion = 2 }, timeout.Token);
+        correction.EnsureSuccessStatusCode();
+        using JsonDocument correctionJson = JsonDocument.Parse(await correction.Content.ReadAsStringAsync(timeout.Token));
+        Assert.Equal(9m, correctionJson.RootElement.GetProperty("onHandQuantity").GetDecimal());
+        Assert.Equal(3, correctionJson.RootElement.GetProperty("version").GetInt64());
+        using HttpResponseMessage correctionHistory = await client.GetAsync(
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/history?afterVersion=2", timeout.Token);
+        correctionHistory.EnsureSuccessStatusCode();
+        using JsonDocument correctionHistoryJson = JsonDocument.Parse(
+            await correctionHistory.Content.ReadAsStringAsync(timeout.Token));
+        JsonElement correctionEntry = Assert.Single(correctionHistoryJson.RootElement.GetProperty("entries").EnumerateArray());
+        Assert.Equal("quantity-corrected", correctionEntry.GetProperty("action").GetString());
+        Assert.Equal(9m, correctionEntry.GetProperty("quantity").GetDecimal());
+        Assert.Equal("Count confirmed", correctionEntry.GetProperty("reason").GetString());
+
+        using HttpResponseMessage missingCsrf = await SendCommandAsync(
+            client, HttpMethod.Post,
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/corrections",
+            string.Empty, new { onHandQuantity = 8m, reason = "Count confirmed", expectedVersion = 3 }, timeout.Token);
+        await AssertProblemAsync(missingCsrf, HttpStatusCode.BadRequest, timeout.Token);
+        using HttpResponseMessage invalidCorrection = await SendCommandAsync(
+            client, HttpMethod.Post,
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/corrections",
+            csrfToken, new { onHandQuantity = 8m, reason = " ", expectedVersion = 3 }, timeout.Token);
+        await AssertProblemAsync(invalidCorrection, HttpStatusCode.BadRequest, timeout.Token);
+        using HttpResponseMessage staleCorrection = await SendCommandAsync(
+            client, HttpMethod.Post,
+            "/api/o/inventory-catalog/inventory/stock-positions/main/bolt-01/corrections",
+            csrfToken, new { onHandQuantity = 8m, reason = "Count confirmed", expectedVersion = 2 }, timeout.Token);
+        await AssertProblemAsync(staleCorrection, HttpStatusCode.Conflict, timeout.Token);
+
         using HttpResponseMessage items = await client.GetAsync(
             "/api/o/inventory-catalog/inventory/items",
             timeout.Token);
@@ -185,5 +219,10 @@ public sealed partial class LocalRuntimeTests
         using HttpResponseMessage deniedHistory = await client.GetAsync(
             "/api/o/inventory-denied/inventory/stock-positions/main/bolt-01/history", timeout.Token);
         await AssertProblemAsync(deniedHistory, HttpStatusCode.Forbidden, timeout.Token);
+        using HttpResponseMessage deniedCorrection = await SendCommandAsync(
+            client, HttpMethod.Post,
+            "/api/o/inventory-denied/inventory/stock-positions/main/bolt-01/corrections",
+            csrfToken, new { onHandQuantity = 8m, reason = "Count confirmed", expectedVersion = 3 }, timeout.Token);
+        await AssertProblemAsync(deniedCorrection, HttpStatusCode.Forbidden, timeout.Token);
     }
 }

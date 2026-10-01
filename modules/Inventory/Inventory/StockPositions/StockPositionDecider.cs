@@ -4,6 +4,10 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions;
 
 internal static class StockPositionDecider
 {
+    internal static IReadOnlyList<IStockPositionEvent> DecideCorrection(
+        StockPositionState state, Quantity onHand, StockCorrectionReason reason) =>
+        state.OnHand == onHand ? [] : [new StockQuantityCorrected(onHand.Value, reason.Value)];
+
     internal static IReadOnlyList<IStockPositionEvent> DecideReceipt(
         StockPositionState? state,
         Guid stockItemId,
@@ -13,6 +17,9 @@ internal static class StockPositionDecider
     {
         if (state is null)
         {
+            ArgumentOutOfRangeException.ThrowIfEqual(stockItemId, Guid.Empty);
+            ArgumentOutOfRangeException.ThrowIfEqual(stockingLocationId, Guid.Empty);
+            ArgumentException.ThrowIfNullOrWhiteSpace(baseUnitCode);
             return
             [
                 new StockPositionOpened(stockItemId, stockingLocationId, baseUnitCode),

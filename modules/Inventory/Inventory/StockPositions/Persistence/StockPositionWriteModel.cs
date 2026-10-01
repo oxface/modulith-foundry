@@ -55,7 +55,7 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
 
     internal StockPositionState ToState() =>
         new(StockItemId, StockingLocationId, BaseUnitCode,
-            Quantity.FromStored(OnHandQuantity), Quantity.FromStored(ReservedQuantity));
+            Quantity.Restore(OnHandQuantity), Quantity.Restore(ReservedQuantity));
 
     internal static StockPositionWriteModel Create(
         Guid streamId,

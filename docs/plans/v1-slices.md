@@ -197,6 +197,11 @@ The first increment creates the canonical repository commands for these lanes. A
 
 **Acceptance:** PostgreSQL tests inject a projection failure and cancellation, resume without double effects, compare rebuilt/current state, reject corrupt/unknown events clearly, and prove the rebuild emits no messages or audit duplicates.
 
+**Review-sized delivery:**
+
+- **3.4a — Reasoned quantity corrections:** command/HTTP ingress, immutable correction event, quantity invariants, curated history and fixture, authorization, conflicts and transaction rollback. No rebuild machinery in this change set.
+- **3.4b — Administrative rebuild proof:** Inventory-owned start/resume/verify/swap contract, durable shadow state/checkpoint, cancellation and failure recovery, writer coordination and equivalence verification. PostgreSQL fault injection is setup; acceptance is observed through the administrative contract and normal Stock Position reads.
+
 ### Post-3.4 event-sourcing seam review
 
 Before durable messaging builds on Stock Position, review the implemented load-for-writing,

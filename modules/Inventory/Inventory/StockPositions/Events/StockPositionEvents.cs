@@ -10,3 +10,8 @@ internal sealed record StockPositionOpened(
 
 [StoredEventType("inventory.stock-position.received", 1)]
 internal sealed record StockReceived([property: JsonRequired] decimal Quantity) : IStockPositionEvent;
+
+[StoredEventType("inventory.stock-position.quantity-corrected", 1)]
+internal sealed record StockQuantityCorrected(
+    [property: JsonRequired] decimal OnHandQuantity,
+    [property: JsonRequired] string Reason) : IStockPositionEvent;

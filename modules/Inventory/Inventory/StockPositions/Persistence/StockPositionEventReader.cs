@@ -74,6 +74,12 @@ internal sealed class StockPositionEventReader(InventoryDbContext context)
                 stream.Id, StockPositionIntegrityFailure.InvalidEventPayload,
                 expectedVersion: version, innerException: exception);
         }
+        catch (OverflowException exception)
+        {
+            throw new StockPositionIntegrityException(
+                stream.Id, StockPositionIntegrityFailure.InvalidEventPayload,
+                expectedVersion: version, innerException: exception);
+        }
         catch (InvalidOperationException exception)
         {
             throw new StockPositionIntegrityException(

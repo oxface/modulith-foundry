@@ -5,7 +5,7 @@ namespace ModulithFoundry.Api.Modules.Access.Invitations;
 
 internal sealed class CompleteInvitationAcceptanceHandler(
     RedisPendingInvitationAcceptanceStore pendingAcceptances,
-    IOrganizationInvitations invitations)
+    IOrganizationInvitationOperations invitations)
 {
     internal async Task<InvitationAcceptanceNavigation> HandleAsync(
         string acceptanceHandle,

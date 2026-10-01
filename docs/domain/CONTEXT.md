@@ -80,6 +80,10 @@ _Avoid_: Unit price, packaging, unit conversion
 The quantity state of one Stock Item at one stocking location.
 _Avoid_: Product, inventory record
 
+**Stock Quantity Correction**:
+A reasoned reconciliation of a Stock Position's on-hand quantity to an observed quantity. It records a new business fact rather than changing an earlier receipt.
+_Avoid_: Receipt, history edit, reservation release
+
 **Reservation**:
 A commitment of available stock to a sales demand without yet recording its physical departure.
 _Avoid_: Allocation, stock movement

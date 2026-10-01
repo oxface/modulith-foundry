@@ -45,7 +45,7 @@ public static class AccessModule
         services.AddScoped<CreateInvitationHandler>();
         services.AddScoped<ResendInvitationHandler>();
         services.AddScoped<AcceptInvitationHandler>();
-        services.AddScoped<IOrganizationInvitations, OrganizationInvitations>();
+        services.AddScoped<IOrganizationInvitationOperations, OrganizationInvitationOperations>();
         services.AddScoped<IOrganizationQueries, OrganizationQueries>();
         return services;
     }

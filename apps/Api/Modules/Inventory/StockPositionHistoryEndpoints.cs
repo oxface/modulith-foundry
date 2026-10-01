@@ -20,7 +20,7 @@ internal static class StockPositionHistoryEndpoints
         long? afterVersion,
         int? limit,
         IOrganizationContextAccessor contextAccessor,
-        IStockPositions stockPositions,
+        IStockPositionOperations stockPositions,
         CancellationToken cancellationToken)
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
@@ -48,12 +48,14 @@ internal static class StockPositionHistoryEndpoints
                 {
                     StockPositionHistoryAction.Opened => "opened",
                     StockPositionHistoryAction.Received => "received",
+                    StockPositionHistoryAction.QuantityCorrected => "quantity-corrected",
                     _ => throw new UnreachableException(),
-                }, entry.Quantity))], history.NextAfterVersion);
+                }, entry.Quantity, entry.Reason))], history.NextAfterVersion);
 
     private sealed record HistoryResponse(
         Guid StockPositionId, string BaseUnitCode, long Version,
         IReadOnlyList<HistoryEntryResponse> Entries, long? NextAfterVersion);
 
-    private sealed record HistoryEntryResponse(long Version, DateTimeOffset RecordedAt, string Action, decimal? Quantity);
+    private sealed record HistoryEntryResponse(
+        long Version, DateTimeOffset RecordedAt, string Action, decimal? Quantity, string? Reason);
 }

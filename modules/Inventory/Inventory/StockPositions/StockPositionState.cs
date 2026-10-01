@@ -7,5 +7,5 @@ internal sealed record StockPositionState(
     Quantity OnHand,
     Quantity Reserved)
 {
-    internal Quantity Available => Quantity.FromStored(OnHand.Value - Reserved.Value);
+    internal Quantity Available => Quantity.Restore(checked(OnHand.Value - Reserved.Value));
 }

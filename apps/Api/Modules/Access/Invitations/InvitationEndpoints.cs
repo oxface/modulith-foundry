@@ -21,7 +21,7 @@ internal static class InvitationEndpoints
     private static async Task<IResult> CreateInvitationAsync(
         CreateInvitationRequest request,
         IOrganizationContextAccessor contextAccessor,
-        IOrganizationInvitations invitations,
+        IOrganizationInvitationOperations invitations,
         CancellationToken cancellationToken)
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();
@@ -63,7 +63,7 @@ internal static class InvitationEndpoints
     private static async Task<IResult> ResendInvitationAsync(
         Guid invitationId,
         IOrganizationContextAccessor contextAccessor,
-        IOrganizationInvitations invitations,
+        IOrganizationInvitationOperations invitations,
         CancellationToken cancellationToken)
     {
         OrganizationAccessContext context = contextAccessor.GetRequiredOrganizationContext();

@@ -28,6 +28,10 @@ public sealed class StockPositionEventCompatibilityTests
     }
 
     [Theory]
+    [InlineData("inventory.stock-position.quantity-corrected", 1, "{\"onHandQuantity\":7.5}",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload)]
+    [InlineData("inventory.stock-position.quantity-corrected", 1, "{\"onHandQuantity\":7.5,\"reason\":null}",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload)]
     [InlineData("inventory.stock-position.received", 99, "{\"quantity\": 1}", (int)StockPositionIntegrityFailure.UnknownEvent)]
     [InlineData("old.clr.namespace.StockReceived", 1, "{\"quantity\": 1}", (int)StockPositionIntegrityFailure.UnknownEvent)]
     [InlineData("inventory.stock-position.received", 1, "{}", (int)StockPositionIntegrityFailure.InvalidEventPayload)]
@@ -51,6 +55,23 @@ public sealed class StockPositionEventCompatibilityTests
         Assert.Equal(streamId, failure.StreamId);
         Assert.Equal(2, failure.ObservedVersion);
         Assert.Equal((StockPositionIntegrityFailure)expectedFailure, failure.Failure);
+    }
+
+    [Fact]
+    public void ReadPersistedCorrectionFixture_ReconcilesQuantityWithoutPendingEvents()
+    {
+        Guid streamId = Guid.NewGuid();
+        StockPositionAggregate aggregate = StockPositionAggregate.Rehydrate(streamId,
+        [
+            ReadFixture("opened.v1.json", streamId, version: 1),
+            ReadFixture("received.v1.json", streamId, version: 2),
+            ReadFixture("quantity-corrected.v1.json", streamId, version: 3),
+        ]);
+
+        Assert.Equal(7.5m, aggregate.State!.OnHand.Value);
+        Assert.Equal(7.5m, aggregate.State.Available.Value);
+        Assert.Equal(3, aggregate.Version);
+        Assert.Empty(aggregate.UncommittedEvents);
     }
 
     private static IStockPositionEvent ReadFixture(string fileName, Guid streamId, long version)

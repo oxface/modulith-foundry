@@ -1,6 +1,6 @@
 namespace ModulithFoundry.Modules.Access.Contracts;
 
-public interface IOrganizationInvitations
+public interface IOrganizationInvitationOperations
 {
     Task<CreateOrganizationInvitationResult> CreateInvitationAsync(
         CreateOrganizationInvitationCommand command,

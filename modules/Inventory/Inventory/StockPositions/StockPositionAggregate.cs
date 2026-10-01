@@ -72,6 +72,13 @@ internal sealed class StockPositionAggregate
         Version += events.Count;
     }
 
+    internal void CorrectQuantity(decimal onHandQuantity, string reason)
+    {
+        if (State is null) { throw new InvalidOperationException("Cannot correct an unopened Stock Position."); }
+        AcceptDecision(StockPositionDecider.DecideCorrection(
+            State, Quantity.NonNegative(onHandQuantity), StockCorrectionReason.Create(reason)));
+    }
+
     private void ApplyHistorical(IStockPositionEvent @event)
     {
         State = StockPositionEvolution.Evolve(State, @event);

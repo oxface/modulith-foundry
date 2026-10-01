@@ -36,7 +36,7 @@ public sealed partial class StockPositionPersistenceTests
             """);
 
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        IStockPositions positions = scope.ServiceProvider.GetRequiredService<IStockPositions>();
+        IStockPositionOperations positions = scope.ServiceProvider.GetRequiredService<IStockPositionOperations>();
         StockPositionView opening = Assert.IsType<GetStockPositionResult.Found>(await positions.GetAtVersionAsync(
             new(organization.UserId, organization.OrganizationId, "main", "bolt-01", Version: 1),
             TestContext.Current.CancellationToken)).Position;
@@ -76,7 +76,7 @@ public sealed partial class StockPositionPersistenceTests
         Assert.IsType<RecordStockReceiptResult.Recorded>(await RecordReceiptAsync(
             services, organization, quantity: 10m, expectedVersion: 0));
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        IStockPositions positions = scope.ServiceProvider.GetRequiredService<IStockPositions>();
+        IStockPositionOperations positions = scope.ServiceProvider.GetRequiredService<IStockPositionOperations>();
 
         Assert.IsType<GetStockPositionResult.Invalid>(await positions.GetAtVersionAsync(
             new(organization.UserId, organization.OrganizationId, "main", "bolt-01", 0),
@@ -110,7 +110,7 @@ public sealed partial class StockPositionPersistenceTests
         SetOrganizationContext(services, second);
         await CreateReferenceDataAsync(services, second);
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        IStockPositions positions = scope.ServiceProvider.GetRequiredService<IStockPositions>();
+        IStockPositionOperations positions = scope.ServiceProvider.GetRequiredService<IStockPositionOperations>();
 
         Assert.IsType<GetStockPositionResult.PermissionDenied>(await positions.GetAtVersionAsync(
             new(first.UserId, first.OrganizationId, "main", "bolt-01", 2), TestContext.Current.CancellationToken));
@@ -129,7 +129,7 @@ public sealed partial class StockPositionPersistenceTests
     [Theory]
     [InlineData("DELETE FROM inventory.events WHERE stream_version = 2", (int)StockPositionIntegrityFailure.HistoryGap)]
     [InlineData("UPDATE inventory.events SET schema_version = 99 WHERE stream_version = 2", (int)StockPositionIntegrityFailure.UnknownEvent)]
-    [InlineData("UPDATE inventory.events SET payload = '{\"quantity\": -1}' WHERE stream_version = 2", (int)StockPositionIntegrityFailure.InvalidEventPayload)]
+    [InlineData("UPDATE inventory.events SET payload = '{\"quantity\": \"unreadable\"}' WHERE stream_version = 2", (int)StockPositionIntegrityFailure.InvalidEventPayload)]
     public async Task GetHistoricalState_CorruptHistory_RaisesStructuredIntegrityFault(string damageSql, int expectedFailure)
     {
         await using PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
@@ -145,7 +145,7 @@ public sealed partial class StockPositionPersistenceTests
         await using AsyncServiceScope scope = services.CreateAsyncScope();
 
         StockPositionIntegrityException failure = await Assert.ThrowsAsync<StockPositionIntegrityException>(() =>
-            scope.ServiceProvider.GetRequiredService<IStockPositions>().GetAtVersionAsync(
+            scope.ServiceProvider.GetRequiredService<IStockPositionOperations>().GetAtVersionAsync(
                 new(organization.UserId, organization.OrganizationId, "main", "bolt-01", 3),
                 TestContext.Current.CancellationToken));
 
@@ -179,7 +179,7 @@ public sealed partial class StockPositionPersistenceTests
         await using ServiceProvider reader = await CreateServicesAsync(
             readerConnection.ConnectionString, organization, migrate: false);
         await using AsyncServiceScope scope = reader.CreateAsyncScope();
-        IStockPositions positions = scope.ServiceProvider.GetRequiredService<IStockPositions>();
+        IStockPositionOperations positions = scope.ServiceProvider.GetRequiredService<IStockPositionOperations>();
 
         Assert.IsType<GetStockPositionResult.Found>(await positions.GetAtVersionAsync(
             new(organization.UserId, organization.OrganizationId, "main", "bolt-01", 2),
@@ -231,7 +231,7 @@ public sealed partial class StockPositionPersistenceTests
             services, organization, quantity: 3m, expectedVersion: 3));
 
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        IStockPositions positions = scope.ServiceProvider.GetRequiredService<IStockPositions>();
+        IStockPositionOperations positions = scope.ServiceProvider.GetRequiredService<IStockPositionOperations>();
         var query = new GetStockPositionHistoryQuery(
             organization.UserId, organization.OrganizationId, "main", "bolt-01", Limit: 2);
         StockPositionHistoryView first = Assert.IsType<GetStockPositionHistoryResult.Found>(

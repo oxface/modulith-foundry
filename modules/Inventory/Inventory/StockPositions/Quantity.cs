@@ -11,8 +11,13 @@ internal readonly record struct Quantity
 
     internal decimal Value { get; }
 
-    internal static Quantity FromStored(decimal value) =>
+    internal static Quantity NonNegative(decimal value) =>
         Create(value, requirePositive: false);
+
+    // Recorded facts and intermediate projection state are not new command inputs.
+    internal static Quantity Restore(decimal value) => new(value);
+
+    internal Quantity ApplyRecordedIncrease(decimal value) => Restore(checked(Value + value));
 
     internal static Quantity Positive(decimal value) =>
         Create(value, requirePositive: true);
@@ -20,7 +25,7 @@ internal readonly record struct Quantity
     internal Quantity Add(Quantity other)
     {
         decimal sum = checked(Value + other.Value);
-        return FromStored(sum);
+        return NonNegative(sum);
     }
 
     private static Quantity Create(decimal value, bool requirePositive)
