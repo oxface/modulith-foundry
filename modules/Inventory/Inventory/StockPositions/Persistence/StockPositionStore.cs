@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using ModulithFoundry.Modules.Inventory.StockPositions.Events;
@@ -11,14 +12,24 @@ internal sealed class StockPositionStore(
     InventoryDbContext context,
     StockPositionInlineProjection projection,
     StockPositionEventReader eventReader,
+    StockPositionWriteGate writeGate,
     TimeProvider timeProvider)
 {
     internal const string StreamType = "inventory.stock-position";
+    private Guid? _writeTransactionId;
+
+    internal async Task<IDbContextTransaction> BeginWriteAsync(OrganizationId organizationId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction transaction = await writeGate.BeginAsync(organizationId.Value, exclusive: false, cancellationToken);
+        _writeTransactionId = transaction.TransactionId;
+        return transaction;
+    }
 
     internal async Task<StockPositionAggregate> LoadForWritingAsync(
         Guid stockItemId, Guid stockingLocationId, long expectedVersion,
         CancellationToken cancellationToken)
     {
+        RequireWriteTransaction();
         if (expectedVersion < 0)
         {
             throw new InvalidStockPositionValueException(
@@ -60,6 +71,7 @@ internal sealed class StockPositionStore(
         OrganizationId organizationId, UserId actorUserId, StockPositionAggregate aggregate,
         DateTimeOffset recordedAt, CancellationToken cancellationToken)
     {
+        RequireWriteTransaction();
         ArgumentOutOfRangeException.ThrowIfEqual(organizationId.Value, Guid.Empty);
         ArgumentOutOfRangeException.ThrowIfEqual(actorUserId.Value, Guid.Empty);
         if (aggregate.State is null)
@@ -112,4 +124,12 @@ internal sealed class StockPositionStore(
             SqlState: PostgresErrorCodes.UniqueViolation,
             ConstraintName: StockPositionWriteModelConfiguration.IdentityConstraint or "ux_events_stream_version",
         };
+
+    private void RequireWriteTransaction()
+    {
+        if (_writeTransactionId is null || context.Database.CurrentTransaction?.TransactionId != _writeTransactionId)
+        {
+            throw new InvalidOperationException("Stock Position writes require BeginWriteAsync through commit.");
+        }
+    }
 }

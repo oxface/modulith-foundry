@@ -7,6 +7,7 @@ This note refines the [architecture baseline](architecture-and-delivery.md#8-eve
 ## Scope and vocabulary
 
 - Stock Position is the first event-sourcing proof. A second concrete aggregate, preferably in another module, is scheduled before library extraction and final product scaffolding. Its domain and owning charter are chosen in that late increment; existing state-stored aggregates are not silently converted.
+- Event-sourcing mechanics will become a separate, opt-in library at extraction. State-stored modules and consumers that do not use event sourcing must not depend on it, inherit its aggregate base types, or register its runtime. The library must not depend on business-module Contracts; owning modules retain domain decisions, projection definitions, authorization, audit choices, and business transaction orchestration.
 - **Decision state** is the complete business data required by a decider. Name it `{Aggregate}State`, retaining `StockPositionState`: the same domain state can come from live reconstruction or an inline write model. Do not encode the loading lifecycle in its name. `Domain` is too vague, `DomainProjection` describes construction rather than the state, and `DomainAggregate` confuses passive state with the aggregate wrapper.
 - **Decider** proposes events from decision state and a command. **Evolution / reducer** applies events to state. These are separate pure responsibilities, even if initially hosted beside one another.
 - **Aggregate wrapper** is optional convenience for business operations, candidate-state validation, and pending events. It does not own EF, serialization, projection staging, or an original-state copy for persistence.
@@ -62,7 +63,7 @@ This note refines the [architecture baseline](architecture-and-delivery.md#8-eve
 
 - Corrections append events; do not edit old events. Retirement is a lifecycle fact, not normal history deletion. Privacy erasure is a separate governed operation.
 - Version/as-of reads reconstruct currently committed recorded facts, with inclusive UTC cutoffs and stream-version ordering for equal timestamps. Global sequence numbers do not define stream order: EF may reorder event inserts inside one atomic batch. They also do not define commit order. Effective-time/bitemporal semantics and historical SQL transaction snapshots are deferred.
-- Replay/rebuild only derives state: no email, messages, new business decisions, or duplicate audit. Rebuild uses shadow state, verification, cancellation/resume, and a writer-coordinated swap. Required lookup/write models cannot be emptied while affected commands remain enabled.
+- Replay/rebuild only derives state: no email, messages, new business decisions, or repeated historical audit. Rebuild defaults to full reconstruction and atomic replacement under writer coordination; resumable shadow progress is deferred. Required lookup/write models cannot be emptied while affected commands remain enabled.
 - **Async projections are explicitly wanted later.** Begin with one native background worker and a concrete eventual-consistency use case; no leader election or HA daemon framework. The consumer owns initial deployment scale.
 - Competing workers are viable only with durable claiming/checkpoints, atomic progress plus projection effects, replay/idempotency, and ordering/serialization for each affected projected key. Avoid checkpointing past unprocessed work. A PostgreSQL sequence's maximum is not automatically a safe committed-event cursor because concurrent transactions can commit out of sequence. Design those mechanics with the first async use case; extra replicas are unsupported until the relevant proofs pass.
 
@@ -87,6 +88,33 @@ This note refines the [architecture baseline](architecture-and-delivery.md#8-eve
 - These reason rules apply to new corrections only. Replay ignores the explanatory text for decision-state evolution; history preserves the recorded reason without current-rule validation or re-normalization. `StockPositionHistoryEntry.Reason` is optional business explanation contextualized by its action, not a machine eligibility code or unrestricted metadata container. Keep future timeline fields grounded in actual actions.
 - A valid correction equal to current on-hand quantity returns unchanged without another event or success audit. Expected version is still checked first; a stale request does not become successful merely because its target quantity happens to match. This is not a generic business-operation deduplication protocol.
 - Replay changes only derived state. It does not rerun current command eligibility, publish messages, or write another audit. The retained literal correction fixture proves hydration alongside the earlier v1 opening and receipt facts. Administrative rebuild remains the separate 3.4b delivery part.
+
+## Administrative Stock Position rebuild
+
+- `IStockPositionProjectionRebuilder.RebuildAsync` is an Inventory-owned administrative contract, not an HTTP endpoint. It requires verified actor/Organization context and current `inventory.projections.rebuild` permission, granted by the code-defined Inventory Manager role. An Organization Administrator is not implicitly authorized. Operators/in-process tools establish context; no administrative console or CLI is shipped.
+- Start with the known Stock Position ID, including when its lookup model is missing. Acquire the exclusive Organization writer gate, then capture the committed stream head and reconstruct from event version one. Replace/insert only this serving row and add one operational rebuild audit in the same transaction. Historical events/business audits are never repeated or modified, and replay does not publish integration messages.
+- Failure/cancellation before commit leaves the serving model untouched. Retry in a fresh DI scope reconstructs from the beginning; there is no durable job, shadow table, checkpoint, resume lifecycle or retry scheduler. A lost response after commit can mean success already occurred. Another invocation is a new administrative operation and can add another rebuild audit; no exactly-once request guarantee is claimed.
+- `PreviousModelMatched` compares the pre-repair row with reconstructed identity, quantities, version and final event timestamp. It is a diagnostic, not an independent semantic oracle: both hydration and inline evolution use the same reducer. Fixed expected-state examples and retained compatibility fixtures must establish historical meaning.
+- Receipt/correction handlers acquire a shared PostgreSQL transaction-level advisory gate **before loading decision state**, retaining it through commit. Reconstruction takes the exclusive form before reading history. Earlier writers finish first; later writers load only after repair. Normal writers remain concurrent with EF optimistic concurrency. The Store rejects writes outside its gated transaction. Locks release on transaction completion/rollback/disposal; this application protocol does not enforce arbitrary SQL.
+- Unknown event schemas, gaps, invalid ordering/payloads and inconsistent required models remain structured Inventory integrity exceptions. Rebuild is not a command and does not rerun current domain input/eligibility rules.
+- For actual projection loss or known corruption, stop affected writes operationally first. Business-key identity still depends on the required write model: out-of-band deletion followed by expected-version-zero creation can open another stream. Keep known stream IDs from diagnostics/history; successful repair must precede resuming affected writes.
+- Full reconstruction consumes stream-sized memory and blocks **all participating Stock Position writers in that Organization**, not readers or other Organizations. This is a small-stream repair proof, not a zero-downtime daemon. Measure cost before scaling. Resumable shadow reconstruction is deferred until measured recovery requirements justify it; persisted progress would need reducer/projection revision compatibility.
+
+The protocol follows [PostgreSQL transaction-level advisory locking](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS) and [EF Core explicit transaction ownership](https://learn.microsoft.com/en-us/ef/core/saving/transactions). No new dependency or schema is introduced for rebuild.
+
+## Post-3.4 seam review
+
+Technical load/append, codec, ordered event reading, inline projection and administrative repair remain concrete in Inventory. Future extraction candidates are range/recorded-time integrity checks, hydration and writer coordination. Inventory identity, policy, permissions, audit choices and projection shape stay module-owned. The second aggregate in 8.1 validates these seams; 8.1b resolves or explicitly constrains core correctness before extraction in 8.2. Durable shadow jobs and an async projection framework are not prerequisites.
+
+## Core-correctness follow-up register
+
+Increment **8.1b — Event-sourcing correctness and extraction gate** must revisit these limits; earlier real workflows may bring individual fixes forward:
+
+- Projection-dependent business-key identity: prevent accidental reopening after lookup loss, or clearly bound library support and operational repair.
+- Coarse Organization gate and full-stream replay cost: measure realistic streams, narrow coordination only with tested discovery/creation and lock ordering.
+- Shared reducer correctness: retain independent expected semantic fixtures; successful replay alone is not proof of business correctness.
+- Atomic event/projection/audit/inbox/outbox changes: prove the combinations when durable workflows introduce real consumers.
+- Resumable/online rebuild remains conditional on recovery cost. If adopted, require versioned checkpoint semantics, atomic progress and serving-state separation; otherwise keep full reconstruction and document its limits.
 
 ## Late validation and extraction
 

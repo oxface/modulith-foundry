@@ -47,6 +47,7 @@ internal sealed class CorrectStockQuantityHandler(
             location = await context.StockingLocations.SingleOrDefaultAsync(candidate => candidate.Code == code, cancellationToken);
             if (item is null || location is null) { return new CorrectStockQuantityResult.NotFound(); }
 
+            await using var transaction = await store.BeginWriteAsync(command.OrganizationId, cancellationToken);
             aggregate = await store.LoadForWritingAsync(item.Id, location.Id, command.ExpectedVersion, cancellationToken);
             if (aggregate.State is null) { return new CorrectStockQuantityResult.NotFound(); }
             aggregate.CorrectQuantity(command.OnHandQuantity, command.Reason);
@@ -64,6 +65,7 @@ internal sealed class CorrectStockQuantityHandler(
                 new { item.Sku, StockingLocationCode = location.Code, command.OnHandQuantity, Version = aggregate.Version },
                 now));
             await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (InvalidInventoryReferenceDataException exception)
         {

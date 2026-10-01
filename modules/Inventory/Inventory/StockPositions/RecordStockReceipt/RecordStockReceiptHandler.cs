@@ -83,6 +83,7 @@ internal sealed class RecordStockReceiptHandler(
         StockPositionAggregate aggregate;
         try
         {
+            await using var transaction = await store.BeginWriteAsync(command.OrganizationId, cancellationToken);
             aggregate = await store.LoadForWritingAsync(
                 item.Id, location.Id, command.ExpectedVersion, cancellationToken);
             aggregate.RecordReceipt(item.Id, location.Id, item.BaseUnitCode, command.Quantity);
@@ -110,6 +111,7 @@ internal sealed class RecordStockReceiptHandler(
                 now));
 
             await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (StockPositionConcurrencyException)
         {

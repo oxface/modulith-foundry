@@ -89,4 +89,11 @@ internal sealed class StockPositionWriteModel : IOrganizationOwned
         Version = version;
         UpdatedAt = updatedAt;
     }
+
+    internal void Restore(StockPositionState state, long version, DateTimeOffset updatedAt)
+    {
+        StockItemId = state.StockItemId;
+        StockingLocationId = state.StockingLocationId;
+        Update(state, version, updatedAt);
+    }
 }

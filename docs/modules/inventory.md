@@ -63,7 +63,7 @@ These are explicit versioned integration contracts, not the Stock Position's pri
 
 ## Authorization
 
-Inventory exposes the stable `inventory-manager` role identifier from Inventory.Contracts. It enforces `inventory.items.manage`, `inventory.locations.manage`, `inventory.stock.adjust`, `inventory.stock.view`, and trusted fulfilment capabilities. Browser actors cannot invoke workflow-only reserve/release operations merely by knowing their message shape.
+Inventory exposes the stable `inventory-manager` role identifier from Inventory.Contracts. It enforces `inventory.items.manage`, `inventory.locations.manage`, `inventory.stock.adjust`, `inventory.stock.view`, `inventory.projections.rebuild`, and trusted fulfilment capabilities. Rebuild is an explicitly authorized administrative in-process capability, not a mapped HTTP endpoint. Browser actors cannot invoke workflow-only reserve/release operations merely by knowing their message shape.
 
 ## Explicit exclusions
 

@@ -18,4 +18,6 @@ internal static class InventoryAuditActions
     internal const string StockReceiptRecordDenied = "stock-position.receipt-record-denied";
     internal const string StockQuantityCorrected = "stock-position.quantity-corrected";
     internal const string StockQuantityCorrectionDenied = "stock-position.quantity-correction-denied";
+    internal const string StockPositionProjectionRebuilt = "stock-position.projection-rebuilt";
+    internal const string StockPositionRebuildDenied = "stock-position.rebuild-denied";
 }

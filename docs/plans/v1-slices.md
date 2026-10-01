@@ -192,15 +192,15 @@ The first increment creates the canonical repository commands for these lanes. A
 **Work:**
 
 - Append a reasoned correction event; never update/delete historical events as the normal correction path.
-- Implement one Inventory-specific rebuild operation into shadow state with checkpoint, cancellation/resume, verification, and deliberate swap.
+- Implement one Inventory-specific full reconstruction and atomic replacement operation; defer durable shadow state/checkpoints/resume.
 - Keep this concrete; do not introduce a generic async-projection/upcaster framework.
 
-**Acceptance:** PostgreSQL tests inject a projection failure and cancellation, resume without double effects, compare rebuilt/current state, reject corrupt/unknown events clearly, and prove the rebuild emits no messages or audit duplicates.
+**Acceptance:** PostgreSQL tests inject replacement failure and cancellation, retry from the beginning without partial serving-state changes, compare reconstructed/current state, reject corrupt/unknown events clearly, and prove historical events/business audits are not repeated. Each successful explicit rebuild has its own operational audit.
 
 **Review-sized delivery:**
 
 - **3.4a — Reasoned quantity corrections:** command/HTTP ingress, immutable correction event, quantity invariants, curated history and fixture, authorization, conflicts and transaction rollback. No rebuild machinery in this change set.
-- **3.4b — Administrative rebuild proof:** Inventory-owned start/resume/verify/swap contract, durable shadow state/checkpoint, cancellation and failure recovery, writer coordination and equivalence verification. PostgreSQL fault injection is setup; acceptance is observed through the administrative contract and normal Stock Position reads.
+- **3.4b — Administrative rebuild proof:** Inventory-owned single-call full replay/atomic replacement contract, cancellation/failure rollback and fresh-scope retry from the beginning, writer coordination and current-model comparison. No durable job or rebuild migration. PostgreSQL fault injection is setup; acceptance is observed through the administrative contract and normal Stock Position reads.
 
 ### Post-3.4 event-sourcing seam review
 
@@ -396,6 +396,20 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** both aggregate implementations work with their own module schema/transactions and no copied Inventory policy; failure tests demonstrate atomic updates of all required inline views. This is a planned capability proof, not a reason to event-source every aggregate.
 
+### Increment 8.1b — Event-sourcing correctness and extraction gate
+
+**Outcome:** core event-sourcing limits are resolved with tests or explicitly constrain the supported library before extraction.
+
+**Work:**
+
+- Revisit projection-dependent business-key identity and the missing-lookup/expected-version-zero reopening risk.
+- Measure full replay and Organization-wide repair blocking; tighten coordination only with tested stream discovery/creation and lock ordering.
+- Validate shared-reducer semantics with independently expected fixtures, not just equivalence between two uses of the same code.
+- Prove owning-module event/inline-view/audit/inbox/outbox atomicity for actual durable workflows.
+- Consider resumable shadow reconstruction only if recovery cost justifies it; adoption requires compatible versioned checkpoints and atomic progress. Otherwise retain full reconstruction with explicit operational limits.
+
+**Acceptance:** the [core-correctness register](event-sourcing.md#core-correctness-follow-up-register) has evidence-backed resolutions or clearly documented supported limits. No generic abstraction may conceal an unresolved correctness gap. Split independent fixes into review-sized changes when necessary.
+
 ### Increment 8.2 — Focused library and sample separation
 
 **Outcome:** the two implementations identify reusable event-sourcing infrastructure; reference business behavior remains a sample.
@@ -403,6 +417,7 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 **Work:**
 
 - Extract only the technical mechanics concretely shared by both implementations; retain domain deciders/reducers, projection definitions, authorization, and transaction ownership in their modules.
+- Event sourcing is a separate opt-in library. State-stored modules require neither its packages nor its aggregate base types/runtime registrations. No business-module Contracts dependency is allowed in that library; this is a delivery requirement, not a reason to invent generic mechanics before the second concrete proof.
 - Review explicit projector registration/preview/rebuild seams without introducing code generation, generic repositories, or automatic domain-to-integration-event dispatch.
 - Keep async projections recorded as later work rather than implementing a generic daemon as part of extraction.
 

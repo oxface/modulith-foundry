@@ -11,6 +11,7 @@ public static class InventoryAuthorizationManifest
             new(InventoryPermissionIds.LocationsManage, "Manage stocking locations"),
             new(InventoryPermissionIds.StockAdjust, "Adjust stock"),
             new(InventoryPermissionIds.StockView, "View stock"),
+            new(InventoryPermissionIds.ProjectionRebuild, "Rebuild stock projections"),
         ],
         [
             new(
@@ -21,6 +22,7 @@ public static class InventoryAuthorizationManifest
                     InventoryPermissionIds.LocationsManage,
                     InventoryPermissionIds.StockAdjust,
                     InventoryPermissionIds.StockView,
+                    InventoryPermissionIds.ProjectionRebuild,
                 ]),
         ]);
 }

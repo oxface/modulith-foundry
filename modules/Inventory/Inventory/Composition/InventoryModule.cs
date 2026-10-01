@@ -19,6 +19,7 @@ using ModulithFoundry.Modules.Inventory.StockPositions;
 using ModulithFoundry.Modules.Inventory.StockPositions.CorrectStockQuantity;
 using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 using ModulithFoundry.Modules.Inventory.StockPositions.Queries;
+using ModulithFoundry.Modules.Inventory.StockPositions.Rebuild;
 using ModulithFoundry.Modules.Inventory.StockPositions.RecordStockReceipt;
 using Npgsql;
 
@@ -45,6 +46,8 @@ public static class InventoryModule
         services.AddScoped<IStockingLocationAdministration, StockingLocationAdministration>();
         services.AddScoped<IStockItemReferences, StockItemReferences>();
         services.AddScoped<StockPositionStore>();
+        services.AddScoped<StockPositionWriteGate>();
+        services.AddScoped<IStockPositionProjectionRebuilder, StockPositionProjectionRebuilder>();
         services.AddScoped<StockPositionEventReader>();
         services.AddScoped<StockPositionInlineProjection>();
         services.AddScoped<RecordStockReceiptHandler>();
