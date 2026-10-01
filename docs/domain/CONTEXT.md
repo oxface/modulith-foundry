@@ -45,7 +45,7 @@ A business constraint on the value or scope of actions a membership may approve.
 _Avoid_: Role
 
 **Sales Approval Authority**:
-The Sales-owned monetary and currency constraints under which a membership may approve a sales order.
+The Sales-owned monetary and currency constraints under which a particular Membership tenure may approve a sales order. A new tenure after removal does not inherit its predecessor's authority.
 _Avoid_: Permission, identity-provider role
 
 ## Sales

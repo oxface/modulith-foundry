@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Sales.ApprovalAuthorities;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Customers;
 using ModulithFoundry.Modules.Sales.Orders;
@@ -18,6 +19,7 @@ internal sealed class SalesDbContext(
     internal const string OrganizationScopeFilter = "OrganizationScope";
 
     internal DbSet<Customer> Customers => Set<Customer>();
+    internal DbSet<SalesApprovalAuthority> ApprovalAuthorities => Set<SalesApprovalAuthority>();
     internal DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     internal DbSet<SalesOrderActivity> OrderActivity => Set<SalesOrderActivity>();
     internal DbSet<SalesOrderNumber> SalesOrderNumbers => Set<SalesOrderNumber>();

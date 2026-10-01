@@ -1,4 +1,5 @@
 using ModulithFoundry.Api.Modules.Access.Middleware;
+using ModulithFoundry.Api.Modules.Sales.ApprovalAuthorities;
 using ModulithFoundry.Api.Modules.Sales.Customers;
 using ModulithFoundry.Api.Modules.Sales.Orders;
 
@@ -14,6 +15,7 @@ internal static class SalesApi
             .WithMetadata(OrganizationScopeMetadata.Instance);
         sales.MapCustomerEndpoints();
         sales.MapSalesOrderEndpoints();
+        sales.MapSalesApprovalAuthorityEndpoints();
         return endpoints;
     }
 }

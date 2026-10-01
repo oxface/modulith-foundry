@@ -2,6 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Sales.ApprovalAuthorities;
+using ModulithFoundry.Modules.Sales.ApprovalAuthorities.Queries;
+using ModulithFoundry.Modules.Sales.ApprovalAuthorities.RevokeSalesApprovalAuthority;
+using ModulithFoundry.Modules.Sales.ApprovalAuthorities.SetSalesApprovalAuthority;
 using ModulithFoundry.Modules.Sales.Authorization;
 using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Customers;
@@ -33,6 +37,13 @@ public static class SalesModule
         services.AddScoped<SubmitSalesOrderHandler>();
         services.AddScoped<SalesOrderQueries>();
         services.AddScoped<ISalesOrderOperations, SalesOrderOperations>();
+        services.AddScoped<SetSalesApprovalAuthorityHandler>();
+        services.AddScoped<RevokeSalesApprovalAuthorityHandler>();
+        services.AddScoped<SalesApprovalAuthorityQueries>();
+        services.AddScoped<
+            ISalesApprovalAuthorityAdministration,
+            SalesApprovalAuthorityAdministration
+        >();
 
         return services;
     }

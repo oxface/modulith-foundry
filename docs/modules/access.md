@@ -42,6 +42,7 @@ Queries exposed through Access capabilities:
 - list the Organizations currently accessible to a User;
 - resolve a route slug and current Membership into an immutable actor/tenant context;
 - list an Organization's memberships, invitations, and assigned system roles.
+- check whether a particular Membership identity is active within the verified Organization context, without requiring access-administration permission or returning personal data.
 
 Expected business failures are explicit: slug unavailable, invitation invalid/expired/consumed, identity mismatch, membership absent/inactive, permission denied, and last-administrator protection. No interface exposes Access entities, its DbContext, provider claims, or queryables.
 

@@ -9,6 +9,21 @@ internal sealed class OrganizationMembershipQueries(
     SystemRoleCatalog roleCatalog
 ) : IOrganizationMembershipQueries, IOrganizationAuthorization
 {
+    public Task<bool> IsActiveAsync(
+        OrganizationId organizationId,
+        MembershipId membershipId,
+        CancellationToken cancellationToken = default
+    ) =>
+        context
+            .Memberships.AsNoTracking()
+            .Active()
+            .AnyAsync(
+                membership =>
+                    membership.OrganizationId == organizationId.Value
+                    && membership.Id == membershipId.Value,
+                cancellationToken
+            );
+
     public Task<bool> HasPermissionAsync(
         UserId userId,
         OrganizationId organizationId,
