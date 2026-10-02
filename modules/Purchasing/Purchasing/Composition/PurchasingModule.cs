@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Purchasing.Persistence;
+using ModulithFoundry.Modules.Purchasing.Replenishment.Queries;
+using ModulithFoundry.Modules.Purchasing.Replenishment.Requests;
 using ModulithFoundry.Modules.Purchasing.StockItemProjection;
 using Npgsql;
 
@@ -19,6 +21,12 @@ public static class PurchasingModule
         services.AddScoped<IStockItemProjectionQueries, StockItemProjectionQueries>();
         services.AddScoped<IStockItemProjectionReconciliation, StockItemProjectionReconciliation>();
         services.TryAddSingleton<StockItemSubscriptionBarrier>();
+        services.AddScoped<IReplenishmentRequestQueries, ReplenishmentRequestQueries>();
+        services.AddScoped<IReplenishmentRequirementQueries, ReplenishmentRequirementQueries>();
+        services.AddScoped<ReplenishmentRequestProcessor>();
+        services.AddScoped<ReceiveReplenishmentRequestHandler>();
+        services.AddScoped<ResumeReplenishmentRequestHandler>();
+        services.TryAddSingleton(TimeProvider.System);
 
         return services;
     }

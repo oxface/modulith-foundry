@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
+using ModulithFoundry.Modules.Purchasing.Audit;
+using ModulithFoundry.Modules.Purchasing.Messaging.Persistence;
+using ModulithFoundry.Modules.Purchasing.Replenishment;
+using ModulithFoundry.Modules.Purchasing.Replenishment.Requests;
 using ModulithFoundry.Modules.Purchasing.StockItemProjection.Persistence;
 using ModulithFoundry.Persistence;
 
@@ -22,6 +26,28 @@ internal sealed class PurchasingDbContext(
     internal DbSet<StockItemReferenceReceipt> StockItemReferenceInbox =>
         Set<StockItemReferenceReceipt>();
 
+    internal DbSet<ReplenishmentRequirement> Requirements => Set<ReplenishmentRequirement>();
+
+    internal DbSet<ReplenishmentRequest> ReplenishmentRequests => Set<ReplenishmentRequest>();
+
+    internal DbSet<PurchasingInboxReceipt> InboxReceipts => Set<PurchasingInboxReceipt>();
+
+    internal DbSet<PurchasingOutboxMessage> OutboxMessages => Set<PurchasingOutboxMessage>();
+
+    internal DbSet<PurchasingAuditEntry> AuditEntries => Set<PurchasingAuditEntry>();
+
+    private Guid? workflowOrganizationId;
+
+    internal void UseWorkflowOrganization(Guid organizationId)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(organizationId, Guid.Empty);
+        if (workflowOrganizationId is { } existing && existing != organizationId)
+            throw new InvalidOperationException(
+                "One Purchasing operation cannot switch Organizations."
+            );
+        workflowOrganizationId = organizationId;
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
@@ -34,5 +60,5 @@ internal sealed class PurchasingDbContext(
     }
 
     private Guid? CurrentOrganizationId =>
-        organizationContext.OrganizationContext?.OrganizationId.Value;
+        workflowOrganizationId ?? organizationContext.OrganizationContext?.OrganizationId.Value;
 }

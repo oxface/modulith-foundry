@@ -322,6 +322,11 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** PostgreSQL/Topology/Broker tests prove duplicate/conflicting shortage operation behavior, missing/stale/foreign Stock Item reference handling, tenant/base-unit validation, Purchasing-only error routing, created-event redelivery, Sales process update, and no auto-created Purchase Order.
 
+**Review-sized delivery:**
+
+- **5.4a — Purchasing receiver:** receiver-owned command, durable pending request/recovery, requirement/inbox/audit/outbox atomicity, outgoing created topic and authorized get/list routes. It works independently of the sample's Sales producer. The [protocol and limits](replenishment-reliability.md) distinguish unavailable/stale references from permanent rejection.
+- **5.4b — Sales round trip:** send the real shortage command, handle created/rejected outcomes with correlation and idempotency, recover existing shortage processes, and complete authenticated journey/redelivery proofs. Until then, a Sales shortage does not automatically create a requirement.
+
 ### Increment 5.5 — Cancellation and Reservation Release compensation
 
 **Outcome:** cancelling an eligible order durably and idempotently releases every successful reservation and exposes compensation progress.

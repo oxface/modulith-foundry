@@ -2,6 +2,7 @@ using ModulithFoundry.Api.Authentication;
 using ModulithFoundry.Api.Infrastructure;
 using ModulithFoundry.Api.Modules.Access;
 using ModulithFoundry.Api.Modules.Inventory;
+using ModulithFoundry.Api.Modules.Purchasing;
 using ModulithFoundry.Api.Modules.Sales;
 using ModulithFoundry.Modules.Access.Composition;
 using ModulithFoundry.Modules.Inventory.Composition;
@@ -36,6 +37,7 @@ app.MapAuthenticationApi();
 app.MapAccessApi();
 app.MapInventoryApi();
 app.MapSalesApi();
+app.MapPurchasingApi();
 
 app.Run();
 

@@ -46,6 +46,10 @@ The Stock Item reference projection is bootstrapped from an Inventory-owned vers
 
 Purchasing exposes the stable `purchasing-agent` role identifier from Purchasing.Contracts. It enforces `purchasing.requirements.view` and, only when those behaviors exist, module-owned supplier and purchase-order permissions. The workflow may create a requirement through its trusted capability; a browser cannot forge workflow identity.
 
+## Replenishment receiver
+
+The [replenishment protocol](../plans/replenishment-reliability.md) records receiver-owned durable waiting, rejection, transaction and publication behavior. Requirements retain the accepted Stock Item snapshot and use globally allocated short numbers scoped by Organization in queries. Trusted request-status queries remain distinct from authorized human requirement get/list routes. The actual Sales shortage producer/outcome handler follows in 5.4b.
+
 ## Explicit exclusions
 
 - A complete procurement lifecycle, supplier onboarding, approvals, receiving, invoice matching, or automatic purchase-order creation.
@@ -57,7 +61,7 @@ Purchasing exposes the stable `purchasing-agent` role identifier from Purchasing
 
 Purchasing owns the isolated `modulith-foundry.purchasing` endpoint/error queue, per-delivery reference inbox, per-item full-state projection and bootstrap checkpoint. A native hosted worker waits for durable subscription binding before calling Inventory's trusted snapshot export. Both the worker and the administrative bootstrap Contract use the [same concrete protocol](../plans/stock-item-bootstrap.md).
 
-Before Ready, reference rows are a durable coalesced buffer and are not query-visible. Snapshot import preserves newer per-item revisions and commits with the watermark/Ready checkpoint in one Purchasing transaction. Incoming delivery receipts and projection effects also commit atomically. The snapshot watermark never advances to the highest observed event; each item's source revision handles tail reordering. There is no replenishment creation or business audit replay in this projection-only increment.
+Before Ready, reference rows are a durable coalesced buffer and are not query-visible. Snapshot import preserves newer per-item revisions and commits with the watermark/Ready checkpoint in one Purchasing transaction. Incoming delivery receipts and projection effects also commit atomically. The snapshot watermark never advances to the highest observed event; each item's source revision handles tail reordering. Bootstrap/reconciliation creates no replenishment or business audit replay.
 
 `IStockItemProjectionBootstrapper` and `IStockItemProjectionQueries` are trusted workflow/administrative Contracts, not human authorization or HTTP APIs. The query supplies an explicit Organization identity and returns a Purchasing-owned view, not Inventory persistence or DTO graphs. Default EF Organization filtering still fails closed without scope. Bootstrap and validated message delivery deliberately query their own schema using explicit administrative access.
 

@@ -37,8 +37,13 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
     private readonly DeliveryProbe deliveries = new();
     private IHost? sender;
     private IHost? errorObserver;
+    private IHost? createdObserver;
+    private readonly Channel<ReplenishmentRequirementCreatedV1> createdRequirements =
+        Channel.CreateUnbounded<ReplenishmentRequirementCreatedV1>();
     private readonly Channel<StockItemReferenceChangedV1> errors =
         Channel.CreateUnbounded<StockItemReferenceChangedV1>();
+    private readonly Channel<CreateReplenishmentRequirementV1> requestErrors =
+        Channel.CreateUnbounded<CreateReplenishmentRequirementV1>();
     internal string DatabaseConnectionString => postgres.GetConnectionString();
     internal string BrokerConnectionString => rabbit.GetConnectionString();
     internal OrganizationAccessContext Actor { get; } =
@@ -181,7 +186,9 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
             .ConfigureServices(services =>
             {
                 services.AddSingleton(errors);
+                services.AddSingleton(requestErrors);
                 services.AddRebusHandler<ReferenceErrorObserver>();
+                services.AddRebusHandler<ReplenishmentErrorObserver>();
                 services.AddRebus(configure =>
                     configure
                         .Transport(transport =>
@@ -199,6 +206,9 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
                                 .UseCustomMessageTypeNames()
                                 .AddWithCustomName<StockItemReferenceChangedV1>(
                                     StockItemReferenceChangedV1.LogicalName
+                                )
+                                .AddWithCustomName<CreateReplenishmentRequirementV1>(
+                                    CreateReplenishmentRequirementV1.LogicalName
                                 );
                         })
                 );
@@ -210,38 +220,13 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
     internal ValueTask<StockItemReferenceChangedV1> ReadErrorAsync() =>
         errors.Reader.ReadAsync(CancellationToken);
 
+    internal ValueTask<CreateReplenishmentRequirementV1> ReadRequestErrorAsync() =>
+        requestErrors.Reader.ReadAsync(CancellationToken);
+
     internal async Task SendAsync(StockItemReferenceChangedV1 message)
     {
-        if (sender is null)
-        {
-            sender = Host.CreateDefaultBuilder()
-                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
-                .ConfigureServices(services =>
-                    services.AddRebus(configure =>
-                        configure
-                            .Transport(transport =>
-                                transport.UseRabbitMq(
-                                    rabbit.GetConnectionString(),
-                                    "test.reference-publisher"
-                                )
-                            )
-                            .Serialization(serializer =>
-                            {
-                                serializer.UseSystemTextJson(
-                                    new JsonSerializerOptions(JsonSerializerDefaults.Web)
-                                );
-                                serializer
-                                    .UseCustomMessageTypeNames()
-                                    .AddWithCustomName<StockItemReferenceChangedV1>(
-                                        StockItemReferenceChangedV1.LogicalName
-                                    );
-                            })
-                    )
-                )
-                .Build();
-            await sender.StartAsync(CancellationToken);
-        }
-        await sender
+        await EnsureSenderAsync();
+        await sender!
             .Services.GetRequiredService<IBus>()
             .Advanced.Routing.Send(
                 PurchasingMessaging.InputQueue,
@@ -253,6 +238,137 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
                 }
             );
     }
+
+    internal async Task SendAsync(
+        CreateReplenishmentRequirementV1 command,
+        string producer = "sales",
+        Guid? correlationId = null
+    )
+    {
+        // Initialize the existing test publisher without creating a business effect.
+        await EnsureSenderAsync();
+        await sender!
+            .Services.GetRequiredService<IBus>()
+            .Advanced.Routing.Send(
+                PurchasingMessaging.InputQueue,
+                command,
+                new Dictionary<string, string>
+                {
+                    [Headers.MessageId] = command.MessageId.ToString(),
+                    ["producer-module"] = producer,
+                    [Headers.CorrelationId] = (correlationId ?? command.ProcessId).ToString(),
+                }
+            );
+    }
+
+    private async Task EnsureSenderAsync()
+    {
+        if (sender is not null)
+            return;
+        sender = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
+            .ConfigureServices(services =>
+                services.AddRebus(configure =>
+                    configure
+                        .Transport(transport =>
+                            transport.UseRabbitMq(
+                                BrokerConnectionString,
+                                "test.replenishment-publisher"
+                            )
+                        )
+                        .Serialization(serializer =>
+                        {
+                            serializer.UseSystemTextJson(
+                                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                            );
+                            serializer
+                                .UseCustomMessageTypeNames()
+                                .AddWithCustomName<StockItemReferenceChangedV1>(
+                                    StockItemReferenceChangedV1.LogicalName
+                                )
+                                .AddWithCustomName<CreateReplenishmentRequirementV1>(
+                                    CreateReplenishmentRequirementV1.LogicalName
+                                );
+                        })
+                )
+            )
+            .Build();
+        await sender.StartAsync(CancellationToken);
+    }
+
+    internal async Task<ReplenishmentRequestView?> RequestAsync(
+        Guid operationId,
+        OrganizationId? organizationId = null
+    )
+    {
+        await using AsyncServiceScope scope = host.Services.CreateAsyncScope();
+        return await scope
+            .ServiceProvider.GetRequiredService<IReplenishmentRequestQueries>()
+            .GetAsync(organizationId ?? Actor.OrganizationId, operationId, CancellationToken);
+    }
+
+    internal async Task<GetReplenishmentRequirementResult> RequirementAsync(
+        long number,
+        OrganizationId? organizationId = null
+    )
+    {
+        await using AsyncServiceScope scope = host.Services.CreateAsyncScope();
+        return await scope
+            .ServiceProvider.GetRequiredService<IReplenishmentRequirementQueries>()
+            .GetByNumberAsync(
+                Actor.UserId,
+                organizationId ?? Actor.OrganizationId,
+                number,
+                CancellationToken
+            );
+    }
+
+    internal async Task<ListReplenishmentRequirementsResult> RequirementsAsync()
+    {
+        await using AsyncServiceScope scope = host.Services.CreateAsyncScope();
+        return await scope
+            .ServiceProvider.GetRequiredService<IReplenishmentRequirementQueries>()
+            .ListAsync(Actor.UserId, Actor.OrganizationId, 0, 25, CancellationToken);
+    }
+
+    internal async Task StartCreatedObserverAsync()
+    {
+        createdObserver = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(createdRequirements);
+                services.AddRebusHandler<RequirementCreatedObserver>();
+                services.AddRebus(configure =>
+                    configure
+                        .Transport(transport =>
+                            transport.UseRabbitMq(
+                                BrokerConnectionString,
+                                "test.requirement-created"
+                            )
+                        )
+                        .Serialization(serializer =>
+                        {
+                            serializer.UseSystemTextJson(
+                                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                            );
+                            serializer
+                                .UseCustomMessageTypeNames()
+                                .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
+                                    ReplenishmentRequirementCreatedV1.LogicalName
+                                );
+                        })
+                );
+            })
+            .Build();
+        await createdObserver.StartAsync(CancellationToken);
+        await createdObserver
+            .Services.GetRequiredService<IBus>()
+            .Advanced.Topics.Subscribe(ReplenishmentRequirementCreatedV1.LogicalName);
+    }
+
+    internal ValueTask<ReplenishmentRequirementCreatedV1> ReadCreatedAsync() =>
+        createdRequirements.Reader.ReadAsync(CancellationToken);
 
     internal Task WaitForProcessedAsync(Guid messageId, int count = 1) =>
         deliveries.WaitAsync(messageId, count, CancellationToken);
@@ -472,6 +588,11 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
             await errorObserver.StopAsync(CancellationToken.None);
             errorObserver.Dispose();
         }
+        if (createdObserver is not null)
+        {
+            await createdObserver.StopAsync(CancellationToken.None);
+            createdObserver.Dispose();
+        }
         if (dataSource is not null)
             await dataSource.DisposeAsync();
         await rabbit.DisposeAsync();
@@ -501,6 +622,26 @@ internal sealed class ReferenceErrorObserver(Channel<StockItemReferenceChangedV1
 {
     public Task Handle(StockItemReferenceChangedV1 message) =>
         errors.Writer.WriteAsync(message).AsTask();
+}
+
+internal sealed class ReplenishmentErrorObserver(Channel<CreateReplenishmentRequirementV1> errors)
+    : IHandleMessages<CreateReplenishmentRequirementV1>
+{
+    public Task Handle(CreateReplenishmentRequirementV1 message) =>
+        errors.Writer.WriteAsync(message).AsTask();
+}
+
+internal sealed class RequirementCreatedObserver(Channel<ReplenishmentRequirementCreatedV1> created)
+    : IHandleMessages<ReplenishmentRequirementCreatedV1>
+{
+    public Task Handle(ReplenishmentRequirementCreatedV1 message)
+    {
+        var headers = MessageContext.Current.Headers;
+        Assert.Equal(message.MessageId.ToString(), headers[Headers.MessageId]);
+        Assert.Equal(message.CausationId.ToString(), headers["causation-id"]);
+        Assert.Equal("purchasing", headers["producer-module"]);
+        return created.Writer.WriteAsync(message).AsTask();
+    }
 }
 
 // A test-only command-completion barrier. It pauses a real repeatable-read export after

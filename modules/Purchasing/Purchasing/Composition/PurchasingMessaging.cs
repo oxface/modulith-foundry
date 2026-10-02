@@ -4,7 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Purchasing.Messaging;
+using ModulithFoundry.Modules.Purchasing.Replenishment.Requests;
 using ModulithFoundry.Modules.Purchasing.StockItemProjection;
 using Npgsql;
 using Rebus.Config;
@@ -37,6 +39,9 @@ public static class PurchasingMessaging
                     services.AddPurchasingPersistence();
                     services.AddSingleton(TimeProvider.System);
                     services.AddScoped<RecordStockItemReferenceHandler>();
+                    services.AddScoped<ReceiveReplenishmentRequestHandler>();
+                    services.AddScoped<ReplenishmentRequestProcessor>();
+                    services.AddRebusHandler<CreateReplenishmentRequirementMessageHandler>();
                     services.AddRebusHandler<StockItemReferenceChangedMessageHandler>();
                     services.AddRebus(
                         configure =>
@@ -59,6 +64,12 @@ public static class PurchasingMessaging
                                         .UseCustomMessageTypeNames()
                                         .AddWithCustomName<StockItemReferenceChangedV1>(
                                             StockItemReferenceChangedV1.LogicalName
+                                        )
+                                        .AddWithCustomName<CreateReplenishmentRequirementV1>(
+                                            CreateReplenishmentRequirementV1.LogicalName
+                                        )
+                                        .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
+                                            ReplenishmentRequirementCreatedV1.LogicalName
                                         );
                                 })
                                 .Options(options =>
@@ -79,6 +90,7 @@ public static class PurchasingMessaging
                             provider.GetRequiredService<StockItemSubscriptionBarrier>().Complete();
                         }
                     );
+                    services.AddHostedService<PurchasingOutboxRelay>();
                 },
                 typeof(NpgsqlDataSource),
                 typeof(ILoggerFactory),
@@ -86,7 +98,10 @@ public static class PurchasingMessaging
                 typeof(StockItemSubscriptionBarrier)
             )
             .ConfigureServices(
-                (_, services) => services.AddHostedService<StockItemBootstrapWorker>()
+                (_, services) =>
+                    services
+                        .AddHostedService<StockItemBootstrapWorker>()
+                        .AddHostedService<PendingReplenishmentDispatcher>()
             );
     }
 }
