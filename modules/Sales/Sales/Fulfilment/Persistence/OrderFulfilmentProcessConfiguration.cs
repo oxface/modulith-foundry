@@ -70,6 +70,21 @@ internal sealed class OrderFulfilmentProcessConfiguration
                     .HasMaxLength(64);
                 line.Property(entity => entity.AttemptCount).HasColumnName("attempt_count");
                 line.Property(entity => entity.ResponseDeadline).HasColumnName("response_deadline");
+                line.Property(entity => entity.ReplenishmentCommandMessageId)
+                    .HasColumnName("replenishment_command_message_id");
+                line.Property(entity => entity.ReplenishmentQuantity)
+                    .HasColumnName("replenishment_quantity")
+                    .HasPrecision(19, 6);
+                line.Property(entity => entity.ReplenishmentRequirementId)
+                    .HasColumnName("replenishment_requirement_id");
+                line.Property(entity => entity.ReplenishmentRequirementNumber)
+                    .HasColumnName("replenishment_requirement_number");
+                line.Property(entity => entity.ReplenishmentReasonCode)
+                    .HasColumnName("replenishment_reason_code")
+                    .HasMaxLength(100);
+                line.Property(entity => entity.ReplenishmentOutcomeFingerprint)
+                    .HasColumnName("replenishment_outcome_fingerprint")
+                    .HasMaxLength(64);
                 line.HasIndex(entity => entity.OperationId)
                     .IsUnique()
                     .HasDatabaseName("ux_fulfilment_lines_operation");

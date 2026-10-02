@@ -41,19 +41,35 @@ internal sealed class PendingFulfilmentDispatcher(
             .ServiceProvider.GetRequiredService<SalesDbContext>()
             .FulfilmentProcesses.IgnoreQueryFilters([SalesDbContext.OrganizationScopeFilter])
             .AsNoTracking()
-            .Where(process => process.Status == OrderFulfilmentStatus.PendingDispatch)
+            .Where(process =>
+                process.Status == OrderFulfilmentStatus.PendingDispatch
+                || process.Lines.Any(line =>
+                    line.Status == OrderFulfilmentLineStatus.Shortage
+                    && line.ReplenishmentCommandMessageId == null
+                )
+            )
             .OrderBy(process => process.CreatedAt)
             .ThenBy(process => process.Id)
-            .Select(process => new { process.OrganizationId, process.Id })
+            .Select(process => new
+            {
+                process.OrganizationId,
+                process.Id,
+                process.Status,
+            })
             .ToArrayAsync(cancellationToken);
         foreach (var item in pending)
         {
             await using AsyncServiceScope scope = scopes.CreateAsyncScope();
             try
             {
-                await scope
-                    .ServiceProvider.GetRequiredService<QueuePendingFulfilmentHandler>()
-                    .QueueAsync(item.OrganizationId, item.Id, cancellationToken);
+                if (item.Status == OrderFulfilmentStatus.PendingDispatch)
+                    await scope
+                        .ServiceProvider.GetRequiredService<QueuePendingFulfilmentHandler>()
+                        .QueueAsync(item.OrganizationId, item.Id, cancellationToken);
+                else
+                    await scope
+                        .ServiceProvider.GetRequiredService<QueuePendingReplenishmentHandler>()
+                        .QueueAsync(item.OrganizationId, item.Id, cancellationToken);
             }
             catch (DbUpdateConcurrencyException)
             { /* Another dispatcher won. This scope is discarded. */

@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="../../Access/Access.Contracts/Access.Contracts.csproj" />
     <ProjectReference Include="../../Inventory/Inventory.Contracts/Inventory.Contracts.csproj" />
+    <ProjectReference Include="../../Purchasing/Purchasing.Contracts/Purchasing.Contracts.csproj" />
     <ProjectReference Include="../Sales.Contracts/Sales.Contracts.csproj" />
     <ProjectReference Include="../../../shared/Persistence/ModulithFoundry.Persistence.csproj" />
   </ItemGroup>

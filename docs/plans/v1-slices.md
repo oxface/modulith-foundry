@@ -325,7 +325,7 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 **Review-sized delivery:**
 
 - **5.4a — Purchasing receiver:** receiver-owned command, durable pending request/recovery, requirement/inbox/audit/outbox atomicity, outgoing created topic and authorized get/list routes. It works independently of the sample's Sales producer. The [protocol and limits](replenishment-reliability.md) distinguish unavailable/stale references from permanent rejection.
-- **5.4b — Sales round trip:** send the real shortage command, handle created/rejected outcomes with correlation and idempotency, recover existing shortage processes, and complete authenticated journey/redelivery proofs. Until then, a Sales shortage does not automatically create a requirement.
+- **5.4b — Sales round trip:** send the real shortage command, handle created/rejected outcomes with correlation and idempotency, recover existing shortage processes, and complete authenticated journey/redelivery proofs. Sales retains separate reservation and replenishment outcomes; requirement creation does not change stock or complete fulfilment. The [protocol and limits](replenishment-reliability.md) record sample deficit policy, atomic participants, retained identities and the current zero-minimum reference freshness boundary.
 
 ### Increment 5.5 — Cancellation and Reservation Release compensation
 

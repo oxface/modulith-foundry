@@ -41,6 +41,7 @@ public static class SalesModule
         services.AddScoped<ISalesOrderApproval, ApproveSalesOrderHandler>();
         services.AddScoped<OrderFulfilmentQueries>();
         services.AddScoped<QueuePendingFulfilmentHandler>();
+        services.AddScoped<QueuePendingReplenishmentHandler>();
         services.AddScoped<SalesOrderQueries>();
         services.AddScoped<ISalesOrderOperations, SalesOrderOperations>();
         services.AddScoped<SetSalesApprovalAuthorityHandler>();

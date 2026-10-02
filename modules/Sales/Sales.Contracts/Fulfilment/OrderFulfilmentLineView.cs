@@ -12,5 +12,9 @@ public sealed record OrderFulfilmentLineView(
     decimal? AvailableQuantity,
     string? ReasonCode,
     int AttemptCount,
-    DateTimeOffset? ResponseDeadline
+    DateTimeOffset? ResponseDeadline,
+    decimal? ReplenishmentQuantity,
+    Guid? ReplenishmentRequirementId,
+    long? ReplenishmentRequirementNumber,
+    string? ReplenishmentReasonCode
 );

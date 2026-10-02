@@ -69,13 +69,42 @@ internal sealed class OrderFulfilmentProcess : IOrganizationOwned
             throw new InvalidOperationException("The line does not belong to this process.");
         line.Complete(decision);
         Version = checked(Version + 1);
+        RefreshStatus();
+    }
+
+    internal bool QueueReplenishment(OrderFulfilmentLine line, DateTimeOffset now)
+    {
+        if (!_lines.Contains(line))
+            throw new InvalidOperationException("The line does not belong to this process.");
+        if (!line.QueueReplenishment(now))
+            return false;
+        Version = checked(Version + 1);
+        return true;
+    }
+
+    internal void ApplyReplenishment(
+        OrderFulfilmentLine line,
+        Guid? requirementId,
+        long? number,
+        string? reason,
+        string fingerprint
+    )
+    {
+        if (!_lines.Contains(line))
+            throw new InvalidOperationException("The line does not belong to this process.");
+        line.CompleteReplenishment(requirementId, number, reason, fingerprint);
+        Version = checked(Version + 1);
+        RefreshStatus();
+    }
+
+    private void RefreshStatus() =>
         Status =
             _lines.Any(item => item.Status == OrderFulfilmentLineStatus.Rejected)
+            || _lines.Any(item => item.ReplenishmentReasonCode != null)
                 ? OrderFulfilmentStatus.AttentionRequired
             : _lines.Any(item => item.Status == OrderFulfilmentLineStatus.PendingReservation)
                 ? OrderFulfilmentStatus.AwaitingReservations
             : _lines.Any(item => item.Status == OrderFulfilmentLineStatus.Shortage)
                 ? OrderFulfilmentStatus.AwaitingReplenishment
             : OrderFulfilmentStatus.Reserved;
-    }
 }

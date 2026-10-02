@@ -15,6 +15,7 @@ public sealed partial class LocalRuntimeTests
         "sales-clerk",
         "sales-approver",
         "inventory-manager",
+        "purchasing-agent",
     ];
     private static readonly string[] ApprovalMemberRoleIds = ["sales-approver"];
     private static readonly string[] NonApproverRoleIds = ["sales-clerk"];
@@ -290,6 +291,15 @@ public sealed partial class LocalRuntimeTests
             "stock-reserved",
             activityJson.RootElement.EnumerateArray().Last().GetProperty("kind").GetString()
         );
+        await AssertShortageReplenishmentAsync(
+            alice,
+            bob,
+            aliceCsrf,
+            bobCsrf,
+            root,
+            stockItemId,
+            timeout.Token
+        );
         using HttpResponseMessage retry = await SendCommandAsync(
             bob,
             HttpMethod.Post,
@@ -318,5 +328,122 @@ public sealed partial class LocalRuntimeTests
             timeout.Token
         );
         Assert.Equal(HttpStatusCode.Forbidden, revoked.StatusCode);
+    }
+
+    private static async Task AssertShortageReplenishmentAsync(
+        HttpClient alice,
+        HttpClient bob,
+        string aliceCsrf,
+        string bobCsrf,
+        string root,
+        Guid stockItemId,
+        CancellationToken cancellationToken
+    )
+    {
+        using var draft = await SendCommandAsync(
+            alice,
+            HttpMethod.Post,
+            root + "/sales/orders",
+            aliceCsrf,
+            new
+            {
+                customerCode = "buyer",
+                currency = "USD",
+                lines = new[]
+                {
+                    new
+                    {
+                        stockItemId,
+                        quantity = 20m,
+                        unitPrice = 1m,
+                    },
+                },
+            },
+            cancellationToken
+        );
+        draft.EnsureSuccessStatusCode();
+        using var draftJson = JsonDocument.Parse(
+            await draft.Content.ReadAsStringAsync(cancellationToken)
+        );
+        long number = draftJson.RootElement.GetProperty("orderNumber").GetInt64();
+        string orderUrl = root + $"/sales/orders/{number}";
+        using var submitted = await SendCommandAsync(
+            alice,
+            HttpMethod.Post,
+            orderUrl + "/submit",
+            aliceCsrf,
+            new { expectedVersion = 1 },
+            cancellationToken
+        );
+        submitted.EnsureSuccessStatusCode();
+        using var approved = await SendCommandAsync(
+            bob,
+            HttpMethod.Post,
+            orderUrl + "/approve",
+            bobCsrf,
+            new { expectedVersion = 2 },
+            cancellationToken
+        );
+        approved.EnsureSuccessStatusCode();
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        bound.CancelAfter(TimeSpan.FromSeconds(30));
+        long requirementNumber;
+        Guid requirementId;
+        while (true)
+        {
+            using var response = await bob.GetAsync(orderUrl + "/fulfilment", bound.Token);
+            response.EnsureSuccessStatusCode();
+            using var process = JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync(bound.Token)
+            );
+            var line = Assert.Single(process.RootElement.GetProperty("lines").EnumerateArray());
+            if (line.GetProperty("replenishmentRequirementNumber").ValueKind != JsonValueKind.Null)
+            {
+                Assert.Equal(
+                    "awaiting-replenishment",
+                    process.RootElement.GetProperty("status").GetString()
+                );
+                Assert.Equal("shortage", line.GetProperty("status").GetString());
+                Assert.Equal(12m, line.GetProperty("replenishmentQuantity").GetDecimal());
+                requirementNumber = line.GetProperty("replenishmentRequirementNumber").GetInt64();
+                requirementId = line.GetProperty("replenishmentRequirementId").GetGuid();
+                break;
+            }
+            await Task.Delay(100, bound.Token);
+        }
+        using var requirement = await alice.GetAsync(
+            root + $"/purchasing/requirements/{requirementNumber}",
+            cancellationToken
+        );
+        requirement.EnsureSuccessStatusCode();
+        using var requirementJson = JsonDocument.Parse(
+            await requirement.Content.ReadAsStringAsync(cancellationToken)
+        );
+        Assert.Equal(
+            requirementId,
+            requirementJson.RootElement.GetProperty("requirementId").GetGuid()
+        );
+        Assert.Equal(12m, requirementJson.RootElement.GetProperty("quantity").GetDecimal());
+        Assert.Equal("BOLT", requirementJson.RootElement.GetProperty("sku").GetString());
+        using var forbidden = await bob.GetAsync(
+            root + $"/purchasing/requirements/{requirementNumber}",
+            cancellationToken
+        );
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        using var list = await alice.GetAsync(root + "/purchasing/requirements", cancellationToken);
+        list.EnsureSuccessStatusCode();
+        using var listJson = JsonDocument.Parse(
+            await list.Content.ReadAsStringAsync(cancellationToken)
+        );
+        Assert.Single(listJson.RootElement.EnumerateArray());
+        using var activity = await bob.GetAsync(orderUrl + "/activity", cancellationToken);
+        activity.EnsureSuccessStatusCode();
+        using var activityJson = JsonDocument.Parse(
+            await activity.Content.ReadAsStringAsync(cancellationToken)
+        );
+        Assert.Equal(
+            "replenishment-created",
+            activityJson.RootElement.EnumerateArray().Last().GetProperty("kind").GetString()
+        );
     }
 }

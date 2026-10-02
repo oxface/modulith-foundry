@@ -9,6 +9,8 @@ public static class SalesOrderActivityKindValues
     public const string StockReserved = "stock-reserved";
     public const string StockShortage = "stock-shortage";
     public const string ReservationRejected = "reservation-rejected";
+    public const string ReplenishmentCreated = "replenishment-created";
+    public const string ReplenishmentRejected = "replenishment-rejected";
 
     public static string ToValue(SalesOrderActivityKind kind) =>
         kind switch
@@ -20,6 +22,8 @@ public static class SalesOrderActivityKindValues
             SalesOrderActivityKind.StockReserved => StockReserved,
             SalesOrderActivityKind.StockShortage => StockShortage,
             SalesOrderActivityKind.ReservationRejected => ReservationRejected,
+            SalesOrderActivityKind.ReplenishmentCreated => ReplenishmentCreated,
+            SalesOrderActivityKind.ReplenishmentRejected => ReplenishmentRejected,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(kind),
                 kind,
@@ -37,6 +41,8 @@ public static class SalesOrderActivityKindValues
             StockReserved => SalesOrderActivityKind.StockReserved,
             StockShortage => SalesOrderActivityKind.StockShortage,
             ReservationRejected => SalesOrderActivityKind.ReservationRejected,
+            ReplenishmentCreated => SalesOrderActivityKind.ReplenishmentCreated,
+            ReplenishmentRejected => SalesOrderActivityKind.ReplenishmentRejected,
             _ => throw new InvalidOperationException(
                 $"Unknown sales order activity kind '{value}'."
             ),

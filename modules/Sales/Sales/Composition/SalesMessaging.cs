@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Sales.Fulfilment.QueuePendingFulfilment;
+using ModulithFoundry.Modules.Sales.Fulfilment.RecordReplenishmentOutcome;
 using ModulithFoundry.Modules.Sales.Fulfilment.RecordReservationOutcome;
 using ModulithFoundry.Modules.Sales.Messaging;
 using Npgsql;
@@ -35,6 +37,8 @@ public static class SalesMessaging
             );
         string inventoryQueue =
             configuration["Messaging:InventoryQueue"] ?? "modulith-foundry.inventory";
+        string purchasingQueue =
+            configuration["Messaging:PurchasingQueue"] ?? "modulith-foundry.purchasing";
         return host.AddRebusService(
                 services =>
                 {
@@ -42,6 +46,8 @@ public static class SalesMessaging
                     services.AddSalesPersistence();
                     services.AddSingleton(TimeProvider.System);
                     services.AddScoped<RecordReservationOutcomeHandler>();
+                    services.AddScoped<RecordReplenishmentOutcomeHandler>();
+                    services.AddRebusHandler<ReplenishmentOutcomeMessageHandler>();
                     services.AddRebusHandler<StockReservationOutcomeMessageHandler>();
                     services.AddRebus(
                         configure =>
@@ -53,7 +59,10 @@ public static class SalesMessaging
                                         .Prefetch(4)
                                 )
                                 .Routing(routing =>
-                                    routing.TypeBased().Map<ReserveStockV1>(inventoryQueue)
+                                    routing
+                                        .TypeBased()
+                                        .Map<ReserveStockV1>(inventoryQueue)
+                                        .Map<CreateReplenishmentRequirementV1>(purchasingQueue)
                                 )
                                 .Serialization(serializer =>
                                 {
@@ -77,6 +86,15 @@ public static class SalesMessaging
                                         )
                                         .AddWithCustomName<StockReservationOutcomeV1>(
                                             StockReservationOutcomeV1.LogicalName
+                                        )
+                                        .AddWithCustomName<CreateReplenishmentRequirementV1>(
+                                            CreateReplenishmentRequirementV1.LogicalName
+                                        )
+                                        .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
+                                            ReplenishmentRequirementCreatedV1.LogicalName
+                                        )
+                                        .AddWithCustomName<ReplenishmentRequestRejectedV1>(
+                                            ReplenishmentRequestRejectedV1.LogicalName
                                         );
                                 })
                                 .Options(options =>
@@ -89,8 +107,18 @@ public static class SalesMessaging
                                     );
                                     configureOptions?.Invoke(options);
                                 }),
-                        onCreated: bus =>
-                            bus.Advanced.Topics.Subscribe(StockReservationOutcomeV1.LogicalName)
+                        onCreated: async bus =>
+                        {
+                            await bus.Advanced.Topics.Subscribe(
+                                StockReservationOutcomeV1.LogicalName
+                            );
+                            await bus.Advanced.Topics.Subscribe(
+                                ReplenishmentRequirementCreatedV1.LogicalName
+                            );
+                            await bus.Advanced.Topics.Subscribe(
+                                ReplenishmentRequestRejectedV1.LogicalName
+                            );
+                        }
                     );
                     services.AddHostedService<SalesOutboxRelay>();
                 },

@@ -12,6 +12,8 @@ using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Access.ExtensionPoints;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Purchasing.Composition;
+using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Sales.Composition;
 using ModulithFoundry.Modules.Sales.Contracts;
 using Npgsql;
@@ -39,9 +41,15 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
     private IHost host = null!;
     private IHost? observer;
     private IHost? errorObserver;
+    private IHost? replenishmentObserver;
+    private readonly Channel<ReplenishmentRequirementCreatedV1> createdRequirements =
+        Channel.CreateUnbounded<ReplenishmentRequirementCreatedV1>();
+    private readonly Channel<ReplenishmentRequirementCreatedV1> replenishmentErrors =
+        Channel.CreateUnbounded<ReplenishmentRequirementCreatedV1>();
     private readonly Channel<StockReservationOutcomeV1> errors =
         Channel.CreateUnbounded<StockReservationOutcomeV1>();
     private bool controlledOutcomes;
+    private bool enablePurchasing;
     private readonly Channel<ReserveStockV1> commands = Channel.CreateUnbounded<ReserveStockV1>();
     private readonly DeliveryProbe deliveries = new();
     internal OrganizationAccessContext Administrator { get; private set; } = null!;
@@ -52,11 +60,13 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
 
     internal static async Task<SalesFulfilmentFixture> StartAsync(
         bool createMain = true,
-        bool controlledOutcomes = false
+        bool controlledOutcomes = false,
+        bool enablePurchasing = false
     )
     {
         var fixture = new SalesFulfilmentFixture();
         fixture.controlledOutcomes = controlledOutcomes;
+        fixture.enablePurchasing = enablePurchasing;
         fixture.timeout.CancelAfter(TimeSpan.FromSeconds(120));
         try
         {
@@ -66,6 +76,7 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             await fixture.host.Services.MigrateAccessAsync(fixture.CancellationToken);
             await fixture.host.Services.MigrateInventoryAsync(fixture.CancellationToken);
             await fixture.host.Services.MigrateSalesAsync(fixture.CancellationToken);
+            await fixture.host.Services.MigratePurchasingAsync(fixture.CancellationToken);
             if (controlledOutcomes)
             {
                 fixture.observer = fixture.BuildObserver();
@@ -118,6 +129,7 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                 );
                 services.AddInventoryModule();
                 services.AddSalesModule();
+                services.AddPurchasingModule();
             })
             .AddSalesMessaging(
                 configuration,
@@ -132,6 +144,8 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             );
         if (!controlledOutcomes)
             builder.AddInventoryMessaging(configuration);
+        if (enablePurchasing)
+            builder.AddPurchasingMessaging(configuration);
         return builder.Build();
     }
 
@@ -201,6 +215,18 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
 
     internal async Task<StockReservationOutcomeV1> ReadErrorAsync()
     {
+        await StartErrorObserverAsync();
+        return await errors.Reader.ReadAsync(CancellationToken);
+    }
+
+    internal async Task<ReplenishmentRequirementCreatedV1> ReadReplenishmentErrorAsync()
+    {
+        await StartErrorObserverAsync();
+        return await replenishmentErrors.Reader.ReadAsync(CancellationToken);
+    }
+
+    private async Task StartErrorObserverAsync()
+    {
         if (errorObserver is null)
         {
             errorObserver = Host.CreateDefaultBuilder()
@@ -208,7 +234,9 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                 .ConfigureServices(services =>
                 {
                     services.AddSingleton(errors);
+                    services.AddSingleton(replenishmentErrors);
                     services.AddRebusHandler<ReservationOutcomeErrorObserver>();
+                    services.AddRebusHandler<RequirementOutcomeErrorObserver>();
                     services.AddRebus(configure =>
                         configure
                             .Transport(transport =>
@@ -236,6 +264,9 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                                     .UseCustomMessageTypeNames()
                                     .AddWithCustomName<StockReservationOutcomeV1>(
                                         StockReservationOutcomeV1.LogicalName
+                                    )
+                                    .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
+                                        ReplenishmentRequirementCreatedV1.LogicalName
                                     );
                             })
                     );
@@ -243,13 +274,70 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                 .Build();
             await errorObserver.StartAsync(CancellationToken);
         }
-        return await errors.Reader.ReadAsync(CancellationToken);
     }
 
-    internal async Task RestartAsync(bool addMain = false)
+    internal async Task StartReplenishmentObserverAsync()
+    {
+        replenishmentObserver = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(createdRequirements);
+                services.AddRebusHandler<RequirementCreatedObserver>();
+                services.AddRebus(configure =>
+                    configure
+                        .Transport(transport =>
+                            transport.UseRabbitMq(
+                                rabbit.GetConnectionString(),
+                                "test.sales-replenishment-observer"
+                            )
+                        )
+                        .Serialization(serializer =>
+                        {
+                            serializer.UseSystemTextJson(
+                                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                            );
+                            serializer
+                                .UseCustomMessageTypeNames()
+                                .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
+                                    ReplenishmentRequirementCreatedV1.LogicalName
+                                );
+                        })
+                );
+            })
+            .Build();
+        await replenishmentObserver.StartAsync(CancellationToken);
+        await replenishmentObserver
+            .Services.GetRequiredService<IBus>()
+            .Advanced.Topics.Subscribe(ReplenishmentRequirementCreatedV1.LogicalName);
+    }
+
+    internal ValueTask<ReplenishmentRequirementCreatedV1> ReadCreatedAsync() =>
+        createdRequirements.Reader.ReadAsync(CancellationToken);
+
+    internal Task PublishAsync(ReplenishmentRequirementCreatedV1 outcome) =>
+        replenishmentObserver!
+            .Services.GetRequiredService<IBus>()
+            .Advanced.Topics.Publish(
+                ReplenishmentRequirementCreatedV1.LogicalName,
+                outcome,
+                new Dictionary<string, string>
+                {
+                    [Headers.MessageId] = outcome.MessageId.ToString(),
+                    [Headers.CorrelationId] = outcome.ProcessId.ToString(),
+                    ["causation-id"] = outcome.CausationId.ToString(),
+                    ["producer-module"] = "purchasing",
+                }
+            );
+
+    internal Task StopAsync() => host.StopAsync(CancellationToken);
+
+    internal async Task RestartAsync(bool addMain = false, bool? enablePurchasing = null)
     {
         await host.StopAsync(CancellationToken);
         host.Dispose();
+        if (enablePurchasing.HasValue)
+            this.enablePurchasing = enablePurchasing.Value;
         host = BuildHost();
         if (addMain)
             await AddMainAsync();
@@ -344,6 +432,7 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                                     SalesRoleIds.Manager,
                                     SalesRoleIds.Clerk,
                                     InventoryRoleIds.Manager,
+                                    PurchasingRoleIds.Agent,
                                 ]
                             ),
                             CancellationToken
@@ -661,6 +750,97 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                     .Position
         );
 
+    internal Task<GetReplenishmentRequirementResult> RequirementAsync(long number) =>
+        RunAsync(
+            Administrator,
+            services =>
+                services
+                    .GetRequiredService<IReplenishmentRequirementQueries>()
+                    .GetByNumberAsync(
+                        Administrator.UserId,
+                        Administrator.OrganizationId,
+                        number,
+                        CancellationToken
+                    )
+        );
+
+    internal async Task<IReadOnlyList<ReplenishmentRequirementView>> RequirementsAsync() =>
+        Assert
+            .IsType<ListReplenishmentRequirementsResult.Listed>(
+                await RunAsync(
+                    Administrator,
+                    services =>
+                        services
+                            .GetRequiredService<IReplenishmentRequirementQueries>()
+                            .ListAsync(
+                                Administrator.UserId,
+                                Administrator.OrganizationId,
+                                cancellationToken: CancellationToken
+                            )
+                )
+            )
+            .Requirements;
+
+    internal async Task<OrderFulfilmentView> WaitForRequirementAsync(
+        long orderNumber,
+        bool rejected = false
+    )
+    {
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+        bound.CancelAfter(TimeSpan.FromSeconds(30));
+        while (true)
+        {
+            var process = await ReadAsync(orderNumber);
+            if (
+                process.Lines.Any(line =>
+                    rejected
+                        ? line.ReplenishmentReasonCode != null
+                        : line.ReplenishmentRequirementId.HasValue
+                )
+            )
+                return process;
+            await Task.Delay(50, bound.Token);
+        }
+    }
+
+    internal async Task DeactivateItemAsync()
+    {
+        await RunAsync(
+            Administrator,
+            async services =>
+                Assert.IsType<SetStockItemActiveResult.Changed>(
+                    await services
+                        .GetRequiredService<IStockItemAdministration>()
+                        .SetActiveAsync(
+                            new(Administrator.UserId, Administrator.OrganizationId, "BOLT", false),
+                            CancellationToken
+                        )
+                )
+        );
+        // Controlled reservation peers do not run Inventory's relay; use the real snapshot repair
+        // Contract to install the changed reference before publishing their controlled outcome.
+        await RunAsync(
+            Administrator,
+            services =>
+                services
+                    .GetRequiredService<IStockItemProjectionReconciliation>()
+                    .RepairAsync(CancellationToken)
+        );
+        while (true)
+        {
+            var reference = await RunAsync(
+                Administrator,
+                services =>
+                    services
+                        .GetRequiredService<IStockItemProjectionQueries>()
+                        .GetAsync(Administrator.OrganizationId, Item.Value, CancellationToken)
+            );
+            if (reference is { IsActive: false })
+                return;
+            await Task.Delay(50, CancellationToken);
+        }
+    }
+
     internal async Task<T> RunAsync<T>(
         OrganizationAccessContext? actor,
         Func<IServiceProvider, Task<T>> operation
@@ -700,6 +880,11 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             await errorObserver.StopAsync(CancellationToken.None);
             errorObserver.Dispose();
         }
+        if (replenishmentObserver is not null)
+        {
+            await replenishmentObserver.StopAsync(CancellationToken.None);
+            replenishmentObserver.Dispose();
+        }
         await rabbit.DisposeAsync();
         await postgres.DisposeAsync();
         timeout.Dispose();
@@ -735,5 +920,13 @@ internal sealed class ReservationOutcomeErrorObserver(Channel<StockReservationOu
     : IHandleMessages<StockReservationOutcomeV1>
 {
     public Task Handle(StockReservationOutcomeV1 message) =>
+        errors.Writer.WriteAsync(message).AsTask();
+}
+
+internal sealed class RequirementOutcomeErrorObserver(
+    Channel<ReplenishmentRequirementCreatedV1> errors
+) : IHandleMessages<ReplenishmentRequirementCreatedV1>
+{
+    public Task Handle(ReplenishmentRequirementCreatedV1 message) =>
         errors.Writer.WriteAsync(message).AsTask();
 }

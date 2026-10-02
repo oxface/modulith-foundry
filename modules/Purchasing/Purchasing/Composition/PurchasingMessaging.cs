@@ -70,6 +70,9 @@ public static class PurchasingMessaging
                                         )
                                         .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
                                             ReplenishmentRequirementCreatedV1.LogicalName
+                                        )
+                                        .AddWithCustomName<ReplenishmentRequestRejectedV1>(
+                                            ReplenishmentRequestRejectedV1.LogicalName
                                         );
                                 })
                                 .Options(options =>

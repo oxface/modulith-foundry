@@ -42,7 +42,11 @@ internal static class OrderFulfilmentEndpoint
                             line.AvailableQuantity,
                             line.ReasonCode,
                             line.AttemptCount,
-                            line.ResponseDeadline
+                            line.ResponseDeadline,
+                            line.ReplenishmentQuantity,
+                            line.ReplenishmentRequirementId,
+                            line.ReplenishmentRequirementNumber,
+                            line.ReplenishmentReasonCode
                         )),
                     ]
                 )
@@ -73,6 +77,10 @@ internal static class OrderFulfilmentEndpoint
         decimal? AvailableQuantity,
         string? ReasonCode,
         int AttemptCount,
-        DateTimeOffset? ResponseDeadline
+        DateTimeOffset? ResponseDeadline,
+        decimal? ReplenishmentQuantity,
+        Guid? ReplenishmentRequirementId,
+        long? ReplenishmentRequirementNumber,
+        string? ReplenishmentReasonCode
     );
 }

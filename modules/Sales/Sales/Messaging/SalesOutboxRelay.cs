@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Sales.Messaging.Persistence;
 using ModulithFoundry.Modules.Sales.Persistence;
 using Rebus.Bus;
@@ -73,18 +74,38 @@ internal sealed class SalesOutboxRelay(
         SalesOutboxMessage message = claimed[0];
         try
         {
-            if (message.MessageType != ReserveStockV1.LogicalName)
-                throw new InvalidDataException("Sales outbox message type is unsupported.");
-            ReserveStockV1 command =
-                message.Payload.Deserialize<ReserveStockV1>()
-                ?? throw new InvalidDataException("Sales outbox payload is unreadable.");
+            object command;
+            Guid processId;
+            switch (message.MessageType)
+            {
+                case ReserveStockV1.LogicalName:
+                    var reservation =
+                        message.Payload.Deserialize<ReserveStockV1>()
+                        ?? throw new InvalidDataException(
+                            "Sales reservation payload is unreadable."
+                        );
+                    command = reservation;
+                    processId = reservation.ProcessId;
+                    break;
+                case CreateReplenishmentRequirementV1.LogicalName:
+                    var replenishment =
+                        message.Payload.Deserialize<CreateReplenishmentRequirementV1>()
+                        ?? throw new InvalidDataException(
+                            "Sales replenishment payload is unreadable."
+                        );
+                    command = replenishment;
+                    processId = replenishment.ProcessId;
+                    break;
+                default:
+                    throw new InvalidDataException("Sales outbox message type is unsupported.");
+            }
             await bus.Send(
                 command,
                 new Dictionary<string, string>
                 {
                     [Headers.MessageId] = message.MessageId.ToString(),
-                    [Headers.CorrelationId] = command.ProcessId.ToString(),
-                    ["causation-id"] = command.ProcessId.ToString(),
+                    [Headers.CorrelationId] = processId.ToString(),
+                    ["causation-id"] = processId.ToString(),
                     ["producer-module"] = "sales",
                 }
             );

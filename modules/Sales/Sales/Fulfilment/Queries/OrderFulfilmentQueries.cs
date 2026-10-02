@@ -53,7 +53,11 @@ internal sealed class OrderFulfilmentQueries(
                         line.AvailableQuantity,
                         line.ReasonCode,
                         line.AttemptCount,
-                        line.ResponseDeadline
+                        line.ResponseDeadline,
+                        line.ReplenishmentQuantity,
+                        line.ReplenishmentRequirementId,
+                        line.ReplenishmentRequirementNumber,
+                        line.ReplenishmentReasonCode
                     ))
                     .ToArray()
             )

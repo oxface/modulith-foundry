@@ -166,6 +166,8 @@ internal sealed class RecordReservationOutcomeHandler(
                         now
                     )
                 );
+                if (status == OrderFulfilmentLineStatus.Shortage)
+                    ReplenishmentCommandStaging.Stage(context, process, line, now);
             }
         }
         context.InboxReceipts.Add(
@@ -199,6 +201,10 @@ internal sealed class RecordReservationOutcomeHandler(
             || outcome.AvailableQuantity < 0
             || outcome.AvailableQuantity > 9_999_999_999_999.999999m
             || decimal.Round(outcome.AvailableQuantity, 6) != outcome.AvailableQuantity
+            || (
+                outcome.Outcome == StockReservationOutcome.Shortage
+                && outcome.AvailableQuantity >= outcome.RequestedQuantity
+            )
         )
             throw new InvalidDataException("Reservation outcome metadata is invalid.");
         _ = OrderQuantity.Create(outcome.RequestedQuantity);

@@ -30,7 +30,7 @@ Later user-facing supplier and Purchase Order commands remain absent until the r
 
 ## Consumed and published integration contracts
 
-Purchasing consumes the Sales-directed create-requirement command and, when the bootstrap proof is introduced, Inventory's Stock Item reference events. It publishes `ReplenishmentRequirementCreated` so the Sales Order Fulfilment Process can record the durable outcome.
+Purchasing consumes the Sales-directed create-requirement command and Inventory's Stock Item reference events. It publishes `ReplenishmentRequirementCreated` or `ReplenishmentRequestRejected` so the Sales Order Fulfilment Process can record the durable outcome.
 
 The Stock Item reference projection is bootstrapped from an Inventory-owned versioned snapshot plus high watermark, then maintained from integration events. It never replays Inventory's private event-source stream.
 
@@ -48,7 +48,7 @@ Purchasing exposes the stable `purchasing-agent` role identifier from Purchasing
 
 ## Replenishment receiver
 
-The [replenishment protocol](../plans/replenishment-reliability.md) records receiver-owned durable waiting, rejection, transaction and publication behavior. Requirements retain the accepted Stock Item snapshot and use globally allocated short numbers scoped by Organization in queries. Trusted request-status queries remain distinct from authorized human requirement get/list routes. The actual Sales shortage producer/outcome handler follows in 5.4b.
+The [replenishment protocol](../plans/replenishment-reliability.md) records receiver-owned durable waiting, rejection, transaction and publication behavior plus the real Sales round trip. Requirements retain the accepted Stock Item snapshot and use globally allocated short numbers scoped by Organization in queries. Trusted request-status queries remain distinct from authorized human requirement get/list routes. Permanent eligibility rejection commits its outcome outbox with the request, inbox and audit; malformed or conflicting intent remains poison rather than a fabricated business result.
 
 ## Explicit exclusions
 

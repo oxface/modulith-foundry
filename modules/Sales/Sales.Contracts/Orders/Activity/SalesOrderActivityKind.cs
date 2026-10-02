@@ -9,4 +9,6 @@ public enum SalesOrderActivityKind
     StockReserved = 5,
     StockShortage = 6,
     ReservationRejected = 7,
+    ReplenishmentCreated = 8,
+    ReplenishmentRejected = 9,
 }

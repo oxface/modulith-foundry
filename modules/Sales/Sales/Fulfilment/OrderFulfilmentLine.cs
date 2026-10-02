@@ -23,6 +23,48 @@ internal sealed class OrderFulfilmentLine
     internal string? OutcomeFingerprint { get; private set; }
     internal int AttemptCount { get; private set; }
     internal DateTimeOffset? ResponseDeadline { get; private set; }
+    internal Guid? ReplenishmentCommandMessageId { get; private set; }
+    internal decimal? ReplenishmentQuantity { get; private set; }
+    internal Guid? ReplenishmentRequirementId { get; private set; }
+    internal long? ReplenishmentRequirementNumber { get; private set; }
+    internal string? ReplenishmentReasonCode { get; private set; }
+    internal string? ReplenishmentOutcomeFingerprint { get; private set; }
+
+    internal bool QueueReplenishment(DateTimeOffset now)
+    {
+        if (Status != OrderFulfilmentLineStatus.Shortage || ReplenishmentCommandMessageId.HasValue)
+            return false;
+        if (AvailableQuantity is not { } available || available < 0 || available >= Quantity)
+            throw new InvalidOperationException("A shortage must retain a positive deficit.");
+        ReplenishmentQuantity = Quantity - available;
+        ReplenishmentCommandMessageId = Guid.CreateVersion7(now);
+        return true;
+    }
+
+    internal void CompleteReplenishment(
+        Guid? requirementId,
+        long? number,
+        string? reason,
+        string fingerprint
+    )
+    {
+        if (
+            Status != OrderFulfilmentLineStatus.Shortage
+            || !ReplenishmentCommandMessageId.HasValue
+            || ReplenishmentOutcomeFingerprint is not null
+        )
+            throw new InvalidOperationException("The line has no pending replenishment request.");
+        bool created =
+            requirementId is { } id && id != Guid.Empty && number is > 0 && reason is null;
+        bool rejected =
+            requirementId is null && number is null && !string.IsNullOrWhiteSpace(reason);
+        if ((!created && !rejected) || string.IsNullOrWhiteSpace(fingerprint))
+            throw new InvalidOperationException("Replenishment decision is invalid.");
+        ReplenishmentRequirementId = requirementId;
+        ReplenishmentRequirementNumber = number;
+        ReplenishmentReasonCode = reason;
+        ReplenishmentOutcomeFingerprint = fingerprint;
+    }
 
     internal static OrderFulfilmentLine Start(SalesOrderLine line, DateTimeOffset now) =>
         new()

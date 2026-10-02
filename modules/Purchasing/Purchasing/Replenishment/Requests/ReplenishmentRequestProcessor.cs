@@ -58,6 +58,24 @@ internal sealed class ReplenishmentRequestProcessor(PurchasingDbContext context)
         if (rejection is not null)
         {
             request.Reject(rejection);
+            context.OutboxMessages.Add(
+                PurchasingOutboxMessage.Stage(
+                    new ReplenishmentRequestRejectedV1(
+                        Guid.CreateVersion7(now),
+                        request.FirstMessageId,
+                        request.OrganizationId,
+                        request.OperationId,
+                        request.ProcessId,
+                        request.OrderNumber,
+                        request.LineNumber,
+                        request.StockItemId,
+                        request.Quantity,
+                        request.BaseUnitCode,
+                        rejection,
+                        now
+                    )
+                )
+            );
             context.AuditEntries.Add(
                 PurchasingAuditEntry.Record(
                     request.OrganizationId,
@@ -113,7 +131,7 @@ internal sealed class ReplenishmentRequestProcessor(PurchasingDbContext context)
         );
         context.OutboxMessages.Add(
             PurchasingOutboxMessage.Stage(
-                new(
+                new ReplenishmentRequirementCreatedV1(
                     Guid.CreateVersion7(now),
                     request.FirstMessageId,
                     request.OrganizationId,

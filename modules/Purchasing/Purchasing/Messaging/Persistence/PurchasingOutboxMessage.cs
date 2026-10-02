@@ -19,6 +19,17 @@ internal sealed class PurchasingOutboxMessage : IOrganizationOwned
     internal DateTimeOffset? LeaseUntil { get; private set; }
     internal int Attempts { get; private set; }
 
+    internal static PurchasingOutboxMessage Stage(ReplenishmentRequestRejectedV1 message) =>
+        new()
+        {
+            MessageId = message.MessageId,
+            OrganizationId = message.OrganizationId,
+            MessageType = ReplenishmentRequestRejectedV1.LogicalName,
+            Payload = JsonSerializer.SerializeToElement(message),
+            CreatedAt = message.CreatedAt,
+            AvailableAt = message.CreatedAt,
+        };
+
     internal static PurchasingOutboxMessage Stage(ReplenishmentRequirementCreatedV1 message) =>
         new()
         {

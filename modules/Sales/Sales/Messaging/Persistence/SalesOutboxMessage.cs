@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Purchasing.Contracts;
 
 namespace ModulithFoundry.Modules.Sales.Messaging.Persistence;
 
@@ -28,6 +29,17 @@ internal sealed class SalesOutboxMessage : IOrganizationOwned
             MessageId = command.MessageId,
             OrganizationId = command.OrganizationId,
             MessageType = ReserveStockV1.LogicalName,
+            Payload = JsonSerializer.SerializeToElement(command),
+            CreatedAt = command.CreatedAt,
+            AvailableAt = command.CreatedAt,
+        };
+
+    internal static SalesOutboxMessage Stage(CreateReplenishmentRequirementV1 command) =>
+        new()
+        {
+            MessageId = command.MessageId,
+            OrganizationId = command.OrganizationId,
+            MessageType = CreateReplenishmentRequirementV1.LogicalName,
             Payload = JsonSerializer.SerializeToElement(command),
             CreatedAt = command.CreatedAt,
             AvailableAt = command.CreatedAt,

@@ -74,19 +74,44 @@ internal sealed class PurchasingOutboxRelay(
         PurchasingOutboxMessage message = claimed[0];
         try
         {
-            if (message.MessageType != ReplenishmentRequirementCreatedV1.LogicalName)
-                throw new InvalidDataException("Purchasing outbox message type is unsupported.");
-            ReplenishmentRequirementCreatedV1 notification =
-                message.Payload.Deserialize<ReplenishmentRequirementCreatedV1>()
-                ?? throw new InvalidDataException("Purchasing outbox payload is unreadable.");
+            object notification;
+            Guid processId;
+            Guid causationId;
+            switch (message.MessageType)
+            {
+                case ReplenishmentRequirementCreatedV1.LogicalName:
+                    var created =
+                        message.Payload.Deserialize<ReplenishmentRequirementCreatedV1>()
+                        ?? throw new InvalidDataException(
+                            "Purchasing created payload is unreadable."
+                        );
+                    notification = created;
+                    processId = created.ProcessId;
+                    causationId = created.CausationId;
+                    break;
+                case ReplenishmentRequestRejectedV1.LogicalName:
+                    var rejected =
+                        message.Payload.Deserialize<ReplenishmentRequestRejectedV1>()
+                        ?? throw new InvalidDataException(
+                            "Purchasing rejected payload is unreadable."
+                        );
+                    notification = rejected;
+                    processId = rejected.ProcessId;
+                    causationId = rejected.CausationId;
+                    break;
+                default:
+                    throw new InvalidDataException(
+                        "Purchasing outbox message type is unsupported."
+                    );
+            }
             await bus.Advanced.Topics.Publish(
                 message.MessageType,
                 notification,
                 new Dictionary<string, string>
                 {
                     [Headers.MessageId] = message.MessageId.ToString(),
-                    [Headers.CorrelationId] = notification.ProcessId.ToString(),
-                    ["causation-id"] = notification.CausationId.ToString(),
+                    [Headers.CorrelationId] = processId.ToString(),
+                    ["causation-id"] = causationId.ToString(),
                     ["producer-module"] = "purchasing",
                 }
             );
