@@ -610,6 +610,8 @@ Do not write manifests yet. If a post-pilot decision selects Kubernetes and the 
 
 ### Phase 5 — Minimal frontend journey
 
+Phase labels group capabilities, not the current execution order. The [delivery plan](v1-slices.md#execution-order) schedules the second event-sourced aggregate and correctness gate (8.1/8.1b) immediately after Slice 5, before this frontend phase. Packaging/deployment and library/sample/scaffolding work remain temporarily deferred pending explicit owner direction.
+
 - Deliver Slice 6: Vite/BFF Organization shell and only the screens required to exercise the reference workflow.
 - Keep most behavioral coverage below the browser and add focused Playwright smoke paths against Keycloak.
 

@@ -14,7 +14,7 @@ If an increment becomes difficult to review in one sitting, split it at a vertic
 
 ### Execution order
 
-Keep increment identifiers stable for historical references. The accepted order is to finish Slice 5, complete Slice 6, then implement 8.1 and 8.1b before packaging/deployment. Increments 7.1–7.3 and 8.2–8.3 are temporarily deferred; resume them after those local proofs and explicit owner direction. This reordering does not pull library extraction forward or remove the eventual deployed-product goal.
+Keep increment identifiers stable for historical references. The accepted order is to finish Slice 5, implement 8.1 and 8.1b, then complete Slice 6 before packaging/deployment. The remaining 5.6b diagnostics/recovery and 5.6c failure proofs are one workstream, delivered through self-contained review-sized checkpoints where needed. Increments 7.1–7.3 and 8.2–8.3 are temporarily deferred; resume them after those local proofs and explicit owner direction. This reordering does not pull library extraction forward or remove the eventual deployed-product goal.
 
 ### Formatter baseline
 
@@ -373,6 +373,8 @@ Operational work is also delivered vertically. **5.6b1** adds the [retained Inve
 **5.6b2a — Messaging signals** adds [outbox observations and receipt/failure counters](messaging-observability.md) through native .NET metrics and safe module logs. Database sampling is independent of publication and metric callbacks, has explicit freshness, and exposes no tenant/message metric labels. Process/projection diagnostics, broker error-queue monitoring and any justified maintenance adapter remain the next operational increment; none is implied by a healthy or empty outbox.
 
 The **5.6b2a export follow-up** extends the existing two-lifecycle Topology proof to require all three module meter/backlog instrument names at the API's configured OTLP receiver. Fresh receivers prevent stale-run evidence; the faster export interval is test-only. This proves host/exporter wiring, not production telemetry-backend retention or numeric metric semantics, and does not close the remaining operational work.
+
+**5.6bc1 — Workflow observations and fault isolation** pairs [Sales process diagnostics](workflow-operations.md) with damaged-process isolation, independent stale-source handling, real broker stop/start recovery and orderly pending-work shutdown. It is the first self-contained checkpoint of the combined remaining 5.6b/c workstream, not closure of either increment; projection/broker operations and full-application/in-flight failure windows remain explicit.
 
 ## Slice 6 — Minimal frontend journey
 

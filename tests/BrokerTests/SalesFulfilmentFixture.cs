@@ -71,14 +71,15 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
         bool createMain = true,
         bool controlledOutcomes = false,
         bool enablePurchasing = false,
-        ILoggerProvider? logs = null
+        ILoggerProvider? logs = null,
+        TimeSpan? scenarioTimeout = null
     )
     {
         var fixture = new SalesFulfilmentFixture();
         fixture.controlledOutcomes = controlledOutcomes;
         fixture.enablePurchasing = enablePurchasing;
         fixture.logProvider = logs;
-        fixture.timeout.CancelAfter(TimeSpan.FromSeconds(120));
+        fixture.timeout.CancelAfter(scenarioTimeout ?? TimeSpan.FromSeconds(120));
         try
         {
             await fixture.postgres.StartAsync(fixture.CancellationToken);
@@ -392,6 +393,10 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             );
 
     internal Task StopAsync() => host.StopAsync(CancellationToken);
+
+    internal Task StopBrokerAsync() => rabbit.StopAsync(CancellationToken);
+
+    internal Task StartBrokerAsync() => rabbit.StartAsync(CancellationToken);
 
     internal Task<CancelSalesOrderResult> CancelAsync(
         SalesOrderView order,
@@ -828,10 +833,14 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                     .Process
         );
 
-    internal async Task<OrderFulfilmentView> WaitAsync(long orderNumber, string status)
+    internal async Task<OrderFulfilmentView> WaitAsync(
+        long orderNumber,
+        string status,
+        TimeSpan? completionTimeout = null
+    )
     {
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-        bound.CancelAfter(TimeSpan.FromSeconds(30));
+        bound.CancelAfter(completionTimeout ?? TimeSpan.FromSeconds(30));
         while (true)
         {
             OrderFulfilmentView view = await ReadAsync(orderNumber);

@@ -6,6 +6,12 @@ internal static partial class SalesMessagingLogs
 {
     [LoggerMessage(
         Level = LogLevel.Warning,
+        Message = "Sales fulfilment observation failed ({ErrorType}); last process sample is stale, not empty."
+    )]
+    internal static partial void ProcessObservationFailed(ILogger logger, string errorType);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
         Message = "Sales outbox observation failed ({ErrorType}); last sample is stale, not empty."
     )]
     internal static partial void ObservationFailed(ILogger logger, string errorType);
@@ -29,17 +35,17 @@ internal static partial class SalesMessagingLogs
 
     [LoggerMessage(
         Level = LogLevel.Error,
-        Message = "Pending fulfilment dispatch failed; approved work remains recoverable."
+        Message = "Pending fulfilment dispatch failed ({ErrorType}); approved work remains recoverable."
     )]
-    internal static partial void PendingDispatchFailed(ILogger logger, Exception exception);
+    internal static partial void PendingDispatchFailed(ILogger logger, string errorType);
 
     [LoggerMessage(
         Level = LogLevel.Error,
-        Message = "Fulfilment process {ProcessId} dispatch failed; other pending work will continue."
+        Message = "Fulfilment process {ProcessId} dispatch failed ({ErrorType}); other pending work will continue."
     )]
     internal static partial void ProcessDispatchFailed(
         ILogger logger,
         Guid processId,
-        Exception exception
+        string errorType
     );
 }

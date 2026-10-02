@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Purchasing.Contracts;
+using ModulithFoundry.Modules.Sales.Fulfilment;
 using ModulithFoundry.Modules.Sales.Fulfilment.QueuePendingFulfilment;
 using ModulithFoundry.Modules.Sales.Fulfilment.RecordReleaseOutcome;
 using ModulithFoundry.Modules.Sales.Fulfilment.RecordReplenishmentOutcome;
@@ -150,7 +151,10 @@ public static class SalesMessaging
                 typeof(IHostApplicationLifetime)
             )
             .ConfigureServices(
-                (_, services) => services.AddHostedService<PendingFulfilmentDispatcher>()
+                (_, services) =>
+                    services
+                        .AddHostedService<PendingFulfilmentDispatcher>()
+                        .AddHostedService<FulfilmentMonitor>()
             );
     }
 }

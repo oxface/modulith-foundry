@@ -7,14 +7,45 @@ namespace ModulithFoundry.Modules.Sales.Messaging;
 internal sealed class SalesMessagingMetrics
 {
     private Observation? observation;
+    private ProcessObservation? processObservation;
     private readonly Counter<long> observationFailures;
     private readonly Counter<long> dispatchFailures;
     private readonly Counter<long> relayFailures;
     private readonly Counter<long> inboxDuplicates;
+    private readonly Counter<long> processDispatchFailures;
+    private readonly Counter<long> processObservationFailures;
 
     public SalesMessagingMetrics(IMeterFactory meters)
     {
         var meter = meters.Create(SalesMessaging.MeterName);
+        processObservationFailures = meter.CreateCounter<long>(
+            "modulith_foundry.sales.fulfilment.observation_failures",
+            "{failure}",
+            "Failed process observations, excluding requested shutdown; not business failures."
+        );
+        processDispatchFailures = meter.CreateCounter<long>(
+            "modulith_foundry.sales.fulfilment.dispatch_failures",
+            "{failure}",
+            "Failed per-process dispatch attempts; not a durable failure total or proof of a failed remote effect."
+        );
+        meter.CreateObservableGauge<long>(
+            "modulith_foundry.sales.fulfilment.unsettled",
+            ProcessUnsettled,
+            "{process}",
+            "Processes not reserved or compensated; includes legitimate waits and operator attention."
+        );
+        meter.CreateObservableGauge<double>(
+            "modulith_foundry.sales.fulfilment.oldest_age",
+            ProcessOldestAge,
+            "s",
+            "Creation age of the oldest unsettled process at the last successful observation; not a failure deadline."
+        );
+        meter.CreateObservableGauge<double>(
+            "modulith_foundry.sales.fulfilment.sample_age",
+            ProcessSampleAge,
+            "s",
+            "Elapsed time since the last successful process observation, independent of outbox freshness."
+        );
         inboxDuplicates = meter.CreateCounter<long>(
             "modulith_foundry.sales.inbox.duplicates",
             "{delivery}",
@@ -73,6 +104,26 @@ internal sealed class SalesMessagingMetrics
         return current is null ? [] : [new(current.ExpiredLeases)];
     }
 
+    private IEnumerable<Measurement<long>> ProcessUnsettled()
+    {
+        var current = Volatile.Read(ref processObservation);
+        return current is null ? [] : [new(current.Unsettled)];
+    }
+
+    private IEnumerable<Measurement<double>> ProcessOldestAge()
+    {
+        var current = Volatile.Read(ref processObservation);
+        return current is null ? [] : [new(current.OldestAge)];
+    }
+
+    private IEnumerable<Measurement<double>> ProcessSampleAge()
+    {
+        var current = Volatile.Read(ref processObservation);
+        return current is null
+            ? []
+            : [new(Stopwatch.GetElapsedTime(current.Timestamp).TotalSeconds)];
+    }
+
     private IEnumerable<Measurement<long>> Pending()
     {
         var current = Volatile.Read(ref observation);
@@ -100,6 +151,15 @@ internal sealed class SalesMessagingMetrics
     internal void RelayFailed() => relayFailures.Add(1);
 
     internal void InboxDuplicate() => inboxDuplicates.Add(1);
+
+    internal void ProcessDispatchFailed() => processDispatchFailures.Add(1);
+
+    internal void ProcessObservationFailed() => processObservationFailures.Add(1);
+
+    internal void ObserveProcesses(long unsettled, double oldestAge) =>
+        Volatile.Write(ref processObservation, new(unsettled, oldestAge, Stopwatch.GetTimestamp()));
+
+    private sealed record ProcessObservation(long Unsettled, double OldestAge, long Timestamp);
 
     private sealed record Observation(
         long Pending,

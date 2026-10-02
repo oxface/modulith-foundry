@@ -112,7 +112,10 @@ internal sealed class MessagingTelemetryProbe : ILoggerProvider
 
         public bool IsEnabled(LogLevel logLevel) =>
             category.StartsWith("ModulithFoundry.Modules.", StringComparison.Ordinal)
-            && category.Contains(".Messaging.", StringComparison.Ordinal);
+            && (
+                category.Contains(".Messaging.", StringComparison.Ordinal)
+                || category.EndsWith(".PendingFulfilmentDispatcher", StringComparison.Ordinal)
+            );
 
         public void Log<TState>(
             LogLevel logLevel,

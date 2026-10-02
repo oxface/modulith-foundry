@@ -10,6 +10,7 @@ namespace ModulithFoundry.Modules.Sales.Fulfilment.QueuePendingFulfilment;
 
 internal sealed class PendingFulfilmentDispatcher(
     IServiceScopeFactory scopes,
+    SalesMessagingMetrics metrics,
     ILogger<PendingFulfilmentDispatcher> logger
 ) : BackgroundService
 {
@@ -28,7 +29,7 @@ internal sealed class PendingFulfilmentDispatcher(
             }
             catch (Exception exception)
             {
-                SalesMessagingLogs.PendingDispatchFailed(logger, exception);
+                SalesMessagingLogs.PendingDispatchFailed(logger, exception.GetType().Name);
                 await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
             }
         }
@@ -80,7 +81,8 @@ internal sealed class PendingFulfilmentDispatcher(
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 // One damaged process must not prevent other tenants' approved work from progressing.
-                SalesMessagingLogs.ProcessDispatchFailed(logger, item.Id, exception);
+                metrics.ProcessDispatchFailed();
+                SalesMessagingLogs.ProcessDispatchFailed(logger, item.Id, exception.GetType().Name);
             }
         }
     }
