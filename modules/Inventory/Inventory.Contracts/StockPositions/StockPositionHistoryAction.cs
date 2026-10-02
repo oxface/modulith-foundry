@@ -6,4 +6,5 @@ public enum StockPositionHistoryAction
     Received = 2,
     QuantityCorrected = 3,
     Reserved = 4,
+    ReservationReleased = 5,
 }

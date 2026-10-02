@@ -339,6 +339,11 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** tests cover cancellation before/while/after reservation outcomes, duplicate cancellation/release, release of already released reservation, late success racing cancellation, process death at each commit boundary, and eventual compensated state without negative/resurrected stock.
 
+Deliver as two reviewable increments:
+
+- **5.5a — Inventory release receiver:** directed release command and outcome topic, original-reservation correlation and quantity, retained release operation identity, private release event and replay, atomic rollback/redrive, duplicate/competing releases and receiver crash boundaries. No user-facing release route or Sales cancellation yet. See [protocol and proof limits](reservation-release.md).
+- **5.5b — Sales cancellation:** cancellation command, durable per-line compensation progress, release dispatch/outcome handling, cancellation before/while/after reservation and replenishment outcomes, late-success races and eventual compensated/operator-attention states. Wait for a known reservation outcome before sending release; unknown reservation is not successful compensation.
+
 ### Increment 5.6 — Durability and operator proof closure
 
 **Outcome:** the complete workflow has repeatable failure evidence and enough operational surface to diagnose stuck work without a generic operations framework.

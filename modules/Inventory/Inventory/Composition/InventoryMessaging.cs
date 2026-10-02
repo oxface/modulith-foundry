@@ -43,7 +43,9 @@ public static class InventoryMessaging
                 services.AddScoped<StockPositionInlineProjection>();
                 services.AddScoped<StockPositionEventReader>();
                 services.AddScoped<ReserveStockHandler>();
+                services.AddScoped<ReleaseReservationHandler>();
                 services.AddRebusHandler<ReserveStockMessageHandler>();
+                services.AddRebusHandler<ReleaseReservationMessageHandler>();
                 services.AddRebus(configure =>
                     configure
                         .Transport(transport =>
@@ -64,6 +66,10 @@ public static class InventoryMessaging
                                             JsonNamingPolicy.KebabCaseLower,
                                             allowIntegerValues: false
                                         ),
+                                        new JsonStringEnumConverter<StockReservationReleaseOutcome>(
+                                            JsonNamingPolicy.KebabCaseLower,
+                                            allowIntegerValues: false
+                                        ),
                                     },
                                 }
                             );
@@ -75,6 +81,12 @@ public static class InventoryMessaging
                                 )
                                 .AddWithCustomName<StockItemReferenceChangedV1>(
                                     StockItemReferenceChangedV1.LogicalName
+                                )
+                                .AddWithCustomName<ReleaseReservationV1>(
+                                    ReleaseReservationV1.LogicalName
+                                )
+                                .AddWithCustomName<StockReservationReleaseOutcomeV1>(
+                                    StockReservationReleaseOutcomeV1.LogicalName
                                 );
                         })
                         .Options(options =>

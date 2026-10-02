@@ -50,6 +50,18 @@ internal sealed class ReceiverDatabaseBarrier : IAsyncDisposable
             fixture.CancellationToken
         );
 
+    internal static Task<ReceiverDatabaseBarrier> CreateReleaseDispatchAsync(
+        ReservationFixture fixture
+    ) =>
+        CreateAsync(
+            fixture.DatabaseConnectionString,
+            "inventory",
+            "outbox_messages",
+            "UPDATE",
+            "IF NEW.dispatched_at IS NOT NULL AND NEW.message_type = 'inventory.reservation-release-outcome.v1' THEN",
+            fixture.CancellationToken
+        );
+
     private static async Task<ReceiverDatabaseBarrier> CreateAsync(
         string databaseConnection,
         string schema,

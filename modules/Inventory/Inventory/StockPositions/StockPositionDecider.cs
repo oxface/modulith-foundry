@@ -4,6 +4,22 @@ namespace ModulithFoundry.Modules.Inventory.StockPositions;
 
 internal static class StockPositionDecider
 {
+    internal static IReadOnlyList<IStockPositionEvent> DecideRelease(
+        StockPositionState state,
+        Guid reservationId,
+        Guid operationId
+    )
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(reservationId, Guid.Empty);
+        ArgumentOutOfRangeException.ThrowIfEqual(operationId, Guid.Empty);
+        var reservation =
+            state.Reservations?.SingleOrDefault(item => item.ReservationId == reservationId)
+            ?? throw new InvalidOperationException("Cannot release an unknown reservation.");
+        return reservation.IsReleased
+            ? []
+            : [new StockReservationReleased(reservationId, operationId, reservation.Quantity)];
+    }
+
     internal static IReadOnlyList<IStockPositionEvent> DecideReservation(
         StockPositionState? state,
         Guid reservationId,

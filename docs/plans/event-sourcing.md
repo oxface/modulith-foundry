@@ -114,6 +114,7 @@ Increment **8.1b — Event-sourcing correctness and extraction gate** must revis
 - Coarse Organization gate and full-stream replay cost: measure realistic streams, narrow coordination only with tested discovery/creation and lock ordering.
 - Shared reducer correctness: retain independent expected semantic fixtures; successful replay alone is not proof of business correctness.
 - Atomic event/projection/audit/inbox/outbox changes: prove the combinations when durable workflows introduce real consumers.
+- Reservation lifecycle identity: release retains ended child state to reject repeat effects and reconstruct it during rebuild. Measure write-model growth and decide safe retention/compaction before extracting this concrete shape as a reusable pattern. The [release proof](reservation-release.md) also records the original receipt's missing target identity and targeted versus arbitrary projection-corruption limits.
 - Resumable/online rebuild remains conditional on recovery cost. If adopted, require versioned checkpoint semantics, atomic progress and serving-state separation; otherwise keep full reconstruction and document its limits.
 
 ## Late validation and extraction

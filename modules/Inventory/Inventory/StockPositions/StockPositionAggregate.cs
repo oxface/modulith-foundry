@@ -112,6 +112,17 @@ internal sealed class StockPositionAggregate
         return true;
     }
 
+    internal bool ReleaseReservation(Guid reservationId, Guid operationId)
+    {
+        if (State is null)
+            throw new InvalidOperationException("Cannot release from an unopened Stock Position.");
+        var decision = StockPositionDecider.DecideRelease(State, reservationId, operationId);
+        if (decision.Count == 0)
+            return false;
+        AcceptDecision(decision);
+        return true;
+    }
+
     private void ApplyHistorical(IStockPositionEvent @event)
     {
         State = StockPositionEvolution.Evolve(State, @event);

@@ -28,10 +28,38 @@ internal static class StockPositionEvolution
                     new(reserved.ReservationId, reserved.OperationId, reserved.Quantity),
                 ],
             },
+            StockReservationReleased released when state is not null => Release(state, released),
             _ => throw new InvalidOperationException(
                 $"Event '{@event.GetType().Name}' is invalid for the current Stock Position state."
             ),
         };
+
+    private static StockPositionState Release(
+        StockPositionState state,
+        StockReservationReleased released
+    )
+    {
+        if (
+            state.Reservations?.Any(item => item.ReservationId == released.ReservationId)
+            is not true
+        )
+            throw new InvalidOperationException("A release event has no preceding reservation.");
+        return state with
+        {
+            Reserved = state.Reserved.ApplyRecordedIncrease(-released.Quantity),
+            Reservations =
+            [
+                .. state.Reservations.Select(item =>
+                    item.ReservationId == released.ReservationId
+                        ? item with
+                        {
+                            IsReleased = true,
+                        }
+                        : item
+                ),
+            ],
+        };
+    }
 
     private static StockPositionState Open(StockPositionOpened opened)
     {

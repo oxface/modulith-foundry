@@ -117,6 +117,13 @@ internal sealed class InventoryOutboxRelay(
         };
         switch (message.MessageType)
         {
+            case StockReservationReleaseOutcomeV1.LogicalName:
+                var release =
+                    message.Payload.Deserialize<StockReservationReleaseOutcomeV1>()
+                    ?? throw new InvalidDataException("Inventory release payload is unreadable.");
+                headers[Headers.CorrelationId] = release.ProcessId.ToString();
+                headers["causation-id"] = release.CausationId.ToString();
+                return bus.Advanced.Topics.Publish(message.MessageType, release, headers);
             case StockReservationOutcomeV1.LogicalName:
                 StockReservationOutcomeV1 outcome =
                     message.Payload.Deserialize<StockReservationOutcomeV1>()

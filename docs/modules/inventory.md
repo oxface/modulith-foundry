@@ -92,7 +92,11 @@ The module-local relay atomically leases committed rows with `FOR UPDATE SKIP LO
 - Rebus technical retry tracking is process-local; three configured delivery attempts are not a durable cross-replica limit. Module error-queue forwarding is distinct from RabbitMQ TTL/dead-letter policy. No distributed retry counter is added here.
 - Publishing has no application cancellation/verified confirmation-timeout bound in this transport version. Broker stalls and shutdown timing require the later failure/operations proof. An expired lease may allow duplicate publication during a slow send; stable identity is intentional protection for consumers.
 - There is no inbox/outbox cleanup worker yet. Retain semantic-operation tombstones while replays/retries remain possible; inbox expiry must never permit a second reservation. Scheduled retention, poison inspection/redrive and alerting are operational follow-ups, not capabilities claimed by this increment.
-- Sales now enqueues reservation commands and consumes outcomes through its own endpoint; its MAIN lookup uses a trusted Inventory reference contract. Release/compensation and reliability extraction remain separate planned increments.
+- Sales now enqueues reservation commands and consumes outcomes through its own endpoint; its MAIN lookup uses a trusted Inventory reference contract. Sales cancellation/compensation and reliability extraction remain separate planned increments.
+
+## Durable release receiver
+
+The [release protocol](../plans/reservation-release.md) adds a second directed command on the same isolated endpoint. Inventory validates the retained original reservation and its process/order/line correlation, owns release quantity/unit, and commits its inbox, separate compensation-operation receipt, private release event, inline state, audit and outgoing outcome atomically. Ended child identity is retained through replay/rebuild. Duplicate intent cannot release twice or let a delayed reserve replay resurrect stock. Inconsistent required state fails technically and requires repair/redrive; it is not reported as completed compensation. No HTTP capability is exposed. Sales cancellation remains the next increment.
 
 ## Stock Item reference export and publication
 

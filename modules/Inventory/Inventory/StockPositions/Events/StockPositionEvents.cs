@@ -25,3 +25,10 @@ internal sealed record StockReserved(
     [property: JsonRequired] Guid OperationId,
     [property: JsonRequired] decimal Quantity
 ) : IStockPositionEvent;
+
+[StoredEventType("inventory.stock-position.reservation-released", 1)]
+internal sealed record StockReservationReleased(
+    [property: JsonRequired] Guid ReservationId,
+    [property: JsonRequired] Guid OperationId,
+    [property: JsonRequired] decimal Quantity
+) : IStockPositionEvent;

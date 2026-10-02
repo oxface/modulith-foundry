@@ -33,6 +33,9 @@ internal sealed class InventoryDbContext(
 
     internal DbSet<ReservationOperation> ReservationOperations => Set<ReservationOperation>();
 
+    internal DbSet<ReservationReleaseOperation> ReservationReleaseOperations =>
+        Set<ReservationReleaseOperation>();
+
     internal DbSet<EventStream> EventStreams => Set<EventStream>();
 
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();

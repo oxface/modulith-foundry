@@ -28,6 +28,8 @@ internal sealed class ReservationFixture : IAsyncDisposable
         "rabbitmq:4.3.6-management"
     ).Build();
     private readonly Channel<ObservedOutcome> outcomes = Channel.CreateUnbounded<ObservedOutcome>();
+    private readonly Channel<StockReservationReleaseOutcomeV1> releaseOutcomes =
+        Channel.CreateUnbounded<StockReservationReleaseOutcomeV1>();
     private readonly DeliveryProbe deliveries = new();
     private readonly CancellationTokenSource timeout =
         CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -35,6 +37,8 @@ internal sealed class ReservationFixture : IAsyncDisposable
     private IHost observer = null!;
     private IHost? errorObserver;
     private readonly Channel<ReserveStockV1> errors = Channel.CreateUnbounded<ReserveStockV1>();
+    private readonly Channel<ReleaseReservationV1> releaseErrors =
+        Channel.CreateUnbounded<ReleaseReservationV1>();
     private NpgsqlDataSource dataSource = null!;
     private StockItemId itemId;
     private StockingLocationId locationId;
@@ -120,7 +124,9 @@ internal sealed class ReservationFixture : IAsyncDisposable
                 .ConfigureServices(services =>
                 {
                     services.AddSingleton(fixture.outcomes);
+                    services.AddSingleton(fixture.releaseOutcomes);
                     services.AddRebusHandler<OutcomeObserver>();
+                    services.AddRebusHandler<ReleaseOutcomeObserver>();
                     services.AddRebus(
                         configure =>
                             configure
@@ -142,6 +148,10 @@ internal sealed class ReservationFixture : IAsyncDisposable
                                                     JsonNamingPolicy.KebabCaseLower,
                                                     allowIntegerValues: false
                                                 ),
+                                                new JsonStringEnumConverter<StockReservationReleaseOutcome>(
+                                                    JsonNamingPolicy.KebabCaseLower,
+                                                    allowIntegerValues: false
+                                                ),
                                             },
                                         }
                                     );
@@ -152,10 +162,23 @@ internal sealed class ReservationFixture : IAsyncDisposable
                                         )
                                         .AddWithCustomName<StockReservationOutcomeV1>(
                                             StockReservationOutcomeV1.LogicalName
+                                        )
+                                        .AddWithCustomName<ReleaseReservationV1>(
+                                            ReleaseReservationV1.LogicalName
+                                        )
+                                        .AddWithCustomName<StockReservationReleaseOutcomeV1>(
+                                            StockReservationReleaseOutcomeV1.LogicalName
                                         );
                                 }),
-                        onCreated: bus =>
-                            bus.Advanced.Topics.Subscribe(StockReservationOutcomeV1.LogicalName)
+                        onCreated: async bus =>
+                        {
+                            await bus.Advanced.Topics.Subscribe(
+                                StockReservationOutcomeV1.LogicalName
+                            );
+                            await bus.Advanced.Topics.Subscribe(
+                                StockReservationReleaseOutcomeV1.LogicalName
+                            );
+                        }
                     );
                 })
                 .Build();
@@ -203,6 +226,49 @@ internal sealed class ReservationFixture : IAsyncDisposable
                     ["producer-module"] = producer,
                 }
             );
+
+    internal static ReleaseReservationV1 ReleaseCommand(
+        ReserveStockV1 original,
+        StockReservationOutcomeV1 reserved
+    ) =>
+        new(
+            Guid.CreateVersion7(),
+            original.OrganizationId,
+            Guid.CreateVersion7(),
+            original.ProcessId,
+            original.OrderNumber,
+            original.LineNumber,
+            original.OperationId,
+            reserved.ReservationId!.Value,
+            original.StockItemId,
+            original.StockingLocationId,
+            DateTimeOffset.UtcNow
+        );
+
+    internal Task SendAsync(
+        ReleaseReservationV1 command,
+        string producer = "sales",
+        Guid? transportMessageId = null,
+        Guid? correlationId = null
+    ) =>
+        observer
+            .Services.GetRequiredService<IBus>()
+            .Advanced.Routing.Send(
+                InventoryMessaging.InputQueue,
+                command,
+                new Dictionary<string, string>
+                {
+                    [Headers.MessageId] = (transportMessageId ?? command.MessageId).ToString(),
+                    [Headers.CorrelationId] = (correlationId ?? command.ProcessId).ToString(),
+                    ["producer-module"] = producer,
+                }
+            );
+
+    internal ValueTask<StockReservationReleaseOutcomeV1> ReadReleaseOutcomeAsync() =>
+        releaseOutcomes.Reader.ReadAsync(timeout.Token);
+
+    internal bool TryReadReleaseOutcome(out StockReservationReleaseOutcomeV1? outcome) =>
+        releaseOutcomes.Reader.TryRead(out outcome);
 
     internal async ValueTask<StockReservationOutcomeV1> ReadOutcomeAsync()
     {
@@ -263,6 +329,29 @@ internal sealed class ReservationFixture : IAsyncDisposable
         await receiver.StartAsync(timeout.Token);
     }
 
+    internal Task StopReceiverAsync() => receiver.StopAsync(timeout.Token);
+
+    internal async Task DeactivateReferencesAsync()
+    {
+        await using AsyncServiceScope scope = receiver.Services.CreateAsyncScope();
+        Assert.IsType<SetStockItemActiveResult.Changed>(
+            await scope
+                .ServiceProvider.GetRequiredService<IStockItemAdministration>()
+                .SetActiveAsync(
+                    new(Actor.UserId, Actor.OrganizationId, "BOLT", false),
+                    timeout.Token
+                )
+        );
+        Assert.IsType<SetStockingLocationActiveResult.Changed>(
+            await scope
+                .ServiceProvider.GetRequiredService<IStockingLocationAdministration>()
+                .SetActiveAsync(
+                    new(Actor.UserId, Actor.OrganizationId, "MAIN", false),
+                    timeout.Token
+                )
+        );
+    }
+
     internal async Task ExecuteSqlAsync(string sql)
     {
         await using NpgsqlConnection connection = await dataSource.OpenConnectionAsync(
@@ -278,7 +367,9 @@ internal sealed class ReservationFixture : IAsyncDisposable
             .ConfigureServices(services =>
             {
                 services.AddSingleton(errors);
+                services.AddSingleton(releaseErrors);
                 services.AddRebusHandler<ErrorObserver>();
+                services.AddRebusHandler<ReleaseErrorObserver>();
                 services.AddRebus(configure =>
                     configure
                         .Transport(transport =>
@@ -294,7 +385,10 @@ internal sealed class ReservationFixture : IAsyncDisposable
                             );
                             serializer
                                 .UseCustomMessageTypeNames()
-                                .AddWithCustomName<ReserveStockV1>(ReserveStockV1.LogicalName);
+                                .AddWithCustomName<ReserveStockV1>(ReserveStockV1.LogicalName)
+                                .AddWithCustomName<ReleaseReservationV1>(
+                                    ReleaseReservationV1.LogicalName
+                                );
                         })
                 );
             })
@@ -303,6 +397,9 @@ internal sealed class ReservationFixture : IAsyncDisposable
     }
 
     internal ValueTask<ReserveStockV1> ReadErrorAsync() => errors.Reader.ReadAsync(timeout.Token);
+
+    internal ValueTask<ReleaseReservationV1> ReadReleaseErrorAsync() =>
+        releaseErrors.Reader.ReadAsync(timeout.Token);
 
     internal async Task<StockPositionView> StockAsync()
     {
@@ -319,13 +416,31 @@ internal sealed class ReservationFixture : IAsyncDisposable
             .Position;
     }
 
-    internal async Task RebuildAsync(StockPositionId id)
+    internal async Task RebuildAsync(StockPositionId id, bool previousModelMatched = true)
     {
         await using AsyncServiceScope scope = receiver.Services.CreateAsyncScope();
         StockPositionRebuildResult result = await scope
             .ServiceProvider.GetRequiredService<IStockPositionProjectionRebuilder>()
             .RebuildAsync(new(Actor.UserId, Actor.OrganizationId, id), timeout.Token);
-        Assert.True(Assert.IsType<StockPositionRebuildResult.Rebuilt>(result).PreviousModelMatched);
+        Assert.Equal(
+            previousModelMatched,
+            Assert.IsType<StockPositionRebuildResult.Rebuilt>(result).PreviousModelMatched
+        );
+    }
+
+    internal async Task<StockPositionView> StockAtVersionAsync(long version)
+    {
+        await using AsyncServiceScope scope = receiver.Services.CreateAsyncScope();
+        return Assert
+            .IsType<GetStockPositionResult.Found>(
+                await scope
+                    .ServiceProvider.GetRequiredService<IStockPositionOperations>()
+                    .GetAtVersionAsync(
+                        new(Actor.UserId, Actor.OrganizationId, "MAIN", "BOLT", version),
+                        timeout.Token
+                    )
+            )
+            .Position;
     }
 
     internal async Task<StockPositionHistoryView> HistoryAsync()
@@ -426,4 +541,24 @@ internal sealed class ErrorObserver(Channel<ReserveStockV1> errors)
     : IHandleMessages<ReserveStockV1>
 {
     public Task Handle(ReserveStockV1 message) => errors.Writer.WriteAsync(message).AsTask();
+}
+
+internal sealed class ReleaseOutcomeObserver(Channel<StockReservationReleaseOutcomeV1> outcomes)
+    : IHandleMessages<StockReservationReleaseOutcomeV1>
+{
+    public Task Handle(StockReservationReleaseOutcomeV1 message)
+    {
+        var headers = MessageContext.Current.Headers;
+        Assert.Equal(message.MessageId.ToString(), headers[Headers.MessageId]);
+        Assert.Equal(message.ProcessId.ToString(), headers[Headers.CorrelationId]);
+        Assert.Equal(message.CausationId.ToString(), headers["causation-id"]);
+        Assert.Equal("inventory", headers["producer-module"]);
+        return outcomes.Writer.WriteAsync(message).AsTask();
+    }
+}
+
+internal sealed class ReleaseErrorObserver(Channel<ReleaseReservationV1> errors)
+    : IHandleMessages<ReleaseReservationV1>
+{
+    public Task Handle(ReleaseReservationV1 message) => errors.Writer.WriteAsync(message).AsTask();
 }
