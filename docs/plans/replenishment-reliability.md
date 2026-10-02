@@ -38,7 +38,7 @@ All created requirements are open in this increment; there is no artificial one-
 
 - Missing reference data has no automatic expiry yet. Pending intent stays queryable and retries slowly; operator deadlines/attention and monitoring belong to 5.6.
 - Reconciliation restores missed/damaged references, after which the worker resolves against them. It does not recreate requirements or replay business audits.
-- Source restoration, projection scale, two-replica races, payload retention and bounded broker shutdown remain later proof work. This increment extracts no messaging library.
+- Source restoration, projection scale, first-time concurrent two-replica races, payload retention and bounded broker shutdown remain later proof work. The separate [5.6a replica proof](broker-durability.md) covers committed requirement creation, semantic/delivery duplicates while its first replica is alive, and redelivery after that replica dies. This increment extracts no messaging library.
 - Created/rejected outcomes have no separate Sales response deadline yet; timeout/attention and retention policy closure remain in 5.6. A created requirement is not proof of subsequent replenishment or stock receipt.
 
 ## Evidence

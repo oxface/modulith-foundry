@@ -360,6 +360,14 @@ Deliver as two reviewable increments:
 
 **Acceptance:** Broker/Topology tests prove module failure isolation, replica competing-consumer behavior, graceful shutdown, stale lease recovery, bounded poison behavior, and reconciliation after ambiguous outcomes. Telemetry contains identifiers but no tokens or full event payloads.
 
+Deliver through review-sized proof increments rather than a generic operations framework:
+
+- **5.6a — Competing receiver replicas:** run two independently hosted receiver processes on each module's existing input queue. Prove duplicate/semantic-operation delivery while the first replica holds a committed delivery before ACK, then terminate it and prove the surviving replica settles redelivery without repeating the business effect. Assert through Inventory/Sales/Purchasing Contracts and real broker outcomes. This proves endpoint replicas, not two complete API deployments or a globally bounded technical-retry counter.
+- **5.6b — Operational visibility and recovery:** add the narrowly justified diagnostics and operator procedures/capabilities for stuck intent and ambiguous results; preserve original operation identities and require explicit redrive. Do not equate an expired deadline with a failed remote effect.
+- **5.6c — Remaining failure-matrix closure:** close graceful shutdown, full-application replica/isolation, infrastructure outage, cancellation-ingress death and lease/retry gaps against the actual implementation. Record tested bounds and any accepted limits instead of claiming unproven exactly-once delivery.
+
+The [durability evidence ledger](broker-durability.md) separates 5.6a's committed-delivery failover proof from the still-open operational and full-application failure windows.
+
 ## Slice 6 — Minimal frontend journey
 
 ### Increment 6.1 — Vite/BFF shell and Organization navigation

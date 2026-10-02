@@ -35,6 +35,8 @@ Remaining limits:
 - Targeted consistency checks are not proof against arbitrary self-consistent projection tampering. Independent fixtures and governed rebuild remain necessary.
 - These are receiver-process crash proofs, not broker/database crash or multi-replica guarantees. Sales cancellation is described below; broader operational failures remain 5.6.
 
+The separate [5.6a replica proof](broker-durability.md) now exercises Inventory reserve/release and Sales release-outcome consumers with two simultaneous receiver processes. It closes the committed-before-ACK failover window, not every multi-replica race or infrastructure failure.
+
 ## Template/library findings
 
 The receiver reuses existing inbox/outbox, isolated Rebus endpoint, lease and explicit transaction mechanics for a second Inventory command. No new generic framework is needed. Envelope checks, stable aliases and lease dispatch remain extraction candidates. Reservation correlation, quantity ownership, semantic receipts, outcome policy and projection definition remain Inventory-owned. The private release event demonstrates an irreversible fact with an idempotent command boundary, not an event-store-level deduplication mechanism.
