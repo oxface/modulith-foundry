@@ -270,6 +270,8 @@ public sealed class PurchaseOrderPersistenceTests
     }
 
     [Theory]
+    [InlineData("event_streams", "UPDATE")]
+    [InlineData("events", "INSERT")]
     [InlineData("purchase_order_summaries", "UPDATE")]
     [InlineData("purchase_order_write_models", "UPDATE")]
     [InlineData("audit_entries", "INSERT")]
@@ -730,6 +732,54 @@ public sealed class PurchaseOrderPersistenceTests
                 )
         );
         Assert.Equal("Purchase Order persistence integrity failure.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("purchase_order_write_models", true)]
+    [InlineData("purchase_order_write_models", false)]
+    [InlineData("purchase_order_summaries", true)]
+    [InlineData("purchase_order_summaries", false)]
+    public async Task SetLine_RequiredViewMissingOrBehind_FailsWithoutAppendingFacts(
+        string table,
+        bool missing
+    )
+    {
+        await using var postgres = new PostgreSqlBuilder("postgres:18.6").Build();
+        await postgres.StartAsync(TestContext.Current.CancellationToken);
+        var organization = Organization();
+        await using var services = await ServicesAsync(
+            postgres.GetConnectionString(),
+            organization
+        );
+        var order = await CreateAsync(services, organization);
+        Assert.IsType<SetPurchaseOrderLineResult.Changed>(
+            await SetLineAsync(services, organization, order.PurchaseOrderId, 1, 2.5m)
+        );
+        await SetupAsync(
+            postgres.GetConnectionString(),
+            missing
+                ? $"DELETE FROM purchasing.{table}"
+                : $"UPDATE purchasing.{table} SET version = 1"
+        );
+        var failure = await Assert.ThrowsAnyAsync<Exception>(() =>
+            SetLineAsync(services, organization, order.PurchaseOrderId, 2, 4m)
+        );
+        Assert.Equal("Purchase Order persistence integrity failure.", failure.Message);
+        await using var scope = services.CreateAsyncScope();
+        var live = Assert
+            .IsType<GetPurchaseOrderResult.Found>(
+                await scope
+                    .ServiceProvider.GetRequiredService<IPurchaseOrderQueries>()
+                    .GetLiveAsync(
+                        organization.UserId,
+                        organization.OrganizationId,
+                        order.PurchaseOrderId,
+                        TestContext.Current.CancellationToken
+                    )
+            )
+            .Order;
+        Assert.Equal(2, live.Version);
+        Assert.Equal(2.5m, Assert.Single(live.Lines).Quantity);
     }
 
     private static async Task AssertCurrentAsync(

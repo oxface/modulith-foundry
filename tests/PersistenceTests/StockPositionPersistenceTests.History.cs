@@ -278,6 +278,10 @@ public sealed partial class StockPositionPersistenceTests
         "UPDATE inventory.events SET payload = '{\"quantity\": \"unreadable\"}' WHERE stream_version = 2",
         (int)StockPositionIntegrityFailure.InvalidEventPayload
     )]
+    [InlineData(
+        "UPDATE inventory.events SET payload = '{}' WHERE stream_version = 2",
+        (int)StockPositionIntegrityFailure.InvalidEventPayload
+    )]
     public async Task GetHistoricalState_CorruptHistory_RaisesStructuredIntegrityFault(
         string damageSql,
         int expectedFailure

@@ -254,6 +254,7 @@ public sealed class InventoryReservationTests
     [Theory]
     [InlineData("inbox_receipts")]
     [InlineData("reservation_operations")]
+    [InlineData("event_streams")]
     [InlineData("events")]
     [InlineData("stock_position_current")]
     [InlineData("audit_entries")]
@@ -278,6 +279,7 @@ public sealed class InventoryReservationTests
         Assert.Equal(command.MessageId, poisoned.MessageId);
         Assert.Equal(0m, (await fixture.StockAsync()).ReservedQuantity);
         Assert.Equal(2, (await fixture.StockAsync()).Version);
+        Assert.Equal(2, (await fixture.HistoryAsync()).Entries.Count);
         Assert.False(fixture.TryReadOutcome(out _));
         await fixture.ExecuteSqlAsync(
             $"DROP TRIGGER reject_reservation_write ON inventory.{table}; DROP FUNCTION inventory.reject_reservation_write();"

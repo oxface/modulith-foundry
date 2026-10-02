@@ -117,6 +117,7 @@ public sealed class InventoryReservationReleaseTests
     [Theory]
     [InlineData("inbox_receipts")]
     [InlineData("reservation_release_operations")]
+    [InlineData("event_streams")]
     [InlineData("events")]
     [InlineData("stock_position_current")]
     [InlineData("audit_entries")]

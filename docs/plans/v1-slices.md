@@ -477,6 +477,8 @@ The owner selected the Purchasing Purchase Order on 2026-10-02 and confirmed rea
 
 **Acceptance:** the [core-correctness register](event-sourcing.md#core-correctness-follow-up-register) has evidence-backed resolutions or clearly documented supported limits. No generic abstraction may conceal an unresolved correctness gap. Split independent fixes into review-sized changes when necessary.
 
+The [8.1b evidence and extraction boundaries](event-sourcing-correctness-gate.md) record complete-call replay measurements, cross-position/creation repair blocking, expanded native transaction fault matrices and explicit identity/retained-child/Purchasing-repair limits. Those limits require owner review; this gate does not promote deferred extraction or imply production capacity.
+
 ### Increment 8.2 — Focused library and sample separation
 
 **Outcome:** the two implementations identify reusable event-sourcing infrastructure; reference business behavior remains a sample.

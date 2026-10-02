@@ -108,7 +108,7 @@ Technical load/append, codec, ordered event reading, inline projection and admin
 
 ## Core-correctness follow-up register
 
-Increment **8.1b — Event-sourcing correctness and extraction gate** must revisit these limits; earlier real workflows may bring individual fixes forward:
+Increment **8.1b — Event-sourcing correctness and extraction gate** revisits these limits in the [evidence and supported-limit register](event-sourcing-correctness-gate.md). Its review proposal keeps identity module-owned, retains coarse offline repair, and explicitly limits retained-reservation scaling rather than hiding those concerns behind an extraction. Earlier real workflows may bring individual fixes forward:
 
 - Projection-dependent business-key identity: prevent accidental reopening after lookup loss, or clearly bound library support and operational repair.
 - Coarse Organization gate and full-stream replay cost: measure realistic streams, narrow coordination only with tested discovery/creation and lock ordering.
@@ -116,6 +116,8 @@ Increment **8.1b — Event-sourcing correctness and extraction gate** must revis
 - Atomic event/projection/audit/inbox/outbox changes: prove the combinations when durable workflows introduce real consumers.
 - Reservation lifecycle identity: release retains ended child state to reject repeat effects and reconstruct it during rebuild. Measure write-model growth and decide safe retention/compaction before extracting this concrete shape as a reusable pattern. The [release proof](reservation-release.md) also records the original receipt's missing target identity and targeted versus arbitrary projection-corruption limits.
 - Resumable/online rebuild remains conditional on recovery cost. If adopted, require versioned checkpoint semantics, atomic progress and serving-state separation; otherwise keep full reconstruction and document its limits.
+
+The gate measures complete PostgreSQL-backed replay, not just pure reduction. Receipt-only and reservation-heavy histories at the same event count have materially different allocation and latency. The retained reservation array and its growth are sample-specific, not an extracted library's default collection/retention contract. An adopting product must establish repair/memory budgets on its own footprint; no arbitrary-size replay or automatic stream cap is claimed. Purchasing's second-aggregate proof has live reads and fail-closed required-view checks but no administrative rebuild yet.
 
 ## Late validation and extraction
 
