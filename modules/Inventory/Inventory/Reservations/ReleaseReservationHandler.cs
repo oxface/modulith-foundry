@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Inventory.Messaging;
 using ModulithFoundry.Modules.Inventory.Messaging.Persistence;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
@@ -15,7 +16,8 @@ namespace ModulithFoundry.Modules.Inventory.Reservations;
 internal sealed class ReleaseReservationHandler(
     InventoryDbContext context,
     StockPositionStore store,
-    TimeProvider clock
+    TimeProvider clock,
+    InventoryMessagingMetrics metrics
 )
 {
     internal async Task HandleAsync(
@@ -40,6 +42,7 @@ internal sealed class ReleaseReservationHandler(
                 throw new InvalidDataException(
                     "A release message identity was reused with different content."
                 );
+            metrics.InboxDuplicate();
             return;
         }
         var timestamp = clock.GetUtcNow();

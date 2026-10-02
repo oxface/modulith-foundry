@@ -14,7 +14,8 @@ namespace ModulithFoundry.Modules.Inventory.Messaging;
 internal sealed class InventoryOutboxRelay(
     IServiceScopeFactory scopes,
     IBus bus,
-    ILogger<InventoryOutboxRelay> logger
+    ILogger<InventoryOutboxRelay> logger,
+    InventoryMessagingMetrics metrics
 ) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,7 +33,8 @@ internal sealed class InventoryOutboxRelay(
             }
             catch (Exception exception)
             {
-                InventoryMessagingLogs.RelayFailed(logger, exception);
+                InventoryMessagingLogs.RelayFailed(logger, exception.GetType().Name);
+                metrics.RelayFailed();
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
@@ -93,8 +95,9 @@ internal sealed class InventoryOutboxRelay(
                 logger,
                 message.MessageId,
                 message.Attempts,
-                exception
+                exception.GetType().Name
             );
+            metrics.DispatchFailed();
             int delay = 1 << Math.Min(message.Attempts, 6);
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $$"""

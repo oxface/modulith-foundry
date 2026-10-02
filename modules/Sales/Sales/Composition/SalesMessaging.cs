@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
@@ -24,6 +25,7 @@ public static class SalesMessaging
 {
     public const string InputQueue = "modulith-foundry.sales";
     public const string ErrorQueue = "modulith-foundry.sales.error";
+    public const string MeterName = "ModulithFoundry.Sales.Messaging";
 
     public static IHostBuilder AddSalesMessaging(
         this IHostBuilder host,
@@ -40,6 +42,8 @@ public static class SalesMessaging
             configuration["Messaging:InventoryQueue"] ?? "modulith-foundry.inventory";
         string purchasingQueue =
             configuration["Messaging:PurchasingQueue"] ?? "modulith-foundry.purchasing";
+        // Generic Host owns IMeterFactory; share one module instrument set with the isolated endpoint.
+        host.ConfigureServices((_, services) => services.TryAddSingleton<SalesMessagingMetrics>());
         return host.AddRebusService(
                 services =>
                 {
@@ -138,9 +142,11 @@ public static class SalesMessaging
                         }
                     );
                     services.AddHostedService<SalesOutboxRelay>();
+                    services.AddHostedService<SalesOutboxMonitor>();
                 },
                 typeof(NpgsqlDataSource),
                 typeof(ILoggerFactory),
+                typeof(SalesMessagingMetrics),
                 typeof(IHostApplicationLifetime)
             )
             .ConfigureServices(

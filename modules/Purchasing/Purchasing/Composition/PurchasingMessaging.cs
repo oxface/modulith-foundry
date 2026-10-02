@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
@@ -20,6 +21,7 @@ public static class PurchasingMessaging
 {
     public const string InputQueue = "modulith-foundry.purchasing";
     public const string ErrorQueue = "modulith-foundry.purchasing.error";
+    public const string MeterName = "ModulithFoundry.Purchasing.Messaging";
 
     public static IHostBuilder AddPurchasingMessaging(
         this IHostBuilder host,
@@ -32,6 +34,10 @@ public static class PurchasingMessaging
             ?? throw new InvalidOperationException(
                 "ConnectionStrings:rabbitmq is required for Purchasing messaging."
             );
+        // Generic Host owns IMeterFactory; share one module instrument set with the isolated endpoint.
+        host.ConfigureServices(
+            (_, services) => services.TryAddSingleton<PurchasingMessagingMetrics>()
+        );
         return host.AddRebusService(
                 services =>
                 {
@@ -94,9 +100,11 @@ public static class PurchasingMessaging
                         }
                     );
                     services.AddHostedService<PurchasingOutboxRelay>();
+                    services.AddHostedService<PurchasingOutboxMonitor>();
                 },
                 typeof(NpgsqlDataSource),
                 typeof(ILoggerFactory),
+                typeof(PurchasingMessagingMetrics),
                 typeof(IHostApplicationLifetime),
                 typeof(StockItemSubscriptionBarrier)
             )

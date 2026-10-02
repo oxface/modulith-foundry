@@ -1,9 +1,11 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Inventory.Contracts;
@@ -40,6 +42,7 @@ internal sealed class ReservationFixture : IAsyncDisposable
     private readonly Channel<ReleaseReservationV1> releaseErrors =
         Channel.CreateUnbounded<ReleaseReservationV1>();
     private NpgsqlDataSource dataSource = null!;
+    private ILoggerProvider? logProvider;
     private StockItemId itemId;
     private StockingLocationId locationId;
 
@@ -54,14 +57,19 @@ internal sealed class ReservationFixture : IAsyncDisposable
         );
 
     internal CancellationToken CancellationToken => timeout.Token;
+    internal IMeterFactory MeterFactory => receiver.Services.GetRequiredService<IMeterFactory>();
 
     internal string DatabaseConnectionString => postgres.GetConnectionString();
 
     internal string BrokerConnectionString => rabbit.GetConnectionString();
 
-    internal static async Task<ReservationFixture> StartAsync(bool startReceiver = true)
+    internal static async Task<ReservationFixture> StartAsync(
+        bool startReceiver = true,
+        ILoggerProvider? logs = null
+    )
     {
         var fixture = new ReservationFixture();
+        fixture.logProvider = logs;
         fixture.timeout.CancelAfter(TimeSpan.FromSeconds(90));
         try
         {
@@ -300,6 +308,12 @@ internal sealed class ReservationFixture : IAsyncDisposable
             )
             .Build();
         return Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging =>
+            {
+                logging.SetMinimumLevel(LogLevel.Warning);
+                if (logProvider is not null)
+                    logging.AddProvider(logProvider);
+            })
             .ConfigureServices(services =>
             {
                 services.AddSingleton(dataSource);

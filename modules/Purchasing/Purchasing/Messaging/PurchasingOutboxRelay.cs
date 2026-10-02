@@ -14,7 +14,8 @@ namespace ModulithFoundry.Modules.Purchasing.Messaging;
 internal sealed class PurchasingOutboxRelay(
     IServiceScopeFactory scopes,
     IBus bus,
-    ILogger<PurchasingOutboxRelay> logger
+    ILogger<PurchasingOutboxRelay> logger,
+    PurchasingMessagingMetrics metrics
 ) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,7 +33,8 @@ internal sealed class PurchasingOutboxRelay(
             }
             catch (Exception exception)
             {
-                PurchasingMessagingLogs.RelayFailed(logger, exception);
+                PurchasingMessagingLogs.RelayFailed(logger, exception.GetType().Name);
+                metrics.RelayFailed();
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
@@ -134,8 +136,9 @@ internal sealed class PurchasingOutboxRelay(
                 logger,
                 message.MessageId,
                 message.Attempts,
-                exception
+                exception.GetType().Name
             );
+            metrics.DispatchFailed();
             int delay = 1 << Math.Min(message.Attempts, 6);
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $$"""

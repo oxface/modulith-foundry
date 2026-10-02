@@ -370,6 +370,8 @@ The [durability evidence ledger](broker-durability.md) separates 5.6a's committe
 
 Operational work is also delivered vertically. **5.6b1** adds the [retained Inventory outcome recovery](message-delivery-recovery.md): authorized metadata inspection and audited republication through the existing relay, proven against a real Sales compensation gap. It adds no public recovery route or generic message replay tool. **5.6b2** retains telemetry, broader publisher/destination recovery procedures and any justified production maintenance adapter; 5.6b is not closed by the first Contract alone.
 
+**5.6b2a — Messaging signals** adds [outbox observations and receipt/failure counters](messaging-observability.md) through native .NET metrics and safe module logs. Database sampling is independent of publication and metric callbacks, has explicit freshness, and exposes no tenant/message metric labels. Process/projection diagnostics, broker error-queue monitoring and any justified maintenance adapter remain the next operational increment; none is implied by a healthy or empty outbox.
+
 ## Slice 6 — Minimal frontend journey
 
 ### Increment 6.1 — Vite/BFF shell and Organization navigation

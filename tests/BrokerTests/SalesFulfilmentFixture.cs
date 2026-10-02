@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -50,6 +51,7 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
         Channel.CreateUnbounded<StockReservationOutcomeV1>();
     private bool controlledOutcomes;
     private bool enablePurchasing;
+    private ILoggerProvider? logProvider;
     private readonly Channel<ReserveStockV1> commands = Channel.CreateUnbounded<ReserveStockV1>();
     private readonly Channel<ReleaseReservationV1> releaseCommands =
         Channel.CreateUnbounded<ReleaseReservationV1>();
@@ -61,18 +63,21 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
     internal StockItemId Item { get; private set; }
     internal StockingLocationId Location { get; private set; }
     internal CancellationToken CancellationToken => timeout.Token;
+    internal IMeterFactory MeterFactory => host.Services.GetRequiredService<IMeterFactory>();
     internal string DatabaseConnectionString => postgres.GetConnectionString();
     internal string BrokerConnectionString => rabbit.GetConnectionString();
 
     internal static async Task<SalesFulfilmentFixture> StartAsync(
         bool createMain = true,
         bool controlledOutcomes = false,
-        bool enablePurchasing = false
+        bool enablePurchasing = false,
+        ILoggerProvider? logs = null
     )
     {
         var fixture = new SalesFulfilmentFixture();
         fixture.controlledOutcomes = controlledOutcomes;
         fixture.enablePurchasing = enablePurchasing;
+        fixture.logProvider = logs;
         fixture.timeout.CancelAfter(TimeSpan.FromSeconds(120));
         try
         {
@@ -117,7 +122,12 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             )
             .Build();
         IHostBuilder builder = Host.CreateDefaultBuilder()
-            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
+            .ConfigureLogging(logging =>
+            {
+                logging.SetMinimumLevel(LogLevel.Warning);
+                if (logProvider is not null)
+                    logging.AddProvider(logProvider);
+            })
             .ConfigureServices(services =>
             {
                 services.AddDataProtection().UseEphemeralDataProtectionProvider();

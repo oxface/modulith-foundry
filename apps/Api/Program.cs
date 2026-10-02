@@ -8,9 +8,17 @@ using ModulithFoundry.Modules.Access.Composition;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Purchasing.Composition;
 using ModulithFoundry.Modules.Sales.Composition;
+using OpenTelemetry.Metrics;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
+builder.Services.ConfigureOpenTelemetryMeterProvider(metrics =>
+    metrics.AddMeter(
+        InventoryMessaging.MeterName,
+        SalesMessaging.MeterName,
+        PurchasingMessaging.MeterName
+    )
+);
 builder.AddPostgresDataSource("database");
 builder.Services.AddApiErrorHandling();
 builder.Services.AddApiRequestValidation();

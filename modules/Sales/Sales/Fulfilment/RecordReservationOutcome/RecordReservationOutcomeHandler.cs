@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Contracts;
+using ModulithFoundry.Modules.Sales.Messaging;
 using ModulithFoundry.Modules.Sales.Messaging.Persistence;
 using ModulithFoundry.Modules.Sales.Orders;
 using ModulithFoundry.Modules.Sales.Orders.Activity;
@@ -14,7 +15,8 @@ namespace ModulithFoundry.Modules.Sales.Fulfilment.RecordReservationOutcome;
 
 internal sealed class RecordReservationOutcomeHandler(
     SalesDbContext context,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    SalesMessagingMetrics metrics
 )
 {
     internal async Task HandleAsync(
@@ -38,6 +40,7 @@ internal sealed class RecordReservationOutcomeHandler(
                 throw new InvalidDataException(
                     "A message identity was reused with different content."
                 );
+            metrics.InboxDuplicate();
             return;
         }
         DateTimeOffset timestamp = timeProvider.GetUtcNow();

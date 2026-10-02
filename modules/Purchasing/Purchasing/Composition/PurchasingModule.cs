@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Purchasing.Contracts;
+using ModulithFoundry.Modules.Purchasing.Messaging;
 using ModulithFoundry.Modules.Purchasing.Persistence;
 using ModulithFoundry.Modules.Purchasing.Replenishment.Queries;
 using ModulithFoundry.Modules.Purchasing.Replenishment.Requests;
@@ -16,6 +17,7 @@ public static class PurchasingModule
     public static IServiceCollection AddPurchasingModule(this IServiceCollection services)
     {
         services.AddPurchasingPersistence();
+        services.TryAddSingleton<PurchasingMessagingMetrics>();
         services.AddSingleton(PurchasingAuthorizationManifest.Instance);
         services.AddScoped<IStockItemProjectionBootstrapper, StockItemProjectionBootstrapper>();
         services.AddScoped<IStockItemProjectionQueries, StockItemProjectionQueries>();

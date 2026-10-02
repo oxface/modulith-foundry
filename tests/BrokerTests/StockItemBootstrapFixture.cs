@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
@@ -56,6 +57,7 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
             []
         );
     internal CancellationToken CancellationToken => timeout.Token;
+    internal IMeterFactory MeterFactory => host.Services.GetRequiredService<IMeterFactory>();
 
     internal static async Task<StockItemBootstrapFixture> StartAsync()
     {

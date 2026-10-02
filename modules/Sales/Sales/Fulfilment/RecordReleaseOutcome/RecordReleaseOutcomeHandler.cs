@@ -5,13 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Contracts;
+using ModulithFoundry.Modules.Sales.Messaging;
 using ModulithFoundry.Modules.Sales.Messaging.Persistence;
 using ModulithFoundry.Modules.Sales.Orders.Activity;
 using ModulithFoundry.Modules.Sales.Persistence;
 
 namespace ModulithFoundry.Modules.Sales.Fulfilment.RecordReleaseOutcome;
 
-internal sealed class RecordReleaseOutcomeHandler(SalesDbContext context, TimeProvider clock)
+internal sealed class RecordReleaseOutcomeHandler(
+    SalesDbContext context,
+    TimeProvider clock,
+    SalesMessagingMetrics metrics
+)
 {
     internal async Task HandleAsync(
         StockReservationReleaseOutcomeV1 outcome,
@@ -34,6 +39,7 @@ internal sealed class RecordReleaseOutcomeHandler(SalesDbContext context, TimePr
                 throw new InvalidDataException(
                     "A release outcome identity was reused with different content."
                 );
+            metrics.InboxDuplicate();
             return;
         }
         var time = clock.GetUtcNow();

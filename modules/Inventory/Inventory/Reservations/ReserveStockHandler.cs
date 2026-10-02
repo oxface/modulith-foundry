@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Inventory.Messaging;
 using ModulithFoundry.Modules.Inventory.Messaging.Persistence;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
@@ -16,7 +17,8 @@ namespace ModulithFoundry.Modules.Inventory.Reservations;
 internal sealed class ReserveStockHandler(
     InventoryDbContext context,
     StockPositionStore store,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    InventoryMessagingMetrics metrics
 )
 {
     internal async Task HandleAsync(ReserveStockV1 command, CancellationToken cancellationToken)
@@ -38,6 +40,7 @@ internal sealed class ReserveStockHandler(
                 throw new InvalidDataException(
                     "A message identity was reused with different content."
                 );
+            metrics.InboxDuplicate();
             return;
         }
         DateTimeOffset timestamp = timeProvider.GetUtcNow();

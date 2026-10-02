@@ -5,13 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Contracts;
+using ModulithFoundry.Modules.Sales.Messaging;
 using ModulithFoundry.Modules.Sales.Messaging.Persistence;
 using ModulithFoundry.Modules.Sales.Orders.Activity;
 using ModulithFoundry.Modules.Sales.Persistence;
 
 namespace ModulithFoundry.Modules.Sales.Fulfilment.RecordReplenishmentOutcome;
 
-internal sealed class RecordReplenishmentOutcomeHandler(SalesDbContext context, TimeProvider clock)
+internal sealed class RecordReplenishmentOutcomeHandler(
+    SalesDbContext context,
+    TimeProvider clock,
+    SalesMessagingMetrics metrics
+)
 {
     internal Task HandleAsync(
         ReplenishmentRequirementCreatedV1 outcome,
@@ -111,6 +116,7 @@ internal sealed class RecordReplenishmentOutcomeHandler(SalesDbContext context, 
                 throw new InvalidDataException(
                     "Replenishment delivery identity has conflicting content."
                 );
+            metrics.InboxDuplicate();
             return;
         }
         var process = await context.FulfilmentProcesses.SingleOrDefaultAsync(

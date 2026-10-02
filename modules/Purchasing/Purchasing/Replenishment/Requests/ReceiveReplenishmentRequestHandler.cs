@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Purchasing.Audit;
 using ModulithFoundry.Modules.Purchasing.Contracts;
+using ModulithFoundry.Modules.Purchasing.Messaging;
 using ModulithFoundry.Modules.Purchasing.Messaging.Persistence;
 using ModulithFoundry.Modules.Purchasing.Persistence;
 
@@ -12,7 +13,8 @@ namespace ModulithFoundry.Modules.Purchasing.Replenishment.Requests;
 internal sealed class ReceiveReplenishmentRequestHandler(
     PurchasingDbContext context,
     ReplenishmentRequestProcessor processor,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    PurchasingMessagingMetrics metrics
 )
 {
     internal async Task HandleAsync(
@@ -63,6 +65,7 @@ internal sealed class ReceiveReplenishmentRequestHandler(
                 throw new InvalidDataException(
                     "Replenishment delivery identity conflicts or was rejected."
                 );
+            metrics.InboxDuplicate();
             return;
         }
         ReplenishmentRequest? request = await context
