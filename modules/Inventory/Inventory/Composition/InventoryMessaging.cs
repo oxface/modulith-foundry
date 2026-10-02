@@ -72,6 +72,9 @@ public static class InventoryMessaging
                                 .AddWithCustomName<ReserveStockV1>(ReserveStockV1.LogicalName)
                                 .AddWithCustomName<StockReservationOutcomeV1>(
                                     StockReservationOutcomeV1.LogicalName
+                                )
+                                .AddWithCustomName<StockItemReferenceChangedV1>(
+                                    StockItemReferenceChangedV1.LogicalName
                                 );
                         })
                         .Options(options =>

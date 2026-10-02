@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Inventory.Persistence;
+using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Export;
 using Npgsql;
 
 namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.CreateStockItem;
@@ -8,6 +9,7 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.CreateStock
 internal sealed class CreateStockItemHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
+    StockItemReferencePublisher publisher,
     TimeProvider timeProvider
 )
 {
@@ -62,7 +64,12 @@ internal sealed class CreateStockItemHandler(
             return new CreateStockItemResult.Invalid(exception.Field, exception.Message);
         }
 
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        await publisher.LockAsync(cancellationToken);
         context.StockItems.Add(item);
+        publisher.Stage(item, now);
         context.AuditEntries.Add(
             InventoryAuditEntry.Succeeded(
                 item.OrganizationId,
@@ -83,6 +90,7 @@ internal sealed class CreateStockItemHandler(
         try
         {
             await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (IsDuplicateSku(exception))
         {

@@ -52,3 +52,13 @@ Purchasing exposes the stable `purchasing-agent` role identifier from Purchasing
 - Reading Inventory or Sales persistence.
 - Treating the local Stock Item reference projection as stock truth.
 - Generic consumer-bootstrap or projection frameworks before another real consumer repeats the need.
+
+## Stock Item reference consumer
+
+Purchasing owns the isolated `modulith-foundry.purchasing` endpoint/error queue, per-delivery reference inbox, per-item full-state projection and bootstrap checkpoint. A native hosted worker waits for durable subscription binding before calling Inventory's trusted snapshot export. Both the worker and the administrative bootstrap Contract use the [same concrete protocol](../plans/stock-item-bootstrap.md).
+
+Before Ready, reference rows are a durable coalesced buffer and are not query-visible. Snapshot import preserves newer per-item revisions and commits with the watermark/Ready checkpoint in one Purchasing transaction. Incoming delivery receipts and projection effects also commit atomically. The snapshot watermark never advances to the highest observed event; each item's source revision handles tail reordering. There is no replenishment creation or business audit replay in this projection-only increment.
+
+`IStockItemProjectionBootstrapper` and `IStockItemProjectionQueries` are trusted workflow/administrative Contracts, not human authorization or HTTP APIs. The query supplies an explicit Organization identity and returns a Purchasing-owned view, not Inventory persistence or DTO graphs. Default EF Organization filtering still fails closed without scope. Bootstrap and validated message delivery deliberately query their own schema using explicit administrative access.
+
+Ordinary restart retains the initialized projection/checkpoint and rebinds the same queue. Broader failure, reconciliation and isolated-worker cutover proofs remain 5.3b. Full-state coalescing assumes no physical Stock Item deletion; adding deletion, deltas or larger catalogs requires a reviewed protocol rather than silently widening this one.

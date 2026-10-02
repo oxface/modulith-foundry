@@ -4,6 +4,7 @@ using ModulithFoundry.Modules.Inventory.Messaging.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems;
+using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Export;
 using ModulithFoundry.Modules.Inventory.Reservations;
 using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 using ModulithFoundry.Persistence;
@@ -19,6 +20,8 @@ internal sealed class InventoryDbContext(
     internal const string OrganizationScopeFilter = "OrganizationScope";
 
     internal DbSet<StockItem> StockItems => Set<StockItem>();
+
+    internal DbSet<StockItemReferenceFeed> StockItemReferenceFeeds => Set<StockItemReferenceFeed>();
 
     internal DbSet<StockingLocation> StockingLocations => Set<StockingLocation>();
 

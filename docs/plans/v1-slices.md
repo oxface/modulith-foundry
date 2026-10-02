@@ -303,6 +303,11 @@ coherent domain behavior and demonstrate distinct state/projection needs, not be
 
 **Acceptance:** PostgreSQL/Broker tests start from pre-existing Inventory data, mutate concurrently with snapshot, crash/restart at each phase, prove no gap or duplicate semantic effect, detect deliberate drift, and cut over the endpoint without double-applying a business operation.
 
+**Review-sized delivery:**
+
+- **5.3a — Snapshot and live tail:** committed-prefix Inventory reference feed/outbox, consistent versioned snapshot export, isolated Purchasing subscription, atomic checkpoint installation with durable coalesced full-state rows, live idempotent updates and ordinary restart proof. No replenishment or generic bootstrap library. The [concrete protocol and limits](stock-item-bootstrap.md) record transaction/lock ownership, privileged Contracts and scale/recovery assumptions.
+- **5.3b — Recovery and extraction rehearsal:** abrupt failure/phase rollback coverage, poison/redrive, drift detection/reconciliation and test-only separate-worker cutover on the same stable queue. Stop the in-process endpoint before cutover. This closes the remaining full 5.3 acceptance matrix; 5.3a alone does not claim it.
+
 ### Increment 5.4 — Purchasing Replenishment Requirement
 
 **Outcome:** a shortage causes one Purchasing-owned Replenishment Requirement using its current Stock Item reference, and Sales records creation.

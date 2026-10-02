@@ -73,22 +73,7 @@ internal sealed class InventoryOutboxRelay(
         InventoryOutboxMessage message = claimed[0];
         try
         {
-            if (message.MessageType != StockReservationOutcomeV1.LogicalName)
-                throw new InvalidDataException("Inventory outbox message type is unsupported.");
-            StockReservationOutcomeV1 outcome =
-                message.Payload.Deserialize<StockReservationOutcomeV1>()
-                ?? throw new InvalidDataException("Inventory outbox payload is unreadable.");
-            await bus.Advanced.Topics.Publish(
-                message.MessageType,
-                outcome,
-                new Dictionary<string, string>
-                {
-                    [Headers.MessageId] = message.MessageId.ToString(),
-                    [Headers.CorrelationId] = outcome.ProcessId.ToString(),
-                    ["causation-id"] = outcome.CausationId.ToString(),
-                    ["producer-module"] = "inventory",
-                }
-            );
+            await PublishAsync(message);
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $$"""
                 UPDATE inventory.outbox_messages
@@ -121,5 +106,32 @@ internal sealed class InventoryOutboxRelay(
             );
         }
         return true;
+    }
+
+    private Task PublishAsync(InventoryOutboxMessage message)
+    {
+        var headers = new Dictionary<string, string>
+        {
+            [Headers.MessageId] = message.MessageId.ToString(),
+            ["producer-module"] = "inventory",
+        };
+        switch (message.MessageType)
+        {
+            case StockReservationOutcomeV1.LogicalName:
+                StockReservationOutcomeV1 outcome =
+                    message.Payload.Deserialize<StockReservationOutcomeV1>()
+                    ?? throw new InvalidDataException("Inventory outcome payload is unreadable.");
+                headers[Headers.CorrelationId] = outcome.ProcessId.ToString();
+                headers["causation-id"] = outcome.CausationId.ToString();
+                return bus.Advanced.Topics.Publish(message.MessageType, outcome, headers);
+            case StockItemReferenceChangedV1.LogicalName:
+                StockItemReferenceChangedV1 changed =
+                    message.Payload.Deserialize<StockItemReferenceChangedV1>()
+                    ?? throw new InvalidDataException("Inventory reference payload is unreadable.");
+                headers[Headers.CorrelationId] = changed.Item.StockItemId.ToString();
+                return bus.Advanced.Topics.Publish(message.MessageType, changed, headers);
+            default:
+                throw new InvalidDataException("Inventory outbox message type is unsupported.");
+        }
     }
 }

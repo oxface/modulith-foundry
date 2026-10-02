@@ -21,3 +21,7 @@ Both composition classes create isolated Rebus service providers, forward only h
 Consider a small PostgreSQL/EF reliability library for inbox/outbox row models, explicit EF registration and lease/dispatch mechanics, with a separate Rebus adapter if useful. The owning module must retain schema, transaction, handler, message mapping, trust/correlation and business idempotency. Contracts must remain free of EF and Rebus. There is no generic saga, repository, mediator or workflow DSL justified here.
 
 Before choosing the public API, account for the still-open cancellation/confirmation bound, multi-replica retry/lease races, retention/tombstones and operational redrive. Keep behavior-focused Contracts/broker tests through extraction. Apply the deletion test: if the library disappears, meaningful infrastructure duplication should return; a wrapper that merely renames a Rebus method is not a useful library.
+
+## Purchasing bootstrap evidence
+
+The third endpoint repeats isolated provider/transport registration, stable aliases, producer and delivery checks, inbox receipt and local transaction semantics. Its full-state reference receiver has no outgoing business event yet. Snapshot capture, committed-prefix feed ordering, a subscription-before-export barrier, coalesced buffering, checkpoint installation and per-item revision semantics are **new protocol responsibilities**, not automatically reusable inbox helpers. Keep their concrete proof and recovery limits visible until a second bootstrap consumer earns extraction. No library is added with 5.3a.

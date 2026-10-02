@@ -13,6 +13,7 @@ using ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations.SetStock
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.ChangeStockItemDescription;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.CreateStockItem;
+using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Export;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Queries;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.SetStockItemActive;
 using ModulithFoundry.Modules.Inventory.StockPositions;
@@ -43,6 +44,8 @@ public static class InventoryModule
         services.AddScoped<SetStockingLocationActiveHandler>();
         services.AddScoped<StockingLocationQueries>();
         services.AddScoped<IStockItemAdministration, StockItemAdministration>();
+        services.AddScoped<IStockItemSnapshotExporter, StockItemSnapshotExporter>();
+        services.AddScoped<StockItemReferencePublisher>();
         services.AddScoped<IStockingLocationAdministration, StockingLocationAdministration>();
         services.AddScoped<IStockItemReferenceResolver, StockItemReferenceResolver>();
         services.AddScoped<IStockingLocationReferenceResolver, StockingLocationReferenceResolver>();

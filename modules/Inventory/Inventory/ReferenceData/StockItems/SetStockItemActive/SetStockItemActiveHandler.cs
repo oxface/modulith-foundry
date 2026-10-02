@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Inventory.Persistence;
+using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Export;
 
 namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.SetStockItemActive;
 
 internal sealed class SetStockItemActiveHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
+    StockItemReferencePublisher publisher,
     TimeProvider timeProvider
 )
 {
@@ -53,6 +55,10 @@ internal sealed class SetStockItemActiveHandler(
             return new SetStockItemActiveResult.Invalid(exception.Field, exception.Message);
         }
 
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        await publisher.LockAsync(cancellationToken);
         StockItem? item = await context.StockItems.SingleOrDefaultAsync(
             candidate => candidate.Sku == sku,
             cancellationToken
@@ -62,12 +68,14 @@ internal sealed class SetStockItemActiveHandler(
             return new SetStockItemActiveResult.NotFound();
         }
 
+        await context.Entry(item).ReloadAsync(cancellationToken);
         DateTimeOffset now = timeProvider.GetUtcNow();
         if (!item.SetActive(command.IsActive, now))
         {
             return new SetStockItemActiveResult.Unchanged(item.ToView());
         }
 
+        publisher.Stage(item, now);
         context.AuditEntries.Add(
             InventoryAuditEntry.Succeeded(
                 item.OrganizationId,
@@ -80,6 +88,7 @@ internal sealed class SetStockItemActiveHandler(
             )
         );
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new SetStockItemActiveResult.Changed(item.ToView());
     }
 }

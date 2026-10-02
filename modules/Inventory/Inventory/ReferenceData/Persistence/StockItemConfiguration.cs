@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems;
+using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Export;
 
 namespace ModulithFoundry.Modules.Inventory.ReferenceData.Persistence;
 
@@ -20,6 +21,8 @@ internal sealed class StockItemConfiguration : IEntityTypeConfiguration<StockIte
         item.Property(entity => entity.IsActive).HasColumnName("is_active");
         item.Property(entity => entity.CreatedAt).HasColumnName("created_at");
         item.Property(entity => entity.UpdatedAt).HasColumnName("updated_at");
+        item.Property<long>(StockItemReferencePublisher.RevisionProperty)
+            .HasColumnName("reference_revision");
         item.HasIndex(entity => new { entity.OrganizationId, entity.Sku })
             .IsUnique()
             .HasDatabaseName("ux_stock_items_organization_sku");

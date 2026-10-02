@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Inventory.Persistence;
+using ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.Export;
 
 namespace ModulithFoundry.Modules.Inventory.ReferenceData.StockItems.ChangeStockItemDescription;
 
 internal sealed class ChangeStockItemDescriptionHandler(
     InventoryDbContext context,
     InventoryRequestAuthorization requestAuthorization,
+    StockItemReferencePublisher publisher,
     TimeProvider timeProvider
 )
 {
@@ -53,6 +55,10 @@ internal sealed class ChangeStockItemDescriptionHandler(
             return new ChangeStockItemDescriptionResult.Invalid(exception.Field, exception.Message);
         }
 
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        await publisher.LockAsync(cancellationToken);
         StockItem? item = await context.StockItems.SingleOrDefaultAsync(
             candidate => candidate.Sku == sku,
             cancellationToken
@@ -62,6 +68,7 @@ internal sealed class ChangeStockItemDescriptionHandler(
             return new ChangeStockItemDescriptionResult.NotFound();
         }
 
+        await context.Entry(item).ReloadAsync(cancellationToken);
         DateTimeOffset now = timeProvider.GetUtcNow();
         try
         {
@@ -75,6 +82,7 @@ internal sealed class ChangeStockItemDescriptionHandler(
             return new ChangeStockItemDescriptionResult.Invalid(exception.Field, exception.Message);
         }
 
+        publisher.Stage(item, now);
         context.AuditEntries.Add(
             InventoryAuditEntry.Succeeded(
                 item.OrganizationId,
@@ -87,6 +95,7 @@ internal sealed class ChangeStockItemDescriptionHandler(
             )
         );
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new ChangeStockItemDescriptionResult.Changed(item.ToView());
     }
 }

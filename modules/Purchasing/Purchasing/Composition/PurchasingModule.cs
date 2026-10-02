@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Purchasing.Persistence;
+using ModulithFoundry.Modules.Purchasing.StockItemProjection;
 using Npgsql;
 
 namespace ModulithFoundry.Modules.Purchasing.Composition;
@@ -12,12 +15,19 @@ public static class PurchasingModule
     {
         services.AddPurchasingPersistence();
         services.AddSingleton(PurchasingAuthorizationManifest.Instance);
+        services.AddScoped<IStockItemProjectionBootstrapper, StockItemProjectionBootstrapper>();
+        services.AddScoped<IStockItemProjectionQueries, StockItemProjectionQueries>();
+        services.TryAddSingleton<StockItemSubscriptionBarrier>();
 
         return services;
     }
 
     public static IServiceCollection AddPurchasingPersistence(this IServiceCollection services)
     {
+        services.TryAddScoped<
+            IOrganizationContextAccessor,
+            UnresolvedOrganizationContextAccessor
+        >();
         services.AddDbContext<PurchasingDbContext>(
             (serviceProvider, options) =>
                 options.UseNpgsql(

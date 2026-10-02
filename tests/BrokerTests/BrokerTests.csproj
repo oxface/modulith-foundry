@@ -17,6 +17,7 @@
     <ProjectReference Include="../../modules/Inventory/Inventory/Inventory.csproj" />
     <ProjectReference Include="../../modules/Access/Access/Access.csproj" />
     <ProjectReference Include="../../modules/Sales/Sales/Sales.csproj" />
+    <ProjectReference Include="../../modules/Purchasing/Purchasing/Purchasing.csproj" />
     <ProjectReference Include="../BrokerReceiver/BrokerReceiver.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>

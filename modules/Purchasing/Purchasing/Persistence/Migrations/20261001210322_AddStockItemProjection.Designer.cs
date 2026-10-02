@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ModulithFoundry.Modules.Purchasing.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ModulithFoundry.Modules.Purchasing.Persistence.Migrations
 {
     [DbContext(typeof(PurchasingDbContext))]
-    partial class PurchasingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001210322_AddStockItemProjection")]
+    partial class AddStockItemProjection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -91,32 +94,6 @@ namespace ModulithFoundry.Modules.Purchasing.Persistence.Migrations
                     b.HasKey("OrganizationId", "StockItemId");
 
                     b.ToTable("stock_item_references", "purchasing");
-                }
-            );
-
-            modelBuilder.Entity(
-                "ModulithFoundry.Modules.Purchasing.StockItemProjection.Persistence.StockItemReferenceReceipt",
-                b =>
-                {
-                    b.Property<Guid>("MessageId").HasColumnType("uuid").HasColumnName("message_id");
-
-                    b.Property<string>("Fingerprint")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("fingerprint");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<DateTimeOffset>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("processed_at");
-
-                    b.HasKey("MessageId");
-
-                    b.ToTable("stock_item_reference_inbox", "purchasing");
                 }
             );
 #pragma warning restore 612, 618

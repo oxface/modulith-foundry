@@ -23,6 +23,7 @@ builder.Services.AddSalesModule();
 
 // Establish the durable outcome subscription before Inventory can publish recovered outbox work.
 builder.Host.AddSalesMessaging(builder.Configuration);
+builder.Host.AddPurchasingMessaging(builder.Configuration);
 builder.Host.AddInventoryMessaging(builder.Configuration);
 
 WebApplication app = builder.Build();

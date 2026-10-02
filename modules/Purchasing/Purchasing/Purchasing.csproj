@@ -14,10 +14,15 @@
     </PackageReference>
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Rebus" />
+    <PackageReference Include="Rebus.RabbitMq" />
+    <PackageReference Include="Rebus.ServiceProvider" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../Access/Access.Contracts/Access.Contracts.csproj" />
+    <ProjectReference Include="../../Inventory/Inventory.Contracts/Inventory.Contracts.csproj" />
+    <ProjectReference Include="../../../shared/Persistence/ModulithFoundry.Persistence.csproj" />
     <ProjectReference Include="../Purchasing.Contracts/Purchasing.Contracts.csproj" />
   </ItemGroup>
 </Project>

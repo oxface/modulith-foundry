@@ -32,4 +32,15 @@ internal sealed class InventoryOutboxMessage : IOrganizationOwned
             CreatedAt = outcome.CreatedAt,
             AvailableAt = outcome.CreatedAt,
         };
+
+    internal static InventoryOutboxMessage Stage(StockItemReferenceChangedV1 changed) =>
+        new()
+        {
+            MessageId = changed.MessageId,
+            OrganizationId = changed.Item.OrganizationId,
+            MessageType = StockItemReferenceChangedV1.LogicalName,
+            Payload = JsonSerializer.SerializeToElement(changed),
+            CreatedAt = changed.CreatedAt,
+            AvailableAt = changed.CreatedAt,
+        };
 }
