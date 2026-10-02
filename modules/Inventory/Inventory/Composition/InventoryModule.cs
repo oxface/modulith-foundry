@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Inventory.Messaging;
 using ModulithFoundry.Modules.Inventory.Messaging.Recovery;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
@@ -33,6 +34,9 @@ public static class InventoryModule
     {
         StockPositionEventSerializer.ValidateRegistry();
         services.AddInventoryPersistence();
+        services.AddLogging();
+        services.AddMetrics();
+        services.TryAddSingleton<InventoryMessagingMetrics>();
         services.AddSingleton(InventoryAuthorizationManifest.Instance);
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<InventoryRequestAuthorization>();

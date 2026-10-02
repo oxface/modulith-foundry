@@ -26,9 +26,9 @@ namespace ModulithFoundry.BrokerTests;
 internal sealed class ReservationFixture : IAsyncDisposable
 {
     private readonly PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
-    private readonly RabbitMqContainer rabbit = new RabbitMqBuilder(
-        "rabbitmq:4.3.6-management"
-    ).Build();
+    private readonly RabbitMqContainer rabbit = new RabbitMqBuilder("rabbitmq:4.3.6-management")
+        .WithPortBinding(15672, true)
+        .Build();
     private readonly Channel<ObservedOutcome> outcomes = Channel.CreateUnbounded<ObservedOutcome>();
     private readonly Channel<StockReservationReleaseOutcomeV1> releaseOutcomes =
         Channel.CreateUnbounded<StockReservationReleaseOutcomeV1>();
@@ -62,6 +62,12 @@ internal sealed class ReservationFixture : IAsyncDisposable
     internal string DatabaseConnectionString => postgres.GetConnectionString();
 
     internal string BrokerConnectionString => rabbit.GetConnectionString();
+
+    internal BrokerQueueProbe ObserveBroker() =>
+        new(
+            new Uri($"http://{rabbit.Hostname}:{rabbit.GetMappedPublicPort(15672)}/"),
+            BrokerConnectionString
+        );
 
     internal static async Task<ReservationFixture> StartAsync(
         bool startReceiver = true,

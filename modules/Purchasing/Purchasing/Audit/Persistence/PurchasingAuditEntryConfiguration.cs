@@ -9,7 +9,14 @@ internal sealed class PurchasingAuditEntryConfiguration
 {
     public void Configure(EntityTypeBuilder<PurchasingAuditEntry> entity)
     {
-        entity.ToTable("audit_entries");
+        entity.ToTable(
+            "audit_entries",
+            table =>
+                table.HasCheckConstraint(
+                    "ck_audit_entries_actor",
+                    "(actor_user_id IS NULL) <> (system_actor IS NULL)"
+                )
+        );
         entity.HasKey(x => x.Id).HasName("pk_audit_entries");
         entity.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         entity.Property(x => x.OrganizationId).HasColumnName("organization_id");

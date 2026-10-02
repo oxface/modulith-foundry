@@ -142,6 +142,41 @@ internal sealed class ReceiverDatabaseBarrier : IAsyncDisposable
             await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
     }
 
+    internal async Task ReleaseAsync()
+    {
+        await using var command = new NpgsqlCommand("SELECT pg_advisory_unlock_all();", connection);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    internal async Task WaitForRowLockAsync(ReceiverProcess child)
+    {
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM pg_stat_activity
+                WHERE application_name = @application AND wait_event_type = 'Lock'
+                AND wait_event IN ('tuple', 'transactionid')
+            );
+            """,
+            connection
+        );
+        command.Parameters.AddWithValue("application", child.ApplicationName);
+        while (!(bool)(await command.ExecuteScalarAsync(cancellationToken))!)
+            await Task.Delay(50, cancellationToken);
+    }
+
+    internal static Task<ReceiverDatabaseBarrier> CreateRequirementAsync(
+        StockItemBootstrapFixture fixture
+    ) =>
+        CreateAsync(
+            fixture.DatabaseConnectionString,
+            "purchasing",
+            "inbox_receipts",
+            "INSERT",
+            "",
+            fixture.CancellationToken
+        );
+
     public async ValueTask DisposeAsync()
     {
         try

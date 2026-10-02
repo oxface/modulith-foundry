@@ -378,6 +378,8 @@ The **5.6b2a export follow-up** extends the existing two-lifecycle Topology proo
 
 **5.6bc2 — Purchasing bootstrap observations** adds [independent readiness/freshness and bootstrap-failure signals](workflow-operations.md#56bc2--purchasing-bootstrap-observations), with real snapshot pause, unavailable-checkpoint recovery and failed bootstrap-commit retry proofs. Readiness is explicitly not live-tail freshness or reconciliation correctness. This remains a partial checkpoint; ongoing projection/rebuild failures, broker operations and full-application failure windows stay open.
 
+**5.6bc3 — Remaining local durability proofs** adds [broker/projection operations](broker-operations.md), representative first-delivery races on all three endpoints, healthy-broker in-flight receiver shutdown, retained database recovery, complete API replicas, cancellation-ingress death around commit and competing publisher lease recovery. The owner accepted the [closure checklist](durability-closure-checklist.md) on 2026-10-02 and authorized 8.1. Process-local retries remain explicit policy; bounded publication/shutdown under stalled broker confirmation or telemetry backends must be proven before deployment. Local closure is not a universal failure-matrix guarantee.
+
 ## Slice 6 — Minimal frontend journey
 
 ### Increment 6.1 — Vite/BFF shell and Organization navigation
@@ -415,6 +417,7 @@ The **5.6b2a export follow-up** extends the existing two-lifecycle Topology proo
 - Publish the application image and separately runnable migration artifact/job, generate dependency inventory/SBOM, tie versions to the source revision, and define graceful shutdown/probes/resources.
 - Run the same image locally against externalized PostgreSQL/Redis/RabbitMQ/Keycloak-style configuration without Kubernetes manifests.
 - Document secrets, Data Protection, broker, telemetry, database, and identity environment contracts.
+- Close the accepted local-phase bounded-publication/shutdown gap with real stalled broker-confirmation and unavailable telemetry-backend proofs. A stored-but-unused transport timeout option is not evidence; do not promote the local healthy-backend shutdown result as deployment readiness.
 
 **Acceptance:** clean-image smoke applies migrations, starts healthy, completes one workflow, shuts down gracefully, rejects missing required configuration, and emits expected telemetry as a non-root process.
 
@@ -457,6 +460,8 @@ The **5.6b2a export follow-up** extends the existing two-lifecycle Topology proo
 - Identify duplication in load/append, serialization/upcasting, metadata, projection coordination, and recorded-time hydration before choosing abstractions.
 
 **Acceptance:** both aggregate implementations work with their own module schema/transactions and no copied Inventory policy; failure tests demonstrate atomic updates of all required inline views. This is a planned capability proof, not a reason to event-source every aggregate.
+
+The owner selected the Purchasing Purchase Order on 2026-10-02 and confirmed real PostgreSQL command/query seams. The [second-aggregate proof](second-event-sourced-aggregate.md) records its narrow scope, projection roles, evidence and extraction findings. Replenishment Requirements and Sales Orders remain state-stored; no procurement lifecycle or event-sourcing library is pulled forward.
 
 ### Increment 8.1b — Event-sourcing correctness and extraction gate
 

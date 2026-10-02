@@ -11,10 +11,16 @@ internal sealed class InventoryMessagingMetrics
     private readonly Counter<long> dispatchFailures;
     private readonly Counter<long> relayFailures;
     private readonly Counter<long> inboxDuplicates;
+    private readonly Counter<long> rebuildFailures;
 
     public InventoryMessagingMetrics(IMeterFactory meters)
     {
         var meter = meters.Create(InventoryMessaging.MeterName);
+        rebuildFailures = meter.CreateCounter<long>(
+            "modulith_foundry.inventory.stock_position_projection.rebuild_failures",
+            "{failure}",
+            "Failed explicit Stock Position rebuild attempts, excluding requested cancellation and normal denied/missing results."
+        );
         inboxDuplicates = meter.CreateCounter<long>(
             "modulith_foundry.inventory.inbox.duplicates",
             "{delivery}",
@@ -100,6 +106,8 @@ internal sealed class InventoryMessagingMetrics
     internal void RelayFailed() => relayFailures.Add(1);
 
     internal void InboxDuplicate() => inboxDuplicates.Add(1);
+
+    internal void RebuildFailed() => rebuildFailures.Add(1);
 
     private sealed record Observation(
         long Pending,

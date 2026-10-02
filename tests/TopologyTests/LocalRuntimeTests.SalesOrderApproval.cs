@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 
 namespace ModulithFoundry.TopologyTests;
@@ -20,17 +21,39 @@ public sealed partial class LocalRuntimeTests
     private static readonly string[] ApprovalMemberRoleIds = ["sales-approver"];
     private static readonly string[] NonApproverRoleIds = ["sales-clerk"];
 
-    [Fact]
-    public async Task SalesOrderApproval_IndependentAuthenticatedMember_CompletesReservationRoundTrip()
+    [Theory]
+    [InlineData(1, null)]
+    [InlineData(2, null)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    public async Task SalesOrderApproval_IndependentAuthenticatedMember_CompletesReservationRoundTrip(
+        int replicas,
+        bool? cancellationAfterCommit
+    )
     {
-        using var timeout = new CancellationTokenSource(StartupTimeout);
+        using var timeout = new CancellationTokenSource(
+            cancellationAfterCommit is null
+                ? StartupTimeout
+                : StartupTimeout + TimeSpan.FromMinutes(1)
+        );
+        await using var telemetry = await OtlpTestReceiver.StartAsync(timeout.Token);
         IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
             randomizePorts: true,
             timeout.Token
         );
+        if (cancellationAfterCommit is not null)
+            builder
+                .CreateResourceBuilder<PostgresServerResource>("postgres")
+                .WithArgs("-c", "client_connection_check_interval=100ms");
+        builder
+            .CreateResourceBuilder<ProjectResource>("api")
+            .WithReplicas(replicas)
+            .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", telemetry.Endpoint.ToString())
+            .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf");
         await using DistributedApplication app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync("api", timeout.Token);
+        string[] replicaIds = await WaitForApiReplicasAsync(app, replicas, timeout.Token);
         Uri address = app.GetEndpoint("api", "https");
         var aliceCookies = new CookieContainer();
         using var aliceHandler = CreateBrowserHandler(aliceCookies);
@@ -291,6 +314,19 @@ public sealed partial class LocalRuntimeTests
             "stock-reserved",
             activityJson.RootElement.EnumerateArray().Last().GetProperty("kind").GetString()
         );
+        if (replicas == 2 && cancellationAfterCommit is null)
+        {
+            ExecuteCommandResult stopped = await app.ResourceCommands.ExecuteCommandAsync(
+                replicaIds[0],
+                KnownResourceCommands.StopCommand,
+                timeout.Token
+            );
+            Assert.True(stopped.Success, stopped.Message);
+            await WaitForApiReplicaExitAsync(app, replicaIds[0], timeout.Token);
+            // The same authenticated cookies/CSRF and committed workflow now use the survivor.
+            using HttpResponseMessage session = await alice.GetAsync("/api/session", timeout.Token);
+            Assert.Equal(HttpStatusCode.OK, session.StatusCode);
+        }
         await AssertShortageReplenishmentAsync(
             alice,
             bob,
@@ -307,7 +343,19 @@ public sealed partial class LocalRuntimeTests
             bobCsrf,
             root,
             orderUrl,
-            timeout.Token
+            timeout.Token,
+            cancellationAfterCommit is { } afterCommit
+                ? () =>
+                    CancelAcrossApiCrashAsync(
+                        app,
+                        alice,
+                        aliceCsrf,
+                        orderUrl,
+                        replicaIds,
+                        afterCommit,
+                        timeout.Token
+                    )
+                : null
         );
         using HttpResponseMessage retry = await SendCommandAsync(
             bob,

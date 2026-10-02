@@ -13,7 +13,8 @@ public sealed partial class LocalRuntimeTests
         string bobCsrf,
         string root,
         string orderUrl,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        Func<Task<HttpResponseMessage>>? cancelAcrossCrash = null
     )
     {
         var command = new { expectedVersion = 3, reason = "Customer withdrew" };
@@ -51,14 +52,16 @@ public sealed partial class LocalRuntimeTests
         );
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         Assert.Equal("application/problem+json", invalid.Content.Headers.ContentType?.MediaType);
-        using var response = await SendCommandAsync(
-            alice,
-            HttpMethod.Post,
-            orderUrl + "/cancel",
-            aliceCsrf,
-            command,
-            cancellationToken
-        );
+        using var response = cancelAcrossCrash is not null
+            ? await cancelAcrossCrash()
+            : await SendCommandAsync(
+                alice,
+                HttpMethod.Post,
+                orderUrl + "/cancel",
+                aliceCsrf,
+                command,
+                cancellationToken
+            );
         response.EnsureSuccessStatusCode();
         using var cancelled = JsonDocument.Parse(
             await response.Content.ReadAsStringAsync(cancellationToken)
@@ -69,7 +72,8 @@ public sealed partial class LocalRuntimeTests
             cancelled.RootElement.GetProperty("cancellationReason").GetString()
         );
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        bound.CancelAfter(TimeSpan.FromSeconds(30));
+        // A killed publisher may have a real 30-second lease plus relay polling/restart overhead.
+        bound.CancelAfter(TimeSpan.FromSeconds(cancelAcrossCrash is null ? 30 : 60));
         while (true)
         {
             using var processResponse = await alice.GetAsync(orderUrl + "/fulfilment", bound.Token);
@@ -107,7 +111,7 @@ public sealed partial class LocalRuntimeTests
         using var historyJson = JsonDocument.Parse(
             await history.Content.ReadAsStringAsync(cancellationToken)
         );
-        Assert.Contains(
+        Assert.Single(
             historyJson.RootElement.GetProperty("entries").EnumerateArray(),
             item => item.GetProperty("action").GetString() == "reservation-released"
         );

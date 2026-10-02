@@ -27,9 +27,9 @@ namespace ModulithFoundry.BrokerTests;
 internal sealed class StockItemBootstrapFixture : IAsyncDisposable
 {
     private readonly PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
-    private readonly RabbitMqContainer rabbit = new RabbitMqBuilder(
-        "rabbitmq:4.3.6-management"
-    ).Build();
+    private readonly RabbitMqContainer rabbit = new RabbitMqBuilder("rabbitmq:4.3.6-management")
+        .WithPortBinding(15672, true)
+        .Build();
     private readonly CancellationTokenSource timeout =
         CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
     private NpgsqlDataSource dataSource = null!;
@@ -48,6 +48,13 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
         Channel.CreateUnbounded<CreateReplenishmentRequirementV1>();
     internal string DatabaseConnectionString => postgres.GetConnectionString();
     internal string BrokerConnectionString => rabbit.GetConnectionString();
+
+    internal BrokerQueueProbe ObserveBroker() =>
+        new(
+            new Uri($"http://{rabbit.Hostname}:{rabbit.GetMappedPublicPort(15672)}/"),
+            BrokerConnectionString
+        );
+
     internal OrganizationAccessContext Actor { get; } =
         new(
             new UserId(Guid.CreateVersion7()),

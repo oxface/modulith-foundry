@@ -34,9 +34,9 @@ namespace ModulithFoundry.BrokerTests;
 internal sealed class SalesFulfilmentFixture : IAsyncDisposable
 {
     private readonly PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:18.6").Build();
-    private readonly RabbitMqContainer rabbit = new RabbitMqBuilder(
-        "rabbitmq:4.3.6-management"
-    ).Build();
+    private readonly RabbitMqContainer rabbit = new RabbitMqBuilder("rabbitmq:4.3.6-management")
+        .WithPortBinding(15672, true)
+        .Build();
     private readonly CancellationTokenSource timeout =
         CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
     private IHost host = null!;
@@ -66,6 +66,12 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
     internal IMeterFactory MeterFactory => host.Services.GetRequiredService<IMeterFactory>();
     internal string DatabaseConnectionString => postgres.GetConnectionString();
     internal string BrokerConnectionString => rabbit.GetConnectionString();
+
+    internal BrokerQueueProbe ObserveBroker() =>
+        new(
+            new Uri($"http://{rabbit.Hostname}:{rabbit.GetMappedPublicPort(15672)}/"),
+            BrokerConnectionString
+        );
 
     internal static async Task<SalesFulfilmentFixture> StartAsync(
         bool createMain = true,
@@ -397,6 +403,10 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
     internal Task StopBrokerAsync() => rabbit.StopAsync(CancellationToken);
 
     internal Task StartBrokerAsync() => rabbit.StartAsync(CancellationToken);
+
+    internal Task StopDatabaseAsync() => postgres.StopAsync(CancellationToken);
+
+    internal Task StartDatabaseAsync() => postgres.StartAsync(CancellationToken);
 
     internal Task<CancelSalesOrderResult> CancelAsync(
         SalesOrderView order,

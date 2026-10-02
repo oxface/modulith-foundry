@@ -5,6 +5,24 @@ namespace ModulithFoundry.Modules.Purchasing.Messaging;
 internal static partial class PurchasingMessagingLogs
 {
     [LoggerMessage(
+        EventId = 5,
+        Level = LogLevel.Warning,
+        Message = "Purchasing Stock Item reference delivery {MessageId} failed ({ErrorType}); broker settlement remains pending."
+    )]
+    internal static partial void ProjectionProcessingFailed(
+        ILogger logger,
+        Guid messageId,
+        string errorType
+    );
+
+    [LoggerMessage(
+        EventId = 6,
+        Level = LogLevel.Warning,
+        Message = "Purchasing Stock Item reconciliation failed ({ErrorType}); no successful repair is implied."
+    )]
+    internal static partial void ReconciliationFailed(ILogger logger, string errorType);
+
+    [LoggerMessage(
         EventId = 4,
         Level = LogLevel.Warning,
         Message = "Purchasing Stock Item projection observation failed ({ErrorType}); last readiness sample is stale, not unready."

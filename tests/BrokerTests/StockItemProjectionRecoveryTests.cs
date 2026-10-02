@@ -84,8 +84,11 @@ public sealed class StockItemProjectionRecoveryTests
     [Fact]
     public async Task Reconciliation_CheckpointSaveFails_RollsBackRepairAndCanRetry()
     {
-        await using StockItemBootstrapFixture fixture =
-            await StockItemBootstrapFixture.StartAsync();
+        using var telemetry = new MessagingTelemetryProbe();
+        await using StockItemBootstrapFixture fixture = await StockItemBootstrapFixture.StartAsync(
+            logs: telemetry
+        );
+        telemetry.Observe(fixture.MeterFactory);
         StockItemId id = await fixture.CreateAsync("BOLT");
         await fixture.BootstrapAsync();
         await fixture.ChangeDescriptionAsync("BOLT", "Source update");
@@ -102,6 +105,12 @@ public sealed class StockItemProjectionRecoveryTests
         await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(() =>
             fixture.CompareAsync(repair: true)
         );
+        Assert.Equal(
+            1,
+            telemetry.Counter(
+                "modulith_foundry.purchasing.stock_item_projection.reconciliation_failures"
+            )
+        );
         Assert.Equal("Damaged", (await fixture.GetAsync(id))!.Description);
         Assert.Equal(1, (await fixture.StatusAsync()).SnapshotWatermark);
         await fixture.ExecuteSqlAsync(
@@ -110,6 +119,14 @@ public sealed class StockItemProjectionRecoveryTests
         await fixture.CompareAsync(repair: true);
         Assert.Equal("Source update", (await fixture.GetAsync(id))!.Description);
         Assert.Equal(2, (await fixture.StatusAsync()).SnapshotWatermark);
+        Assert.Contains(
+            telemetry.Logs,
+            message => message.Contains("reconciliation failed", StringComparison.Ordinal)
+        );
+        Assert.DoesNotContain(
+            telemetry.Logs,
+            message => message.Contains("test checkpoint failure", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -286,8 +303,11 @@ public sealed class StockItemProjectionRecoveryTests
     [Fact]
     public async Task Tail_StorageFailure_RoutesToPurchasingErrorQueueAndExplicitRedriveSucceeds()
     {
-        await using StockItemBootstrapFixture fixture =
-            await StockItemBootstrapFixture.StartAsync();
+        using var telemetry = new MessagingTelemetryProbe();
+        await using StockItemBootstrapFixture fixture = await StockItemBootstrapFixture.StartAsync(
+            logs: telemetry
+        );
+        telemetry.Observe(fixture.MeterFactory);
         StockItemId id = await fixture.CreateAsync("BOLT");
         await fixture.PublishHistoryBeforePurchasingSubscribesAsync();
         await fixture.BootstrapAsync();
@@ -303,6 +323,12 @@ public sealed class StockItemProjectionRecoveryTests
         StockItemReferenceChangedV1 update = Update(fixture, id);
         await fixture.SendAsync(update);
         StockItemReferenceChangedV1 failed = await fixture.ReadErrorAsync();
+        Assert.Equal(
+            3,
+            telemetry.Counter(
+                "modulith_foundry.purchasing.stock_item_projection.processing_failures"
+            )
+        );
         Assert.Equal(update, failed);
         Assert.Equal("Bolt", (await fixture.GetAsync(id))!.Description);
         await fixture.ExecuteSqlAsync(
@@ -315,6 +341,14 @@ public sealed class StockItemProjectionRecoveryTests
         await fixture.WaitForProcessedAsync(update.MessageId, 2);
         Assert.Equal("Updated", (await fixture.GetAsync(id))!.Description);
         Assert.Equal(2, (await fixture.GetAsync(id))!.SourceRevision);
+        Assert.Contains(
+            telemetry.Logs,
+            message => message.Contains("reference delivery", StringComparison.Ordinal)
+        );
+        Assert.DoesNotContain(
+            telemetry.Logs,
+            message => message.Contains("test receipt failure", StringComparison.Ordinal)
+        );
     }
 
     [Fact]

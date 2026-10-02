@@ -82,7 +82,6 @@ namespace ModulithFoundry.Modules.Purchasing.Persistence.Migrations
                         .HasColumnName("subject_type");
 
                     b.Property<string>("SystemActor")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("system_actor");
@@ -92,7 +91,15 @@ namespace ModulithFoundry.Modules.Purchasing.Persistence.Migrations
                     b.HasIndex("OrganizationId", "OccurredAt")
                         .HasDatabaseName("ix_audit_entries_organization_occurred_at");
 
-                    b.ToTable("audit_entries", "purchasing");
+                    b.ToTable(
+                        "audit_entries",
+                        "purchasing",
+                        t =>
+                            t.HasCheckConstraint(
+                                "ck_audit_entries_actor",
+                                "(actor_user_id IS NULL) <> (system_actor IS NULL)"
+                            )
+                    );
                 }
             );
 
@@ -173,6 +180,185 @@ namespace ModulithFoundry.Modules.Purchasing.Persistence.Migrations
                         .HasFilter("dispatched_at IS NULL");
 
                     b.ToTable("outbox_messages", "purchasing");
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.EventStream",
+                b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("StreamType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("stream_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id").HasName("pk_event_streams");
+
+                    b.HasIndex("OrganizationId", "StreamType")
+                        .HasDatabaseName("ix_event_streams_organization_type");
+
+                    b.ToTable("event_streams", "purchasing");
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.PurchaseOrderSummary",
+                b =>
+                {
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<bool>("IsIssued")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_issued");
+
+                    b.Property<JsonElement>("LineAmounts")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("line_amounts");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_count");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(20, 5)
+                        .HasColumnType("numeric(20,5)")
+                        .HasColumnName("total");
+
+                    b.Property<long>("Version").HasColumnType("bigint").HasColumnName("version");
+
+                    b.HasKey("StreamId");
+
+                    b.HasIndex("OrganizationId", "Code")
+                        .HasDatabaseName("ix_purchase_order_summaries_organization_code");
+
+                    b.ToTable("purchase_order_summaries", "purchasing");
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.PurchaseOrderWriteModel",
+                b =>
+                {
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<JsonElement>("State").HasColumnType("jsonb").HasColumnName("state");
+
+                    b.Property<long>("Version").HasColumnType("bigint").HasColumnName("version");
+
+                    b.HasKey("StreamId");
+
+                    b.HasIndex("OrganizationId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_purchase_order_write_models_organization_code");
+
+                    b.ToTable("purchase_order_write_models", "purchasing");
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.StoredEvent",
+                b =>
+                {
+                    b.Property<Guid>("EventId").HasColumnType("uuid").HasColumnName("event_id");
+
+                    b.Property<string>("EventName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("event_name");
+
+                    b.Property<long>("GlobalSequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("global_sequence");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(
+                        b.Property<long>("GlobalSequence")
+                    );
+
+                    b.Property<JsonElement>("Metadata")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<JsonElement>("Payload")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_version");
+
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
+
+                    b.Property<long>("StreamVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("stream_version");
+
+                    b.HasKey("EventId").HasName("pk_events");
+
+                    b.HasIndex("GlobalSequence")
+                        .IsUnique()
+                        .HasDatabaseName("ux_events_global_sequence");
+
+                    b.HasIndex("StreamId", "StreamVersion")
+                        .IsUnique()
+                        .HasDatabaseName("ux_events_stream_version");
+
+                    b.ToTable("events", "purchasing");
                 }
             );
 
@@ -420,6 +606,51 @@ namespace ModulithFoundry.Modules.Purchasing.Persistence.Migrations
                     b.HasKey("MessageId");
 
                     b.ToTable("stock_item_reference_inbox", "purchasing");
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.PurchaseOrderSummary",
+                b =>
+                {
+                    b.HasOne(
+                            "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.EventStream",
+                            null
+                        )
+                        .WithMany()
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.PurchaseOrderWriteModel",
+                b =>
+                {
+                    b.HasOne(
+                            "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.EventStream",
+                            null
+                        )
+                        .WithMany()
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.StoredEvent",
+                b =>
+                {
+                    b.HasOne(
+                            "ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence.EventStream",
+                            null
+                        )
+                        .WithMany()
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 }
             );
 #pragma warning restore 612, 618

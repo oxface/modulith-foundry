@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
 using ModulithFoundry.BrokerReceiver;
@@ -12,6 +13,7 @@ internal sealed class ReceiverProcess : IAsyncDisposable
     private readonly Task output;
     private readonly Task<string> errors;
     private readonly HashSet<string> pendingSignals = [];
+    private readonly ConcurrentDictionary<string, int> observations = new(StringComparer.Ordinal);
 
     private ReceiverProcess(Process process, string applicationName)
     {
@@ -23,9 +25,14 @@ internal sealed class ReceiverProcess : IAsyncDisposable
 
     internal string ApplicationName { get; }
 
+    internal int FailedAttempts(Guid messageId) => ObservedSignalCount($"failed:{messageId}");
+
+    internal int ObservedSignalCount(string signal) => observations.GetValueOrDefault(signal);
+
     internal static async Task<ReceiverProcess> StartAsync(
         ReservationFixture fixture,
-        bool pauseAfterCommit = false
+        bool pauseAfterCommit = false,
+        bool pauseReceiptRead = false
     ) =>
         await StartAsync(
             fixture.DatabaseConnectionString,
@@ -33,7 +40,8 @@ internal sealed class ReceiverProcess : IAsyncDisposable
             "inventory",
             pauseAfterCommit,
             false,
-            fixture.CancellationToken
+            fixture.CancellationToken,
+            pauseReceiptRead
         );
 
     internal static Task<ReceiverProcess> StartPurchasingAsync(
@@ -52,7 +60,8 @@ internal sealed class ReceiverProcess : IAsyncDisposable
 
     internal static Task<ReceiverProcess> StartSalesAsync(
         SalesFulfilmentFixture fixture,
-        bool pauseAfterCommit = false
+        bool pauseAfterCommit = false,
+        bool pauseReceiptRead = false
     ) =>
         StartAsync(
             fixture.DatabaseConnectionString,
@@ -60,7 +69,8 @@ internal sealed class ReceiverProcess : IAsyncDisposable
             "sales",
             pauseAfterCommit,
             false,
-            fixture.CancellationToken
+            fixture.CancellationToken,
+            pauseReceiptRead
         );
 
     private static async Task<ReceiverProcess> StartAsync(
@@ -69,7 +79,8 @@ internal sealed class ReceiverProcess : IAsyncDisposable
         string module,
         bool pauseAfterCommit,
         bool pauseSnapshot,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        bool pauseReceiptRead = false
     )
     {
         string applicationName = $"receiver-test-{Guid.NewGuid():N}";
@@ -84,6 +95,7 @@ internal sealed class ReceiverProcess : IAsyncDisposable
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = true,
         };
         start.ArgumentList.Add("exec");
         // The independently hosted child needs its own complete dependency set. The test host's
@@ -101,6 +113,7 @@ internal sealed class ReceiverProcess : IAsyncDisposable
         start.Environment["ReceiverTest__Module"] = module;
         start.Environment["ReceiverTest__PauseSnapshot"] = pauseSnapshot ? "true" : "false";
         start.Environment["ReceiverTest__PauseAfterCommit"] = pauseAfterCommit ? "true" : "false";
+        start.Environment["ReceiverTest__PauseReceiptRead"] = pauseReceiptRead ? "true" : "false";
         var child = new ReceiverProcess(
             Process.Start(start)
                 ?? throw new InvalidOperationException("Could not start the test receiver."),
@@ -150,7 +163,10 @@ internal sealed class ReceiverProcess : IAsyncDisposable
         try
         {
             while (await process.StandardOutput.ReadLineAsync() is { } line)
+            {
+                observations.AddOrUpdate(line, 1, (_, previous) => previous + 1);
                 await signals.Writer.WriteAsync(line);
+            }
         }
         finally
         {
@@ -168,6 +184,23 @@ internal sealed class ReceiverProcess : IAsyncDisposable
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await process.WaitForExitAsync(timeout.Token);
         Assert.NotEqual(0, process.ExitCode);
+    }
+
+    internal async Task StopAsync(CancellationToken cancellationToken)
+    {
+        Assert.False(process.HasExited);
+        await process.StandardInput.WriteLineAsync("stop");
+        await process.StandardInput.FlushAsync(cancellationToken);
+        await process
+            .WaitForExitAsync(cancellationToken)
+            .WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
+        Assert.Equal(0, process.ExitCode);
+    }
+
+    internal async Task ReleaseReceiptReadAsync(CancellationToken cancellationToken)
+    {
+        await process.StandardInput.WriteLineAsync("release");
+        await process.StandardInput.FlushAsync(cancellationToken);
     }
 
     public async ValueTask DisposeAsync()

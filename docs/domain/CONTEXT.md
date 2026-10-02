@@ -103,5 +103,5 @@ A recognized shortage that Purchasing may satisfy through a purchase order.
 _Avoid_: Backorder, purchase request
 
 **Purchase Order**:
-A commitment issued to a supplier to acquire goods for the organization.
+A commitment issued to a supplier to acquire goods for the organization. Its draft records the proposed commitment before issuance.
 _Avoid_: Sales order, replenishment requirement

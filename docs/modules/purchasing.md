@@ -7,7 +7,7 @@ Purchasing turns an Inventory shortage recognized by the Sales-owned fulfilment 
 ## Owned concepts and data
 
 - `Replenishment Requirement`, its originating shortage operation, requested quantity, status, and stock-item reference snapshot.
-- The minimal supplier and Purchase Order concepts only when a later accepted workflow exercises them.
+- A minimal Purchase Order draft, its supplier business reference, priced lines and issuance, introduced by the accepted 8.1 second event-sourced aggregate proof. Suppliers remain external references, not a new supplier aggregate.
 - A Purchasing-owned Stock Item reference projection used by the late-consumer bootstrap proof.
 - Purchasing-schema audit, inbox, outbox, and projection records.
 
@@ -26,7 +26,11 @@ User-facing queries:
 - get an Organization-scoped requirement by its short business reference;
 - list open requirements for the minimal exercise UI.
 
-Later user-facing supplier and Purchase Order commands remain absent until the reference workflow needs them.
+`IPurchaseOrderDrafting`, `IPurchaseOrderIssuance` and `IPurchaseOrderQueries` expose the 8.1 proof through authorized in-process Contracts. They create a coded draft, set a priced line, issue a nonempty draft, and query current, live/historical and compact summary views. No HTTP routes or automatic requirement-to-order workflow are introduced by this proof.
+
+Purchase Order commands require the verified actor/Organization context and current `purchasing.purchase-orders.manage` permission supplied by the Purchasing Agent role. Issuance records a product commitment only: it does not send supplier email, reserve/receive stock or publish an integration event. Replenishment Requirements remain state-stored.
+
+The Purchasing-owned event stream, aggregate-shaped JSONB write model, independent summary projection and accepted-change audit commit in one explicit local transaction. Draft lines may be replaced only before issuance; identical line input at the correct version is unchanged. Replay preserves recorded facts without rerunning today's draft/input policy or producing external effects. Supplier/item references and monetary limits are sample-local policy, not reusable library contracts.
 
 ## Consumed and published integration contracts
 

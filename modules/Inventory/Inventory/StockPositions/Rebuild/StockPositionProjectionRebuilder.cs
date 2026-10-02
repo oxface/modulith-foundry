@@ -1,17 +1,21 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Inventory.Messaging;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
 using ModulithFoundry.Modules.Inventory.StockPositions.Persistence;
 
 namespace ModulithFoundry.Modules.Inventory.StockPositions.Rebuild;
 
-internal sealed class StockPositionProjectionRebuilder(
+internal sealed partial class StockPositionProjectionRebuilder(
     InventoryDbContext context,
     StockPositionEventReader reader,
     StockPositionWriteGate writeGate,
     InventoryRequestAuthorization authorization,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    InventoryMessagingMetrics metrics,
+    ILogger<StockPositionProjectionRebuilder> logger
 ) : IStockPositionProjectionRebuilder
 {
     public async Task<StockPositionRebuildResult> RebuildAsync(
@@ -20,6 +24,27 @@ internal sealed class StockPositionProjectionRebuilder(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+        try
+        {
+            return await RebuildCoreAsync(command, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            metrics.RebuildFailed();
+            RebuildFailed(logger, command.StockPositionId.Value, exception.GetType().Name);
+            throw;
+        }
+    }
+
+    private async Task<StockPositionRebuildResult> RebuildCoreAsync(
+        RebuildStockPositionProjectionCommand command,
+        CancellationToken cancellationToken
+    )
+    {
         if (!authorization.MatchesContext(command.ActorUserId, command.OrganizationId))
         {
             return new StockPositionRebuildResult.PermissionDenied();
@@ -142,4 +167,11 @@ internal sealed class StockPositionProjectionRebuilder(
             matched
         );
     }
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Warning,
+        Message = "Inventory Stock Position {StreamId} rebuild failed ({ErrorType}); no successful repair is implied."
+    )]
+    private static partial void RebuildFailed(ILogger logger, Guid streamId, string errorType);
 }

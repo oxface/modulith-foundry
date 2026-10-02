@@ -17,7 +17,7 @@ internal sealed class PurchasingAuditEntry : IOrganizationOwned
     internal Guid SubjectId { get; private set; }
     internal string Outcome { get; private set; }
     internal string? ReasonCode { get; private set; }
-    internal string SystemActor { get; private set; } = "sales.order-fulfilment";
+    internal string? SystemActor { get; private set; } = "sales.order-fulfilment";
     internal Guid? ActorUserId { get; private set; }
     internal string SubjectType { get; private set; } = PurchasingAuditSubjects.Request;
     internal string SourceModule { get; private set; } = "purchasing";
@@ -47,4 +47,30 @@ internal sealed class PurchasingAuditEntry : IOrganizationOwned
             OccurredAt = now,
             SubjectType = subjectType,
         };
+
+    internal static PurchasingAuditEntry RecordHuman(
+        Guid organizationId,
+        Guid userId,
+        string action,
+        Guid subjectId,
+        object details,
+        DateTimeOffset now,
+        string outcome = PurchasingAuditOutcomes.Succeeded,
+        string? reasonCode = null
+    )
+    {
+        var entry = Record(
+            organizationId,
+            action,
+            subjectId,
+            outcome,
+            reasonCode,
+            details,
+            now,
+            PurchasingAuditSubjects.PurchaseOrder
+        );
+        entry.ActorUserId = userId;
+        entry.SystemActor = null;
+        return entry;
+    }
 }

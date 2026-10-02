@@ -117,6 +117,8 @@ internal sealed class MessagingTelemetryProbe : ILoggerProvider
                 || category.EndsWith(".PendingFulfilmentDispatcher", StringComparison.Ordinal)
                 || category.EndsWith(".StockItemBootstrapWorker", StringComparison.Ordinal)
                 || category.EndsWith(".StockItemProjectionMonitor", StringComparison.Ordinal)
+                || category.EndsWith(".StockPositionProjectionRebuilder", StringComparison.Ordinal)
+                || category.EndsWith(".StockItemProjectionReconciliation", StringComparison.Ordinal)
             );
 
         public void Log<TState>(

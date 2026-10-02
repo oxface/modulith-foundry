@@ -10,6 +10,8 @@ internal sealed class PurchasingMessagingMetrics
     private ProjectionObservation? projection;
     private readonly Counter<long> projectionObservationFailures;
     private readonly Counter<long> bootstrapFailures;
+    private readonly Counter<long> projectionProcessingFailures;
+    private readonly Counter<long> reconciliationFailures;
     private readonly Counter<long> observationFailures;
     private readonly Counter<long> dispatchFailures;
     private readonly Counter<long> relayFailures;
@@ -18,6 +20,16 @@ internal sealed class PurchasingMessagingMetrics
     public PurchasingMessagingMetrics(IMeterFactory meters)
     {
         var meter = meters.Create(PurchasingMessaging.MeterName);
+        projectionProcessingFailures = meter.CreateCounter<long>(
+            "modulith_foundry.purchasing.stock_item_projection.processing_failures",
+            "{failure}",
+            "Failed typed reference-adapter attempts, excluding requested shutdown; broker retries can count again."
+        );
+        reconciliationFailures = meter.CreateCounter<long>(
+            "modulith_foundry.purchasing.stock_item_projection.reconciliation_failures",
+            "{failure}",
+            "Failed explicit comparison or repair attempts, excluding requested cancellation."
+        );
         bootstrapFailures = meter.CreateCounter<long>(
             "modulith_foundry.purchasing.stock_item_projection.bootstrap_failures",
             "{failure}",
@@ -98,6 +110,10 @@ internal sealed class PurchasingMessagingMetrics
     internal void ProjectionObservationFailed() => projectionObservationFailures.Add(1);
 
     internal void BootstrapFailed() => bootstrapFailures.Add(1);
+
+    internal void ProjectionProcessingFailed() => projectionProcessingFailures.Add(1);
+
+    internal void ReconciliationFailed() => reconciliationFailures.Add(1);
 
     private IEnumerable<Measurement<long>> ProjectionReady()
     {

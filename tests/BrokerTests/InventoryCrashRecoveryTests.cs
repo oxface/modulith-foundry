@@ -69,11 +69,10 @@ public sealed class InventoryCrashRecoveryTests
     }
 
     [Fact]
-    public async Task PublishOutcome_AbruptExitBeforeDispatchMark_RepeatsStableIdentityAfterLeaseExpiry()
+    public async Task PublishOutcome_ReplicaDiesBeforeDispatchMark_SurvivorRepeatsStableIdentityAfterLeaseExpiry()
     {
         await using var fixture = await ReservationFixture.StartAsync(startReceiver: false);
         ReserveStockV1 command = fixture.Command(4m);
-        StockReservationOutcomeV1 first;
         await using (
             ReceiverDatabaseBarrier barrier = await ReceiverDatabaseBarrier.CreateAsync(
                 fixture,
@@ -83,18 +82,20 @@ public sealed class InventoryCrashRecoveryTests
         {
             await using ReceiverProcess child = await ReceiverProcess.StartAsync(fixture);
             await fixture.SendAsync(command);
-            first = await fixture.ReadOutcomeAsync();
+            StockReservationOutcomeV1 first = await fixture.ReadOutcomeAsync();
             await barrier.WaitAsync(child);
+            // Compete while the original publisher still owns its production lease.
+            await using ReceiverProcess survivor = await ReceiverProcess.StartAsync(fixture);
+            Assert.Equal(4m, (await fixture.StockAsync()).ReservedQuantity);
             await child.KillAsync();
             await barrier.WaitForDisconnectAsync(child);
+            await barrier.ReleaseAsync();
+            // No lease rewrites or accelerated clock: the already-running survivor waits for expiry.
+            StockReservationOutcomeV1 repeated = await fixture.ReadOutcomeAsync();
+            Assert.Equal(first, repeated);
+            Assert.Equal(command.OperationId, repeated.OperationId);
+            Assert.Equal(4m, (await fixture.StockAsync()).ReservedQuantity);
+            Assert.Equal(3, (await fixture.StockAsync()).Version);
         }
-
-        await using ReceiverProcess restarted = await ReceiverProcess.StartAsync(fixture);
-        // No lease rewrites or accelerated clock: wait for the production 30-second lease.
-        StockReservationOutcomeV1 repeated = await fixture.ReadOutcomeAsync();
-        Assert.Equal(first, repeated);
-        Assert.Equal(command.OperationId, repeated.OperationId);
-        Assert.Equal(4m, (await fixture.StockAsync()).ReservedQuantity);
-        Assert.Equal(3, (await fixture.StockAsync()).Version);
     }
 }

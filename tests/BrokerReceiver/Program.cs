@@ -16,10 +16,20 @@ bool pauseAfterCommit = configuration["ReceiverTest:PauseAfterCommit"] == "true"
 bool purchasing = configuration["ReceiverTest:Module"] == "purchasing";
 bool sales = configuration["ReceiverTest:Module"] == "sales";
 bool pauseSnapshot = configuration["ReceiverTest:PauseSnapshot"] == "true";
+bool pauseReceiptRead = configuration["ReceiverTest:PauseReceiptRead"] == "true";
+using var receiptCheckpoint = new ReceiptReadCheckpoint();
+using var shutdownCheckpoint = new CancellationTokenSource();
 IHostBuilder builder = Host.CreateDefaultBuilder(args)
     .ConfigureLogging(logging =>
     {
         logging.ClearProviders();
+        if (pauseReceiptRead)
+            logging
+                .AddProvider(receiptCheckpoint)
+                .AddFilter<ReceiptReadCheckpoint>(
+                    "Microsoft.EntityFrameworkCore.Database.Command",
+                    LogLevel.Information
+                );
         if (pauseSnapshot)
             logging
                 .AddProvider(new SnapshotCheckpoint())
@@ -52,7 +62,7 @@ IHostBuilder builder = Host.CreateDefaultBuilder(args)
 Action<OptionsConfigurer> checkpoints = options =>
     options.Decorate<IPipeline>(context =>
         new PipelineStepInjector(context.Get<IPipeline>()).OnReceive(
-            new SettlementCheckpoint(pauseAfterCommit),
+            new SettlementCheckpoint(pauseAfterCommit, shutdownCheckpoint.Token),
             PipelineRelativePosition.Before,
             typeof(DispatchIncomingMessageStep)
         )
@@ -64,7 +74,26 @@ else if (sales)
 else
     builder.AddInventoryMessaging(configuration, checkpoints);
 using IHost host = builder.Build();
+using var shutdownRegistration = host
+    .Services.GetRequiredService<IHostApplicationLifetime>()
+    .ApplicationStopping.Register(shutdownCheckpoint.Cancel);
 
 await host.StartAsync();
 Console.WriteLine("ready");
+
+// A private test control channel requests the real Generic Host shutdown; no production hook.
+_ = Task.Run(async () =>
+{
+    while (await Console.In.ReadLineAsync() is { } command)
+    {
+        if (command == "release")
+            receiptCheckpoint.Release();
+        if (command == "stop")
+        {
+            receiptCheckpoint.Release();
+            host.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+            return;
+        }
+    }
+});
 await host.WaitForShutdownAsync();

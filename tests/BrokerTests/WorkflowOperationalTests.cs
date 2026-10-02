@@ -5,6 +5,62 @@ namespace ModulithFoundry.BrokerTests;
 public sealed class WorkflowOperationalTests
 {
     [Fact]
+    public async Task Fulfilment_DatabaseUnavailable_RetainsIntentAndRecoversWithoutHostRestart()
+    {
+        using var telemetry = new MessagingTelemetryProbe();
+        await using var fixture = await SalesFulfilmentFixture.StartAsync(
+            createMain: false,
+            scenarioTimeout: TimeSpan.FromMinutes(3)
+        );
+        telemetry.Observe(fixture.MeterFactory);
+        var order = await fixture.ApproveAsync(2m);
+        var pending = await fixture.ReadAsync(order.OrderNumber);
+        await telemetry.WaitGaugeAsync(
+            "modulith_foundry.sales.fulfilment.unsettled",
+            value => value == 1,
+            fixture.CancellationToken
+        );
+        await fixture.StopDatabaseAsync();
+        try
+        {
+            await telemetry.WaitCounterAsync(
+                "modulith_foundry.sales.outbox.observation_failures",
+                1,
+                fixture.CancellationToken
+            );
+            await telemetry.WaitGaugeAsync(
+                "modulith_foundry.sales.fulfilment.sample_age",
+                value => value >= 7,
+                fixture.CancellationToken
+            );
+            await telemetry.WaitGaugeAsync(
+                "modulith_foundry.sales.fulfilment.unsettled",
+                value => value == 1,
+                fixture.CancellationToken
+            );
+        }
+        finally
+        {
+            await fixture.StartDatabaseAsync();
+        }
+        await fixture.AddMainAsync();
+        var completed = await fixture.WaitAsync(order.OrderNumber, "reserved");
+        Assert.Equal(pending.ProcessId, completed.ProcessId);
+        Assert.Equal(2m, (await fixture.StockAsync()).ReservedQuantity);
+        Assert.Equal(3, (await fixture.StockAsync()).Version);
+        Assert.Single(
+            await fixture.ActivityAsync(order.OrderNumber),
+            entry => entry.Kind == SalesOrderActivityKind.StockReserved
+        );
+        await telemetry.WaitGaugeAsync(
+            "modulith_foundry.sales.fulfilment.sample_age",
+            value => value < 1,
+            fixture.CancellationToken
+        );
+        Assert.Empty(telemetry.Tags);
+    }
+
+    [Fact]
     public async Task Fulfilment_ShutdownBeforeDispatch_RestartPreservesIntentWithoutFailureSignal()
     {
         using var telemetry = new MessagingTelemetryProbe();

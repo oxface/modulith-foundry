@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Purchasing.Audit;
 using ModulithFoundry.Modules.Purchasing.Messaging.Persistence;
+using ModulithFoundry.Modules.Purchasing.PurchaseOrders.Persistence;
 using ModulithFoundry.Modules.Purchasing.Replenishment;
 using ModulithFoundry.Modules.Purchasing.Replenishment.Requests;
 using ModulithFoundry.Modules.Purchasing.StockItemProjection.Persistence;
@@ -35,6 +36,15 @@ internal sealed class PurchasingDbContext(
     internal DbSet<PurchasingOutboxMessage> OutboxMessages => Set<PurchasingOutboxMessage>();
 
     internal DbSet<PurchasingAuditEntry> AuditEntries => Set<PurchasingAuditEntry>();
+
+    internal DbSet<EventStream> EventStreams => Set<EventStream>();
+
+    internal DbSet<StoredEvent> Events => Set<StoredEvent>();
+
+    internal DbSet<PurchaseOrderWriteModel> PurchaseOrderWriteModels =>
+        Set<PurchaseOrderWriteModel>();
+
+    internal DbSet<PurchaseOrderSummary> PurchaseOrderSummaries => Set<PurchaseOrderSummary>();
 
     private Guid? workflowOrganizationId;
 

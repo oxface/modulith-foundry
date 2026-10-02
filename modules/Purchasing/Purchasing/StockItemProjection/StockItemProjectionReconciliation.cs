@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Purchasing.Contracts;
+using ModulithFoundry.Modules.Purchasing.Messaging;
 using ModulithFoundry.Modules.Purchasing.Persistence;
 using ModulithFoundry.Modules.Purchasing.StockItemProjection.Persistence;
 
@@ -11,16 +12,38 @@ internal sealed partial class StockItemProjectionReconciliation(
     PurchasingDbContext context,
     IStockItemSnapshotExporter exporter,
     StockItemSubscriptionBarrier subscription,
+    PurchasingMessagingMetrics metrics,
     ILogger<StockItemProjectionReconciliation> logger
 ) : IStockItemProjectionReconciliation
 {
     public Task<StockItemProjectionComparison> InspectAsync(
         CancellationToken cancellationToken = default
-    ) => CompareAsync(repair: false, cancellationToken);
+    ) => ObserveComparisonAsync(repair: false, cancellationToken);
 
     public Task<StockItemProjectionComparison> RepairAsync(
         CancellationToken cancellationToken = default
-    ) => CompareAsync(repair: true, cancellationToken);
+    ) => ObserveComparisonAsync(repair: true, cancellationToken);
+
+    private async Task<StockItemProjectionComparison> ObserveComparisonAsync(
+        bool repair,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await CompareAsync(repair, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            metrics.ReconciliationFailed();
+            PurchasingMessagingLogs.ReconciliationFailed(logger, exception.GetType().Name);
+            throw;
+        }
+    }
 
     private async Task<StockItemProjectionComparison> CompareAsync(
         bool repair,
