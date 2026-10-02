@@ -7,5 +7,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Rebus" />
     <ProjectReference Include="../../modules/Inventory/Inventory/Inventory.csproj" />
+    <ProjectReference Include="../../modules/Purchasing/Purchasing/Purchasing.csproj" />
   </ItemGroup>
 </Project>

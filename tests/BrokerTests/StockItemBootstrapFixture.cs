@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +12,7 @@ using ModulithFoundry.Modules.Purchasing.Contracts;
 using Npgsql;
 using Rebus.Bus;
 using Rebus.Config;
+using Rebus.Handlers;
 using Rebus.Messages;
 using Rebus.Pipeline;
 using Rebus.Pipeline.Receive;
@@ -34,6 +36,11 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
     private readonly SnapshotReadBarrier snapshotBarrier = new();
     private readonly DeliveryProbe deliveries = new();
     private IHost? sender;
+    private IHost? errorObserver;
+    private readonly Channel<StockItemReferenceChangedV1> errors =
+        Channel.CreateUnbounded<StockItemReferenceChangedV1>();
+    internal string DatabaseConnectionString => postgres.GetConnectionString();
+    internal string BrokerConnectionString => rabbit.GetConnectionString();
     internal OrganizationAccessContext Actor { get; } =
         new(
             new UserId(Guid.CreateVersion7()),
@@ -48,7 +55,7 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
     internal static async Task<StockItemBootstrapFixture> StartAsync()
     {
         var fixture = new StockItemBootstrapFixture();
-        fixture.timeout.CancelAfter(TimeSpan.FromSeconds(90));
+        fixture.timeout.CancelAfter(TimeSpan.FromSeconds(150));
         try
         {
             await fixture.postgres.StartAsync(fixture.CancellationToken);
@@ -145,6 +152,63 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
         started = false;
         await StartEndpointsAsync();
     }
+
+    internal async Task StartProducerOnlyAsync()
+    {
+        if (started)
+            await host.StopAsync(CancellationToken);
+        host.Dispose();
+        host = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(dataSource);
+                services.AddSingleton<IOrganizationContextAccessor>(new TestActor(Actor));
+                services.AddSingleton<IOrganizationAuthorization, AllowedAuthorization>();
+                services.AddInventoryModule();
+                services.AddPurchasingModule();
+            })
+            .AddInventoryMessaging(Configuration())
+            .Build();
+        await host.StartAsync(CancellationToken);
+        started = true;
+    }
+
+    internal async Task StartErrorObserverAsync()
+    {
+        errorObserver = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning))
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(errors);
+                services.AddRebusHandler<ReferenceErrorObserver>();
+                services.AddRebus(configure =>
+                    configure
+                        .Transport(transport =>
+                            transport.UseRabbitMq(
+                                BrokerConnectionString,
+                                PurchasingMessaging.ErrorQueue
+                            )
+                        )
+                        .Serialization(serializer =>
+                        {
+                            serializer.UseSystemTextJson(
+                                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                            );
+                            serializer
+                                .UseCustomMessageTypeNames()
+                                .AddWithCustomName<StockItemReferenceChangedV1>(
+                                    StockItemReferenceChangedV1.LogicalName
+                                );
+                        })
+                );
+            })
+            .Build();
+        await errorObserver.StartAsync(CancellationToken);
+    }
+
+    internal ValueTask<StockItemReferenceChangedV1> ReadErrorAsync() =>
+        errors.Reader.ReadAsync(CancellationToken);
 
     internal async Task SendAsync(StockItemReferenceChangedV1 message)
     {
@@ -312,6 +376,16 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
             .ExportAsync(CancellationToken);
     }
 
+    internal async Task<StockItemProjectionComparison> CompareAsync(bool repair = false)
+    {
+        await using AsyncServiceScope scope = host.Services.CreateAsyncScope();
+        var reconciliation =
+            scope.ServiceProvider.GetRequiredService<IStockItemProjectionReconciliation>();
+        return repair
+            ? await reconciliation.RepairAsync(CancellationToken)
+            : await reconciliation.InspectAsync(CancellationToken);
+    }
+
     internal async Task InterleaveCreatesInReusedScopeAsync()
     {
         await using AsyncServiceScope scope = host.Services.CreateAsyncScope();
@@ -393,6 +467,11 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
             await sender.StopAsync(CancellationToken.None);
             sender.Dispose();
         }
+        if (errorObserver is not null)
+        {
+            await errorObserver.StopAsync(CancellationToken.None);
+            errorObserver.Dispose();
+        }
         if (dataSource is not null)
             await dataSource.DisposeAsync();
         await rabbit.DisposeAsync();
@@ -415,6 +494,13 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
             CancellationToken cancellationToken = default
         ) => Task.FromResult(true);
     }
+}
+
+internal sealed class ReferenceErrorObserver(Channel<StockItemReferenceChangedV1> errors)
+    : IHandleMessages<StockItemReferenceChangedV1>
+{
+    public Task Handle(StockItemReferenceChangedV1 message) =>
+        errors.Writer.WriteAsync(message).AsTask();
 }
 
 // A test-only command-completion barrier. It pauses a real repeatable-read export after

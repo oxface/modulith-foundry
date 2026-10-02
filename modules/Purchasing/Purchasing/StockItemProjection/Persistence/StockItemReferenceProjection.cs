@@ -57,4 +57,21 @@ internal sealed class StockItemReferenceProjection : IOrganizationOwned
         IsActive = state.IsActive;
         SourceRevision = state.Revision;
     }
+
+    internal bool Matches(StockItemReferenceStateV1 state) =>
+        SourceRevision == state.Revision
+        && Sku == state.Sku
+        && Description == state.Description
+        && BaseUnitCode == state.BaseUnitCode
+        && IsActive == state.IsActive;
+
+    // An explicit authoritative snapshot repair, never the normal message evolution path.
+    internal void Restore(StockItemReferenceStateV1 state)
+    {
+        Sku = state.Sku;
+        Description = state.Description;
+        BaseUnitCode = state.BaseUnitCode;
+        IsActive = state.IsActive;
+        SourceRevision = state.Revision;
+    }
 }

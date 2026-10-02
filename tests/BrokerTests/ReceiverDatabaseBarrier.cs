@@ -8,34 +8,67 @@ internal sealed class ReceiverDatabaseBarrier : IAsyncDisposable
     private const long LockKey = 512345678;
     private readonly NpgsqlConnection connection;
     private readonly CancellationToken cancellationToken;
+    private readonly string schema;
+    private readonly string table;
 
     private ReceiverDatabaseBarrier(
         NpgsqlConnection connection,
+        string schema,
+        string table,
         CancellationToken cancellationToken
     )
     {
         this.connection = connection;
+        this.schema = schema;
+        this.table = table;
         this.cancellationToken = cancellationToken;
     }
 
     internal static async Task<ReceiverDatabaseBarrier> CreateAsync(
         ReservationFixture fixture,
         bool dispatchMark
+    ) =>
+        await CreateAsync(
+            fixture.DatabaseConnectionString,
+            "inventory",
+            dispatchMark ? "outbox_messages" : "inbox_receipts",
+            dispatchMark ? "UPDATE" : "INSERT",
+            dispatchMark ? "IF NEW.dispatched_at IS NOT NULL THEN" : "",
+            fixture.CancellationToken
+        );
+
+    internal static Task<ReceiverDatabaseBarrier> CreatePurchasingAsync(
+        StockItemBootstrapFixture fixture,
+        bool installation
+    ) =>
+        CreateAsync(
+            fixture.DatabaseConnectionString,
+            "purchasing",
+            installation ? "stock_item_bootstrap" : "stock_item_reference_inbox",
+            installation ? "UPDATE" : "INSERT",
+            "",
+            fixture.CancellationToken
+        );
+
+    private static async Task<ReceiverDatabaseBarrier> CreateAsync(
+        string databaseConnection,
+        string schema,
+        string table,
+        string operation,
+        string guard,
+        CancellationToken cancellationToken
     )
     {
-        var connection = new NpgsqlConnection(fixture.DatabaseConnectionString);
-        await connection.OpenAsync(fixture.CancellationToken);
-        var barrier = new ReceiverDatabaseBarrier(connection, fixture.CancellationToken);
+        var connection = new NpgsqlConnection(databaseConnection);
+        await connection.OpenAsync(cancellationToken);
+        var barrier = new ReceiverDatabaseBarrier(connection, schema, table, cancellationToken);
         try
         {
-            string guard = dispatchMark ? "IF NEW.dispatched_at IS NOT NULL THEN" : "";
-            string endGuard = dispatchMark ? "END IF;" : "";
-            string table = dispatchMark ? "outbox_messages" : "inbox_receipts";
-            string operation = dispatchMark ? "UPDATE" : "INSERT";
+            string endGuard = guard.Length > 0 ? "END IF;" : "";
             await using var command = new NpgsqlCommand(
                 $"""
                 SELECT pg_advisory_lock({LockKey});
-                CREATE FUNCTION inventory.receiver_test_barrier() RETURNS trigger LANGUAGE plpgsql AS $$
+                CREATE FUNCTION {schema}.receiver_test_barrier() RETURNS trigger LANGUAGE plpgsql AS $$
                 BEGIN
                     {guard}
                     PERFORM pg_advisory_xact_lock({LockKey});
@@ -43,12 +76,12 @@ internal sealed class ReceiverDatabaseBarrier : IAsyncDisposable
                     RETURN NEW;
                 END;
                 $$;
-                CREATE TRIGGER receiver_test_barrier BEFORE {operation} ON inventory.{table}
-                FOR EACH ROW EXECUTE FUNCTION inventory.receiver_test_barrier();
+                CREATE TRIGGER receiver_test_barrier BEFORE {operation} ON {schema}.{table}
+                FOR EACH ROW EXECUTE FUNCTION {schema}.receiver_test_barrier();
                 """,
                 connection
             );
-            await command.ExecuteNonQueryAsync(fixture.CancellationToken);
+            await command.ExecuteNonQueryAsync(cancellationToken);
             return barrier;
         }
         catch
@@ -92,11 +125,10 @@ internal sealed class ReceiverDatabaseBarrier : IAsyncDisposable
             // The test kills its blocked child before disposal. Cleanup has an independent bound.
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await using var command = new NpgsqlCommand(
-                """
+                $"""
                 SELECT pg_advisory_unlock_all();
-                DROP TRIGGER IF EXISTS receiver_test_barrier ON inventory.inbox_receipts;
-                DROP TRIGGER IF EXISTS receiver_test_barrier ON inventory.outbox_messages;
-                DROP FUNCTION IF EXISTS inventory.receiver_test_barrier();
+                DROP TRIGGER IF EXISTS receiver_test_barrier ON {schema}.{table};
+                DROP FUNCTION IF EXISTS {schema}.receiver_test_barrier();
                 """,
                 connection
             );

@@ -11,6 +11,7 @@ internal sealed class ReceiverProcess : IAsyncDisposable
     private readonly Channel<string> signals = Channel.CreateUnbounded<string>();
     private readonly Task output;
     private readonly Task<string> errors;
+    private readonly HashSet<string> pendingSignals = [];
 
     private ReceiverProcess(Process process, string applicationName)
     {
@@ -25,10 +26,41 @@ internal sealed class ReceiverProcess : IAsyncDisposable
     internal static async Task<ReceiverProcess> StartAsync(
         ReservationFixture fixture,
         bool pauseAfterCommit = false
+    ) =>
+        await StartAsync(
+            fixture.DatabaseConnectionString,
+            fixture.BrokerConnectionString,
+            "inventory",
+            pauseAfterCommit,
+            false,
+            fixture.CancellationToken
+        );
+
+    internal static Task<ReceiverProcess> StartPurchasingAsync(
+        StockItemBootstrapFixture fixture,
+        bool pauseAfterCommit = false,
+        bool pauseSnapshot = false
+    ) =>
+        StartAsync(
+            fixture.DatabaseConnectionString,
+            fixture.BrokerConnectionString,
+            "purchasing",
+            pauseAfterCommit,
+            pauseSnapshot,
+            fixture.CancellationToken
+        );
+
+    private static async Task<ReceiverProcess> StartAsync(
+        string databaseConnection,
+        string brokerConnection,
+        string module,
+        bool pauseAfterCommit,
+        bool pauseSnapshot,
+        CancellationToken cancellationToken
     )
     {
         string applicationName = $"receiver-test-{Guid.NewGuid():N}";
-        var database = new NpgsqlConnectionStringBuilder(fixture.DatabaseConnectionString)
+        var database = new NpgsqlConnectionStringBuilder(databaseConnection)
         {
             ApplicationName = applicationName,
             // Do not release a test SQL barrier before PostgreSQL detects the dead client.
@@ -52,7 +84,9 @@ internal sealed class ReceiverProcess : IAsyncDisposable
         );
         // Credentials travel through the private child environment, never CLI arguments or signals.
         start.Environment["ConnectionStrings__database"] = database.ConnectionString;
-        start.Environment["ConnectionStrings__rabbitmq"] = fixture.BrokerConnectionString;
+        start.Environment["ConnectionStrings__rabbitmq"] = brokerConnection;
+        start.Environment["ReceiverTest__Module"] = module;
+        start.Environment["ReceiverTest__PauseSnapshot"] = pauseSnapshot ? "true" : "false";
         start.Environment["ReceiverTest__PauseAfterCommit"] = pauseAfterCommit ? "true" : "false";
         var child = new ReceiverProcess(
             Process.Start(start)
@@ -61,7 +95,7 @@ internal sealed class ReceiverProcess : IAsyncDisposable
         );
         try
         {
-            await child.WaitForSignalAsync("ready", fixture.CancellationToken);
+            await child.WaitForSignalAsync("ready", cancellationToken);
             return child;
         }
         catch
@@ -73,9 +107,17 @@ internal sealed class ReceiverProcess : IAsyncDisposable
 
     internal async Task WaitForSignalAsync(string signal, CancellationToken cancellationToken)
     {
+        if (pendingSignals.Remove(signal))
+            return;
         try
         {
-            while (await signals.Reader.ReadAsync(cancellationToken) != signal) { }
+            while (true)
+            {
+                string received = await signals.Reader.ReadAsync(cancellationToken);
+                if (received == signal)
+                    return;
+                pendingSignals.Add(received);
+            }
         }
         catch (ChannelClosedException exception)
         {

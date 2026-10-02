@@ -17,6 +17,7 @@ public static class PurchasingModule
         services.AddSingleton(PurchasingAuthorizationManifest.Instance);
         services.AddScoped<IStockItemProjectionBootstrapper, StockItemProjectionBootstrapper>();
         services.AddScoped<IStockItemProjectionQueries, StockItemProjectionQueries>();
+        services.AddScoped<IStockItemProjectionReconciliation, StockItemProjectionReconciliation>();
         services.TryAddSingleton<StockItemSubscriptionBarrier>();
 
         return services;
