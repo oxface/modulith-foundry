@@ -34,6 +34,7 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
         CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
     private NpgsqlDataSource dataSource = null!;
     private IHost host = null!;
+    private ILoggerProvider? logs;
     private readonly SnapshotReadBarrier snapshotBarrier = new();
     private readonly DeliveryProbe deliveries = new();
     private IHost? sender;
@@ -59,9 +60,10 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
     internal CancellationToken CancellationToken => timeout.Token;
     internal IMeterFactory MeterFactory => host.Services.GetRequiredService<IMeterFactory>();
 
-    internal static async Task<StockItemBootstrapFixture> StartAsync()
+    internal static async Task<StockItemBootstrapFixture> StartAsync(ILoggerProvider? logs = null)
     {
         var fixture = new StockItemBootstrapFixture();
+        fixture.logs = logs;
         fixture.timeout.CancelAfter(TimeSpan.FromSeconds(150));
         try
         {
@@ -85,14 +87,17 @@ internal sealed class StockItemBootstrapFixture : IAsyncDisposable
     private IHost BuildHost() =>
         Host.CreateDefaultBuilder()
             .ConfigureLogging(logging =>
+            {
                 logging
                     .SetMinimumLevel(LogLevel.Warning)
                     .AddProvider(snapshotBarrier)
                     .AddFilter<SnapshotReadBarrier>(
                         "Microsoft.EntityFrameworkCore.Database.Command",
                         LogLevel.Information
-                    )
-            )
+                    );
+                if (logs is not null)
+                    logging.AddProvider(logs);
+            })
             .ConfigureServices(services =>
             {
                 services.AddSingleton(dataSource);

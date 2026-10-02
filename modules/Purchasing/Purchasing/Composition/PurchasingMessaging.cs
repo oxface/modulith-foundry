@@ -112,6 +112,7 @@ public static class PurchasingMessaging
                 (_, services) =>
                     services
                         .AddHostedService<StockItemBootstrapWorker>()
+                        .AddHostedService<StockItemProjectionMonitor>()
                         .AddHostedService<PendingReplenishmentDispatcher>()
             );
     }

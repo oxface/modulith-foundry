@@ -7,6 +7,9 @@ namespace ModulithFoundry.Modules.Purchasing.Messaging;
 internal sealed class PurchasingMessagingMetrics
 {
     private Observation? observation;
+    private ProjectionObservation? projection;
+    private readonly Counter<long> projectionObservationFailures;
+    private readonly Counter<long> bootstrapFailures;
     private readonly Counter<long> observationFailures;
     private readonly Counter<long> dispatchFailures;
     private readonly Counter<long> relayFailures;
@@ -15,6 +18,28 @@ internal sealed class PurchasingMessagingMetrics
     public PurchasingMessagingMetrics(IMeterFactory meters)
     {
         var meter = meters.Create(PurchasingMessaging.MeterName);
+        bootstrapFailures = meter.CreateCounter<long>(
+            "modulith_foundry.purchasing.stock_item_projection.bootstrap_failures",
+            "{failure}",
+            "Failed hosted bootstrap attempts, excluding requested shutdown; retries can count again."
+        );
+        projectionObservationFailures = meter.CreateCounter<long>(
+            "modulith_foundry.purchasing.stock_item_projection.observation_failures",
+            "{failure}",
+            "Failed bootstrap-state observations, excluding requested shutdown; not projection processing failures."
+        );
+        meter.CreateObservableGauge<long>(
+            "modulith_foundry.purchasing.stock_item_projection.ready",
+            ProjectionReady,
+            "{state}",
+            "Bootstrap readiness at the last successful observation; not tail freshness or reconciliation correctness."
+        );
+        meter.CreateObservableGauge<double>(
+            "modulith_foundry.purchasing.stock_item_projection.sample_age",
+            ProjectionSampleAge,
+            "s",
+            "Elapsed time since the last successful bootstrap-state observation."
+        );
         inboxDuplicates = meter.CreateCounter<long>(
             "modulith_foundry.purchasing.inbox.duplicates",
             "{delivery}",
@@ -66,6 +91,29 @@ internal sealed class PurchasingMessagingMetrics
             ref observation,
             new(pending, oldestAge, expiredLeases, Stopwatch.GetTimestamp())
         );
+
+    internal void ObserveProjection(bool ready) =>
+        Volatile.Write(ref projection, new(ready, Stopwatch.GetTimestamp()));
+
+    internal void ProjectionObservationFailed() => projectionObservationFailures.Add(1);
+
+    internal void BootstrapFailed() => bootstrapFailures.Add(1);
+
+    private IEnumerable<Measurement<long>> ProjectionReady()
+    {
+        var current = Volatile.Read(ref projection);
+        return current is null ? [] : [new(current.Ready ? 1 : 0)];
+    }
+
+    private IEnumerable<Measurement<double>> ProjectionSampleAge()
+    {
+        var current = Volatile.Read(ref projection);
+        return current is null
+            ? []
+            : [new(Stopwatch.GetElapsedTime(current.Timestamp).TotalSeconds)];
+    }
+
+    private sealed record ProjectionObservation(bool Ready, long Timestamp);
 
     private IEnumerable<Measurement<long>> ExpiredLeases()
     {

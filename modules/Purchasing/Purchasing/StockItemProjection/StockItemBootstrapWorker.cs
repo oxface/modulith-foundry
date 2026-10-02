@@ -2,11 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Purchasing.Contracts;
+using ModulithFoundry.Modules.Purchasing.Messaging;
 
 namespace ModulithFoundry.Modules.Purchasing.StockItemProjection;
 
 internal sealed partial class StockItemBootstrapWorker(
     IServiceScopeFactory scopes,
+    PurchasingMessagingMetrics metrics,
     ILogger<StockItemBootstrapWorker> logger
 ) : BackgroundService
 {
@@ -28,7 +30,8 @@ internal sealed partial class StockItemBootstrapWorker(
             }
             catch (Exception exception)
             {
-                BootstrapFailed(logger, exception);
+                BootstrapFailed(logger, exception.GetType().Name);
+                metrics.BootstrapFailed();
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -44,7 +47,7 @@ internal sealed partial class StockItemBootstrapWorker(
     [LoggerMessage(
         EventId = 1,
         Level = LogLevel.Error,
-        Message = "Purchasing Stock Item bootstrap failed; retrying in a fresh scope."
+        Message = "Purchasing Stock Item bootstrap failed ({ErrorType}); retrying in a fresh scope."
     )]
-    private static partial void BootstrapFailed(ILogger logger, Exception exception);
+    private static partial void BootstrapFailed(ILogger logger, string errorType);
 }

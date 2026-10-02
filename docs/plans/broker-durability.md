@@ -33,6 +33,8 @@ All four cases run in the existing Broker CI lane, without personal credentials 
 
 ## Remaining 5.6 work
 
+[5.6bc2 Purchasing bootstrap observations](workflow-operations.md#56bc2--purchasing-bootstrap-observations) prove initial readiness transition, independent stale-source observation recovery and hosted bootstrap retry after a rejected commit. They preserve the existing snapshot protocol and distinguish monitoring failures from bootstrap failures. Ready does not establish live-tail catch-up, reconciliation correctness or broker health; complete API replica and outage proofs remain separate.
+
 [5.6bc1 workflow operations](workflow-operations.md) pairs Sales process diagnostics with per-process commit-fault isolation, source-unavailable observation independence, controlled RabbitMQ stop/start recovery without application-host restart, and orderly pending-work stop/restart. The broker test allows the pinned transport's one-minute consumer-reinitialization delay rather than shortening production timing. This does not prove two full APIs, in-flight shutdown or abrupt infrastructure crash/partition behavior.
 
 5.6b2a adds [module-owned messaging operational signals](messaging-observability.md): sampled committed outbox depth/age/expired leases with freshness, observation/relay/dispatch failure counters and matching inbox-receipt suppression counters. Its export follow-up proves all three module meter/backlog names reach the API's configured OTLP receiver during two fresh application lifecycles. Native numeric behavior remains a separate proof; production telemetry retention, process/projection, broker error-queue and full failure-matrix evidence remain open. Diagnostics do not automatically replay work or infer subscriber completion.

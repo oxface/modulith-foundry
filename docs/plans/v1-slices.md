@@ -376,6 +376,8 @@ The **5.6b2a export follow-up** extends the existing two-lifecycle Topology proo
 
 **5.6bc1 — Workflow observations and fault isolation** pairs [Sales process diagnostics](workflow-operations.md) with damaged-process isolation, independent stale-source handling, real broker stop/start recovery and orderly pending-work shutdown. It is the first self-contained checkpoint of the combined remaining 5.6b/c workstream, not closure of either increment; projection/broker operations and full-application/in-flight failure windows remain explicit.
 
+**5.6bc2 — Purchasing bootstrap observations** adds [independent readiness/freshness and bootstrap-failure signals](workflow-operations.md#56bc2--purchasing-bootstrap-observations), with real snapshot pause, unavailable-checkpoint recovery and failed bootstrap-commit retry proofs. Readiness is explicitly not live-tail freshness or reconciliation correctness. This remains a partial checkpoint; ongoing projection/rebuild failures, broker operations and full-application failure windows stay open.
+
 ## Slice 6 — Minimal frontend journey
 
 ### Increment 6.1 — Vite/BFF shell and Organization navigation

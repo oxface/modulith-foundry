@@ -39,6 +39,33 @@ The pending dispatcher already isolates each process in a fresh scope and contin
 
 Independent observation/freshness and safe per-item diagnostics remain technical extraction candidates. Settled-state meaning, MAIN selection, authorized inspection and supported recovery intent remain module policy. No new generic reliability mechanism or shared library was required.
 
+## 5.6bc2 — Purchasing bootstrap observations
+
+Purchasing adds four no-label instruments under `modulith_foundry.purchasing.stock_item_projection` on its existing module meter:
+
+- `ready`: 0 or 1 for the last successfully observed bootstrap checkpoint. Before the first successful sample it is absent. Ready means the initial snapshot boundary was installed, not that the live tail is caught up, every item is correct, or replenishment is possible.
+- `sample_age`: monotonic seconds since that observation, independent of outbox observations. A source failure retains readiness and increases sample age rather than substituting zero.
+- `observation_failures`: failed checkpoint observations excluding requested shutdown; not failed reference-event processing.
+- `bootstrap_failures`: failed attempts by the hosted bootstrap worker excluding requested shutdown. Repeated retries count again; this is a process-local counter, not a durable history and does not include explicit administrative Contract calls.
+
+The module-owned read-only monitor uses a fresh scope, a five-second query timeout and a five-second pause. It reads the singleton bootstrap checkpoint, without locks or cross-schema reads. Missing or duplicate checkpoints are observation failures, not a fabricated unready state. Metric callbacks perform no IO. The separate worker prevents checkpoint observation faults from halting outbox observation or stopping the application. Pool/database capacity remains shared. Bootstrap itself still uses the existing fresh-scope retry and atomic snapshot installation; no recovery or consistency protocol changes.
+
+The bootstrap worker and monitor log exception type only, without exception messages, stacks or payloads. This covers those module diagnostics, not EF/Rebus/other framework logs. Replica readiness gauges describe the same persisted checkpoint and must not be summed; each replica's sample freshness matters independently.
+
+### Diagnose and recover
+
+Check observation freshness before interpreting readiness. If fresh and unready with bootstrap failures, repair snapshot/subscription/storage availability and let the existing hosted retry run; do not set Ready or modify the watermark manually. If observations are stale, restore their source first. Fresh Ready alone must not trigger or suppress repair: inspect the existing Purchasing reconciliation Contract and follow the [snapshot-plus-tail recovery procedure](stock-item-bootstrap.md) when drift or failed deliveries are suspected. Preserve original delivery identities when redriving the named error queue. No automatic reconciliation, arbitrary replay, public maintenance endpoint or global source/tail lag metric is added.
+
+### Evidence and template/library findings
+
+`ProjectionOperationalTests` extends the existing Broker CI lane and fixture, using the agreed native metrics/logs and Inventory/Purchasing Contracts. SQL only arranges faults; it never supplies asserted projection state.
+
+- A paused real export keeps bootstrap unready; releasing it installs the initial snapshot and exposes the reference through Purchasing's Contract.
+- Removing checkpoint availability after successful bootstrap retains observed readiness and exposes staleness/failure while independent outbox observations remain fresh. Restoring the table resumes sampling without restarting the host and preserves query-visible state.
+- A trigger rejects bootstrap commit. The hosted worker reports failure while the checkpoint remains unready and buffered references are not query-visible; observation remains healthy. Removing the trigger permits the existing retry to install the snapshot without restarting the host. Named module logs exclude injected private exception text.
+
+The important distinction is observation failure versus failed bootstrap versus live-tail correctness. Readiness/freshness mechanics remain extraction candidates; checkpoint meaning, subscription/snapshot protocol and authorized repair remain consumer-owned. No generic projection framework was needed. These tests do not prove numeric OTLP export, ongoing reference-handler/reconciliation failure metrics, broker queue health, complete API replicas, full database-process outage or distributed retry limits.
+
 ## Remaining closure
 
-Purchasing projection/bootstrap/rebuild diagnostics, broker-owned ready/unacknowledged/error-queue metrics and any justified production maintenance adapter remain 5.6b work. Full API replicas/shared workers, first-insertion races, in-flight shutdown, database interruption, cancellation-ingress death, cross-replica lease recovery and cross-replica poison-retry limits remain 5.6c work. Existing receiver-replica and retained-outcome proofs remain separate evidence; this checkpoint does not imply they cover those windows.
+Purchasing ongoing reference-handler/reconciliation and Inventory rebuild diagnostics, broker-owned ready/unacknowledged/error-queue metrics and any justified production maintenance adapter remain 5.6b work. Full API replicas/shared workers, first-insertion races, in-flight shutdown, database interruption, cancellation-ingress death, cross-replica lease recovery and cross-replica poison-retry limits remain 5.6c work. Existing receiver-replica and retained-outcome proofs remain separate evidence; these checkpoints do not imply they cover those windows.
