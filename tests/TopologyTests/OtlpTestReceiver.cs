@@ -14,9 +14,11 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
     private readonly WebApplication application;
     private readonly List<byte[]> logPayloads = [];
     private readonly List<byte[]> tracePayloads = [];
+    private readonly List<byte[]> metricPayloads = [];
     private readonly Lock sync = new();
     private TaskCompletionSource? nextLogExport;
     private TaskCompletionSource? nextTraceExport;
+    private TaskCompletionSource? nextMetricExport;
 
     private OtlpTestReceiver(WebApplication application)
     {
@@ -34,6 +36,7 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
 
         application.MapPost("/v1/logs", receiver.ReceiveLogsAsync);
         application.MapPost("/v1/traces", receiver.ReceiveTracesAsync);
+        application.MapPost("/v1/metrics", receiver.ReceiveMetricsAsync);
         await application.StartAsync(cancellationToken);
 
         IServerAddressesFeature addresses =
@@ -81,6 +84,44 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
         lock (sync)
         {
             return ContainsText(tracePayloads, value);
+        }
+    }
+
+    internal async Task WaitForMetricTextAsync(
+        IReadOnlyList<string> values,
+        CancellationToken cancellationToken
+    )
+    {
+        while (true)
+        {
+            Task nextExport;
+            lock (sync)
+            {
+                if (
+                    metricPayloads.Any(payload =>
+                    {
+                        string text = Encoding.UTF8.GetString(payload);
+                        return values.All(value => text.Contains(value, StringComparison.Ordinal));
+                    })
+                )
+                {
+                    return;
+                }
+
+                if (nextMetricExport is not null)
+                {
+                    throw new InvalidOperationException(
+                        "A metric export expectation is already pending."
+                    );
+                }
+
+                nextMetricExport = new TaskCompletionSource(
+                    TaskCreationOptions.RunContinuationsAsynchronously
+                );
+                nextExport = nextMetricExport.Task;
+            }
+
+            await nextExport.WaitAsync(cancellationToken);
         }
     }
 
@@ -147,6 +188,27 @@ internal sealed class OtlpTestReceiver : IAsyncDisposable
                 tracePayloads.Add(payload.ToArray());
                 expectation = nextTraceExport;
                 nextTraceExport = null;
+            }
+
+            expectation?.TrySetResult();
+        }
+
+        context.Response.StatusCode = StatusCodes.Status200OK;
+    }
+
+    private async Task ReceiveMetricsAsync(HttpContext context)
+    {
+        await using var payload = new MemoryStream();
+        await context.Request.Body.CopyToAsync(payload, context.RequestAborted);
+
+        if (payload.Length > 0)
+        {
+            TaskCompletionSource? expectation;
+            lock (sync)
+            {
+                metricPayloads.Add(payload.ToArray());
+                expectation = nextMetricExport;
+                nextMetricExport = null;
             }
 
             expectation?.TrySetResult();

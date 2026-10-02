@@ -46,9 +46,17 @@ The Broker CI lane exercises the native `MeterListener`/module log boundary alon
 
 The separation of database observation from collection callbacks, sample freshness, bounded label cardinality and safe relay diagnostic fields are extraction candidates. Persistence queries remain module-owned; interpretation of receiving workflow state, supported recovery intent and authorization remain business/module choices. No shared instrumentation or recovery framework is extracted now.
 
+### OTLP export boundary proof
+
+The existing `LocalRuntime_RepeatedLifecycle_ProvidesHealthyApiAfterMigrations` Topology test also requires an HTTP/protobuf metric export containing all three module meter names and their `outbox.pending` instrument names. Each of its two complete application lifecycles uses a fresh controlled receiver, so a previous API process's exports cannot satisfy a later assertion. The receiver accepts `/v1/metrics` alongside the existing log/trace routes; assertions inspect exported name strings, not internal metric classes or numeric protobuf fields.
+
+Only this test sets `OTEL_METRIC_EXPORT_INTERVAL=1000`, using the standard [OpenTelemetry periodic-export configuration](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/). Production intervals, API composition and dependencies are unchanged. Metric arrival has a separate twenty-second bound after readiness/log export within the existing startup deadline.
+
+This proves that module observation, host meter subscription and the configured API exporter are connected across a real application-process boundary. It does not prove a production collector's retention, dashboard queries, alerts or exported numeric semantics; native Broker tests remain the source of evidence for backlog values, freshness and counters. The proof failed without the receiver route, passed with it, and failed again when the Sales meter subscription was temporarily omitted; that subscription was restored afterward. The controlled OTLP receiver is test infrastructure, not a production library extraction candidate.
+
 ## Remaining proof and operational work
 
-- Native instrument behavior is covered here. End-to-end OTLP metric-export verification through the existing topology receiver is a separate proposed extension, not evidence supplied by `MeterListener` alone.
+- Native instrument behavior and the API's configured OTLP export boundary are covered separately. Production collector/backend retention, queries and alerts require deployment-specific evidence.
 - Process age, projection failure/rebuild signals, broker-owned ready/unacknowledged/error-queue depth, broadly usable maintenance adapters and deployment alert thresholds remain subsequent 5.6b work.
 - These observations do not close 5.6c's full-application replica/isolation, graceful shutdown, infrastructure interruption, cancellation-ingress death or globally bounded poison-retry matrix.
 - Counts scan unpublished rows only, using the existing partial pending index as applicable. Tune polling/indexes from measured backlog and replica/database load rather than adding options or extra indexes speculatively. Sampling failures preserve diagnostics, not database availability guarantees.

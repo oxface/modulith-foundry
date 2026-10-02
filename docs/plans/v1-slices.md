@@ -372,6 +372,8 @@ Operational work is also delivered vertically. **5.6b1** adds the [retained Inve
 
 **5.6b2a — Messaging signals** adds [outbox observations and receipt/failure counters](messaging-observability.md) through native .NET metrics and safe module logs. Database sampling is independent of publication and metric callbacks, has explicit freshness, and exposes no tenant/message metric labels. Process/projection diagnostics, broker error-queue monitoring and any justified maintenance adapter remain the next operational increment; none is implied by a healthy or empty outbox.
 
+The **5.6b2a export follow-up** extends the existing two-lifecycle Topology proof to require all three module meter/backlog instrument names at the API's configured OTLP receiver. Fresh receivers prevent stale-run evidence; the faster export interval is test-only. This proves host/exporter wiring, not production telemetry-backend retention or numeric metric semantics, and does not close the remaining operational work.
+
 ## Slice 6 — Minimal frontend journey
 
 ### Increment 6.1 — Vite/BFF shell and Organization navigation

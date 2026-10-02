@@ -12,13 +12,12 @@ public sealed partial class LocalRuntimeTests
     [Fact]
     public async Task LocalRuntime_RepeatedLifecycle_ProvidesHealthyApiAfterMigrations()
     {
-        await using OtlpTestReceiver telemetry = await OtlpTestReceiver.StartAsync(
-            TestContext.Current.CancellationToken
-        );
-
         for (var iteration = 0; iteration < 2; iteration++)
         {
             using var timeout = new CancellationTokenSource(StartupTimeout);
+            await using OtlpTestReceiver telemetry = await OtlpTestReceiver.StartAsync(
+                timeout.Token
+            );
             IDistributedApplicationTestingBuilder builder = await CreateBuilderAsync(
                 randomizePorts: false,
                 timeout.Token
@@ -26,7 +25,8 @@ public sealed partial class LocalRuntimeTests
             builder
                 .CreateResourceBuilder<ProjectResource>("api")
                 .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", telemetry.Endpoint.ToString())
-                .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf");
+                .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf")
+                .WithEnvironment("OTEL_METRIC_EXPORT_INTERVAL", "1000");
             Task telemetryExport = telemetry.ExpectNextLogExportAsync(timeout.Token);
 
             await using DistributedApplication app = await builder.BuildAsync(timeout.Token);
@@ -54,6 +54,21 @@ public sealed partial class LocalRuntimeTests
             Assert.Equal(HttpStatusCode.OK, readiness.StatusCode);
             Assert.Equal(HttpStatusCode.OK, liveness.StatusCode);
             await telemetryExport;
+            using var metricTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+                timeout.Token
+            );
+            metricTimeout.CancelAfter(TimeSpan.FromSeconds(20));
+            await telemetry.WaitForMetricTextAsync(
+                [
+                    "ModulithFoundry.Inventory.Messaging",
+                    "modulith_foundry.inventory.outbox.pending",
+                    "ModulithFoundry.Sales.Messaging",
+                    "modulith_foundry.sales.outbox.pending",
+                    "ModulithFoundry.Purchasing.Messaging",
+                    "modulith_foundry.purchasing.outbox.pending",
+                ],
+                metricTimeout.Token
+            );
         }
     }
 
