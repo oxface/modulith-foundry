@@ -34,6 +34,17 @@ internal sealed class SalesOutboxMessage : IOrganizationOwned
             AvailableAt = command.CreatedAt,
         };
 
+    internal static SalesOutboxMessage Stage(ReleaseReservationV1 command) =>
+        new()
+        {
+            MessageId = command.MessageId,
+            OrganizationId = command.OrganizationId,
+            MessageType = ReleaseReservationV1.LogicalName,
+            Payload = JsonSerializer.SerializeToElement(command),
+            CreatedAt = command.CreatedAt,
+            AvailableAt = command.CreatedAt,
+        };
+
     internal static SalesOutboxMessage Stage(CreateReplenishmentRequirementV1 command) =>
         new()
         {

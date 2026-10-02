@@ -42,10 +42,13 @@ internal sealed class PendingFulfilmentDispatcher(
             .FulfilmentProcesses.IgnoreQueryFilters([SalesDbContext.OrganizationScopeFilter])
             .AsNoTracking()
             .Where(process =>
-                process.Status == OrderFulfilmentStatus.PendingDispatch
-                || process.Lines.Any(line =>
-                    line.Status == OrderFulfilmentLineStatus.Shortage
-                    && line.ReplenishmentCommandMessageId == null
+                !process.CancellationRequested
+                && (
+                    process.Status == OrderFulfilmentStatus.PendingDispatch
+                    || process.Lines.Any(line =>
+                        line.Status == OrderFulfilmentLineStatus.Shortage
+                        && line.ReplenishmentCommandMessageId == null
+                    )
                 )
             )
             .OrderBy(process => process.CreatedAt)

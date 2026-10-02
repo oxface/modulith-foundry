@@ -119,7 +119,7 @@ Increment **8.1b — Event-sourcing correctness and extraction gate** must revis
 
 ## Late validation and extraction
 
-After the reference deployment works, implement a second concrete event-sourced aggregate in Increment 8.1, preferably under a different owning module. It should exercise a distinct decision-state shape and more than one justified inline view, not merely duplicate Stock Position with renamed quantities.
+After the local reference workflow and minimal browser proofs, implement a second concrete event-sourced aggregate in Increment 8.1, preferably under a different owning module. It should exercise a distinct decision-state shape and more than one justified inline view, not merely duplicate Stock Position with renamed quantities. The accepted execution order places 8.1 and 8.1b before the temporarily deferred packaging/deployment and extraction increments; identifiers remain stable.
 
 Increment 8.2 extracts only demonstrated reusable stream, codec/upcasting, hydration, projection-coordination, and concurrency mechanics. Domain policy, projection definitions, and module-owned transactions remain local. The reference behavior becomes the sample; do not import Marten/Wolverine code generation or build a general application framework.
 

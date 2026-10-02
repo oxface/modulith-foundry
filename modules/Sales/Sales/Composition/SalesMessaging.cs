@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Purchasing.Contracts;
 using ModulithFoundry.Modules.Sales.Fulfilment.QueuePendingFulfilment;
+using ModulithFoundry.Modules.Sales.Fulfilment.RecordReleaseOutcome;
 using ModulithFoundry.Modules.Sales.Fulfilment.RecordReplenishmentOutcome;
 using ModulithFoundry.Modules.Sales.Fulfilment.RecordReservationOutcome;
 using ModulithFoundry.Modules.Sales.Messaging;
@@ -46,6 +47,8 @@ public static class SalesMessaging
                     services.AddSalesPersistence();
                     services.AddSingleton(TimeProvider.System);
                     services.AddScoped<RecordReservationOutcomeHandler>();
+                    services.AddScoped<RecordReleaseOutcomeHandler>();
+                    services.AddRebusHandler<StockReservationReleaseOutcomeMessageHandler>();
                     services.AddScoped<RecordReplenishmentOutcomeHandler>();
                     services.AddRebusHandler<ReplenishmentOutcomeMessageHandler>();
                     services.AddRebusHandler<StockReservationOutcomeMessageHandler>();
@@ -62,6 +65,7 @@ public static class SalesMessaging
                                     routing
                                         .TypeBased()
                                         .Map<ReserveStockV1>(inventoryQueue)
+                                        .Map<ReleaseReservationV1>(inventoryQueue)
                                         .Map<CreateReplenishmentRequirementV1>(purchasingQueue)
                                 )
                                 .Serialization(serializer =>
@@ -72,6 +76,10 @@ public static class SalesMessaging
                                             RespectNullableAnnotations = true,
                                             Converters =
                                             {
+                                                new JsonStringEnumConverter<StockReservationReleaseOutcome>(
+                                                    JsonNamingPolicy.KebabCaseLower,
+                                                    allowIntegerValues: false
+                                                ),
                                                 new JsonStringEnumConverter<StockReservationOutcome>(
                                                     JsonNamingPolicy.KebabCaseLower,
                                                     allowIntegerValues: false
@@ -83,6 +91,12 @@ public static class SalesMessaging
                                         .UseCustomMessageTypeNames()
                                         .AddWithCustomName<ReserveStockV1>(
                                             ReserveStockV1.LogicalName
+                                        )
+                                        .AddWithCustomName<ReleaseReservationV1>(
+                                            ReleaseReservationV1.LogicalName
+                                        )
+                                        .AddWithCustomName<StockReservationReleaseOutcomeV1>(
+                                            StockReservationReleaseOutcomeV1.LogicalName
                                         )
                                         .AddWithCustomName<StockReservationOutcomeV1>(
                                             StockReservationOutcomeV1.LogicalName
@@ -109,6 +123,9 @@ public static class SalesMessaging
                                 }),
                         onCreated: async bus =>
                         {
+                            await bus.Advanced.Topics.Subscribe(
+                                StockReservationReleaseOutcomeV1.LogicalName
+                            );
                             await bus.Advanced.Topics.Subscribe(
                                 StockReservationOutcomeV1.LogicalName
                             );

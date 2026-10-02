@@ -29,6 +29,48 @@ internal sealed class OrderFulfilmentLine
     internal long? ReplenishmentRequirementNumber { get; private set; }
     internal string? ReplenishmentReasonCode { get; private set; }
     internal string? ReplenishmentOutcomeFingerprint { get; private set; }
+    internal Guid? ReleaseOperationId { get; private set; }
+    internal Guid? ReleaseCommandMessageId { get; private set; }
+    internal OrderFulfilmentReleaseStatus? ReleaseStatus { get; private set; }
+    internal string? ReleaseReasonCode { get; private set; }
+    internal string? ReleaseOutcomeFingerprint { get; private set; }
+    internal DateTimeOffset? ReleaseResponseDeadline { get; private set; }
+
+    internal bool QueueRelease(DateTimeOffset now)
+    {
+        if (Status != OrderFulfilmentLineStatus.Reserved || ReleaseCommandMessageId.HasValue)
+            return false;
+        ReleaseOperationId = Guid.CreateVersion7(now);
+        ReleaseCommandMessageId = Guid.CreateVersion7(now);
+        ReleaseStatus = OrderFulfilmentReleaseStatus.Pending;
+        ReleaseResponseDeadline = now.AddMinutes(5);
+        return true;
+    }
+
+    internal void CompleteRelease(
+        OrderFulfilmentReleaseStatus status,
+        string? reason,
+        string fingerprint
+    )
+    {
+        bool valid = status switch
+        {
+            OrderFulfilmentReleaseStatus.Released or OrderFulfilmentReleaseStatus.AlreadyReleased =>
+                reason is null,
+            OrderFulfilmentReleaseStatus.Rejected => !string.IsNullOrWhiteSpace(reason),
+            _ => false,
+        };
+        if (
+            ReleaseStatus != OrderFulfilmentReleaseStatus.Pending
+            || !valid
+            || string.IsNullOrWhiteSpace(fingerprint)
+        )
+            throw new InvalidOperationException("The line has no valid pending release decision.");
+        ReleaseStatus = status;
+        ReleaseReasonCode = reason;
+        ReleaseOutcomeFingerprint = fingerprint;
+        ReleaseResponseDeadline = null;
+    }
 
     internal bool QueueReplenishment(DateTimeOffset now)
     {

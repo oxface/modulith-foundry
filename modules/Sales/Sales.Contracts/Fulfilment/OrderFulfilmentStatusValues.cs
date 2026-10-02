@@ -7,6 +7,8 @@ public static class OrderFulfilmentStatusValues
     public const string Reserved = "reserved";
     public const string AwaitingReplenishment = "awaiting-replenishment";
     public const string AttentionRequired = "attention-required";
+    public const string CompensationPending = "compensation-pending";
+    public const string Compensated = "compensated";
 
     public static string ToValue(OrderFulfilmentStatus status) =>
         status switch
@@ -16,6 +18,8 @@ public static class OrderFulfilmentStatusValues
             OrderFulfilmentStatus.Reserved => Reserved,
             OrderFulfilmentStatus.AwaitingReplenishment => AwaitingReplenishment,
             OrderFulfilmentStatus.AttentionRequired => AttentionRequired,
+            OrderFulfilmentStatus.CompensationPending => CompensationPending,
+            OrderFulfilmentStatus.Compensated => Compensated,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(status),
                 status,
@@ -31,6 +35,8 @@ public static class OrderFulfilmentStatusValues
             Reserved => OrderFulfilmentStatus.Reserved,
             AwaitingReplenishment => OrderFulfilmentStatus.AwaitingReplenishment,
             AttentionRequired => OrderFulfilmentStatus.AttentionRequired,
+            CompensationPending => OrderFulfilmentStatus.CompensationPending,
+            Compensated => OrderFulfilmentStatus.Compensated,
             _ => throw new InvalidOperationException($"Unknown fulfilment status '{value}'."),
         };
 }

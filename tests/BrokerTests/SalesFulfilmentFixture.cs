@@ -51,12 +51,18 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
     private bool controlledOutcomes;
     private bool enablePurchasing;
     private readonly Channel<ReserveStockV1> commands = Channel.CreateUnbounded<ReserveStockV1>();
+    private readonly Channel<ReleaseReservationV1> releaseCommands =
+        Channel.CreateUnbounded<ReleaseReservationV1>();
+    private readonly Channel<StockReservationReleaseOutcomeV1> releaseErrors =
+        Channel.CreateUnbounded<StockReservationReleaseOutcomeV1>();
     private readonly DeliveryProbe deliveries = new();
     internal OrganizationAccessContext Administrator { get; private set; } = null!;
     internal OrganizationAccessContext Approver { get; private set; } = null!;
     internal StockItemId Item { get; private set; }
     internal StockingLocationId Location { get; private set; }
     internal CancellationToken CancellationToken => timeout.Token;
+    internal string DatabaseConnectionString => postgres.GetConnectionString();
+    internal string BrokerConnectionString => rabbit.GetConnectionString();
 
     internal static async Task<SalesFulfilmentFixture> StartAsync(
         bool createMain = true,
@@ -157,7 +163,9 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             .ConfigureServices(services =>
             {
                 services.AddSingleton(commands);
+                services.AddSingleton(releaseCommands);
                 services.AddRebusHandler<ReservationCommandObserver>();
+                services.AddRebusHandler<ReleaseCommandObserver>();
                 services.AddRebus(configure =>
                     configure
                         .Transport(transport =>
@@ -178,12 +186,22 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                                             JsonNamingPolicy.KebabCaseLower,
                                             false
                                         ),
+                                        new JsonStringEnumConverter<StockReservationReleaseOutcome>(
+                                            JsonNamingPolicy.KebabCaseLower,
+                                            false
+                                        ),
                                     },
                                 }
                             );
                             serializer
                                 .UseCustomMessageTypeNames()
                                 .AddWithCustomName<ReserveStockV1>(ReserveStockV1.LogicalName)
+                                .AddWithCustomName<ReleaseReservationV1>(
+                                    ReleaseReservationV1.LogicalName
+                                )
+                                .AddWithCustomName<StockReservationReleaseOutcomeV1>(
+                                    StockReservationReleaseOutcomeV1.LogicalName
+                                )
                                 .AddWithCustomName<StockReservationOutcomeV1>(
                                     StockReservationOutcomeV1.LogicalName
                                 );
@@ -194,6 +212,24 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
 
     internal Task<ReserveStockV1> ReadCommandAsync() =>
         commands.Reader.ReadAsync(CancellationToken).AsTask();
+
+    internal Task<ReleaseReservationV1> ReadReleaseCommandAsync() =>
+        releaseCommands.Reader.ReadAsync(CancellationToken).AsTask();
+
+    internal Task PublishAsync(StockReservationReleaseOutcomeV1 outcome) =>
+        observer!
+            .Services.GetRequiredService<IBus>()
+            .Advanced.Topics.Publish(
+                StockReservationReleaseOutcomeV1.LogicalName,
+                outcome,
+                new Dictionary<string, string>
+                {
+                    [Headers.MessageId] = outcome.MessageId.ToString(),
+                    [Headers.CorrelationId] = outcome.ProcessId.ToString(),
+                    ["causation-id"] = outcome.CausationId.ToString(),
+                    ["producer-module"] = "inventory",
+                }
+            );
 
     internal Task PublishAsync(StockReservationOutcomeV1 outcome) =>
         observer!
@@ -225,6 +261,12 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
         return await replenishmentErrors.Reader.ReadAsync(CancellationToken);
     }
 
+    internal async Task<StockReservationReleaseOutcomeV1> ReadReleaseErrorAsync()
+    {
+        await StartErrorObserverAsync();
+        return await releaseErrors.Reader.ReadAsync(CancellationToken);
+    }
+
     private async Task StartErrorObserverAsync()
     {
         if (errorObserver is null)
@@ -235,8 +277,10 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                 {
                     services.AddSingleton(errors);
                     services.AddSingleton(replenishmentErrors);
+                    services.AddSingleton(releaseErrors);
                     services.AddRebusHandler<ReservationOutcomeErrorObserver>();
                     services.AddRebusHandler<RequirementOutcomeErrorObserver>();
+                    services.AddRebusHandler<ReleaseOutcomeErrorObserver>();
                     services.AddRebus(configure =>
                         configure
                             .Transport(transport =>
@@ -257,6 +301,10 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                                                 JsonNamingPolicy.KebabCaseLower,
                                                 false
                                             ),
+                                            new JsonStringEnumConverter<StockReservationReleaseOutcome>(
+                                                JsonNamingPolicy.KebabCaseLower,
+                                                false
+                                            ),
                                         },
                                     }
                                 );
@@ -264,6 +312,9 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
                                     .UseCustomMessageTypeNames()
                                     .AddWithCustomName<StockReservationOutcomeV1>(
                                         StockReservationOutcomeV1.LogicalName
+                                    )
+                                    .AddWithCustomName<StockReservationReleaseOutcomeV1>(
+                                        StockReservationReleaseOutcomeV1.LogicalName
                                     )
                                     .AddWithCustomName<ReplenishmentRequirementCreatedV1>(
                                         ReplenishmentRequirementCreatedV1.LogicalName
@@ -331,6 +382,57 @@ internal sealed class SalesFulfilmentFixture : IAsyncDisposable
             );
 
     internal Task StopAsync() => host.StopAsync(CancellationToken);
+
+    internal Task<CancelSalesOrderResult> CancelAsync(
+        SalesOrderView order,
+        string reason = "Customer withdrew"
+    ) =>
+        RunAsync(
+            Administrator,
+            services =>
+                services
+                    .GetRequiredService<ISalesOrderCancellation>()
+                    .CancelAsync(
+                        new(
+                            Administrator.UserId,
+                            Administrator.OrganizationId,
+                            order.OrderNumber,
+                            order.Version,
+                            reason
+                        ),
+                        CancellationToken
+                    )
+        );
+
+    // Controlled peer setup; assertions about physical stock use the real Inventory endpoint instead.
+    internal async Task<(
+        SalesOrderView Order,
+        ReleaseReservationV1 Release
+    )> PrepareControlledCancellationAsync()
+    {
+        var order = await ApproveAsync(4m);
+        var reserve = await ReadCommandAsync();
+        var outcome = new StockReservationOutcomeV1(
+            Guid.CreateVersion7(),
+            reserve.MessageId,
+            reserve.OrganizationId,
+            reserve.OperationId,
+            reserve.ProcessId,
+            reserve.OrderNumber,
+            reserve.LineNumber,
+            StockReservationOutcome.Reserved,
+            Guid.CreateVersion7(),
+            reserve.Quantity,
+            6m,
+            reserve.BaseUnitCode,
+            null,
+            DateTimeOffset.UtcNow
+        );
+        await PublishAsync(outcome);
+        await WaitDeliveryAsync(outcome.MessageId);
+        Assert.IsType<CancelSalesOrderResult.Cancelled>(await CancelAsync(order));
+        return (order, await ReadReleaseCommandAsync());
+    }
 
     internal async Task RestartAsync(bool addMain = false, bool? enablePurchasing = null)
     {
@@ -914,6 +1016,20 @@ internal sealed class ReservationCommandObserver(Channel<ReserveStockV1> command
     : IHandleMessages<ReserveStockV1>
 {
     public Task Handle(ReserveStockV1 message) => commands.Writer.WriteAsync(message).AsTask();
+}
+
+internal sealed class ReleaseCommandObserver(Channel<ReleaseReservationV1> commands)
+    : IHandleMessages<ReleaseReservationV1>
+{
+    public Task Handle(ReleaseReservationV1 message) =>
+        commands.Writer.WriteAsync(message).AsTask();
+}
+
+internal sealed class ReleaseOutcomeErrorObserver(Channel<StockReservationReleaseOutcomeV1> errors)
+    : IHandleMessages<StockReservationReleaseOutcomeV1>
+{
+    public Task Handle(StockReservationReleaseOutcomeV1 message) =>
+        errors.Writer.WriteAsync(message).AsTask();
 }
 
 internal sealed class ReservationOutcomeErrorObserver(Channel<StockReservationOutcomeV1> errors)

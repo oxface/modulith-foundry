@@ -7,4 +7,6 @@ public enum OrderFulfilmentStatus
     Reserved = 3,
     AwaitingReplenishment = 4,
     AttentionRequired = 5,
+    CompensationPending = 6,
+    Compensated = 7,
 }

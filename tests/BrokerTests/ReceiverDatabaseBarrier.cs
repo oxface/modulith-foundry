@@ -62,6 +62,18 @@ internal sealed class ReceiverDatabaseBarrier : IAsyncDisposable
             fixture.CancellationToken
         );
 
+    internal static Task<ReceiverDatabaseBarrier> CreateSalesAsync(
+        SalesFulfilmentFixture fixture
+    ) =>
+        CreateAsync(
+            fixture.DatabaseConnectionString,
+            "sales",
+            "inbox_receipts",
+            "INSERT",
+            "",
+            fixture.CancellationToken
+        );
+
     private static async Task<ReceiverDatabaseBarrier> CreateAsync(
         string databaseConnection,
         string schema,

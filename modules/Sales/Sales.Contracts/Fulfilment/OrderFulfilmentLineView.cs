@@ -16,5 +16,8 @@ public sealed record OrderFulfilmentLineView(
     decimal? ReplenishmentQuantity,
     Guid? ReplenishmentRequirementId,
     long? ReplenishmentRequirementNumber,
-    string? ReplenishmentReasonCode
+    string? ReplenishmentReasonCode,
+    OrderFulfilmentReleaseStatus? ReleaseStatus,
+    string? ReleaseReasonCode,
+    DateTimeOffset? ReleaseResponseDeadline
 );

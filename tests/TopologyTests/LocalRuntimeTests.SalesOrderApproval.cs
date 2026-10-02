@@ -300,6 +300,15 @@ public sealed partial class LocalRuntimeTests
             stockItemId,
             timeout.Token
         );
+        await AssertCancellationAsync(
+            alice,
+            bob,
+            aliceCsrf,
+            bobCsrf,
+            root,
+            orderUrl,
+            timeout.Token
+        );
         using HttpResponseMessage retry = await SendCommandAsync(
             bob,
             HttpMethod.Post,

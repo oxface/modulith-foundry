@@ -5,6 +5,7 @@ public static class SalesOrderStatusValues
     public const string Draft = "draft";
     public const string AwaitingApproval = "awaiting-approval";
     public const string Approved = "approved";
+    public const string Cancelled = "cancelled";
 
     public static string ToValue(SalesOrderStatus status) =>
         status switch
@@ -12,6 +13,7 @@ public static class SalesOrderStatusValues
             SalesOrderStatus.Draft => Draft,
             SalesOrderStatus.AwaitingApproval => AwaitingApproval,
             SalesOrderStatus.Approved => Approved,
+            SalesOrderStatus.Cancelled => Cancelled,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(status),
                 status,
@@ -25,6 +27,7 @@ public static class SalesOrderStatusValues
             Draft => SalesOrderStatus.Draft,
             AwaitingApproval => SalesOrderStatus.AwaitingApproval,
             Approved => SalesOrderStatus.Approved,
+            Cancelled => SalesOrderStatus.Cancelled,
             _ => throw new InvalidOperationException($"Unknown sales order status '{value}'."),
         };
 }

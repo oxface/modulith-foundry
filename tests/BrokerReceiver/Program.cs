@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ModulithFoundry.BrokerReceiver;
 using ModulithFoundry.Modules.Inventory.Composition;
 using ModulithFoundry.Modules.Purchasing.Composition;
+using ModulithFoundry.Modules.Sales.Composition;
 using Npgsql;
 using Rebus.Config;
 using Rebus.Pipeline;
@@ -13,6 +14,7 @@ using Rebus.Pipeline.Receive;
 IConfiguration configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
 bool pauseAfterCommit = configuration["ReceiverTest:PauseAfterCommit"] == "true";
 bool purchasing = configuration["ReceiverTest:Module"] == "purchasing";
+bool sales = configuration["ReceiverTest:Module"] == "sales";
 bool pauseSnapshot = configuration["ReceiverTest:PauseSnapshot"] == "true";
 IHostBuilder builder = Host.CreateDefaultBuilder(args)
     .ConfigureLogging(logging =>
@@ -41,6 +43,11 @@ IHostBuilder builder = Host.CreateDefaultBuilder(args)
             services.AddInventoryModule();
             services.AddPurchasingModule();
         }
+        if (sales)
+        {
+            services.AddInventoryModule();
+            services.AddSalesModule();
+        }
     });
 Action<OptionsConfigurer> checkpoints = options =>
     options.Decorate<IPipeline>(context =>
@@ -52,6 +59,8 @@ Action<OptionsConfigurer> checkpoints = options =>
     );
 if (purchasing)
     builder.AddPurchasingMessaging(configuration, checkpoints);
+else if (sales)
+    builder.AddSalesMessaging(configuration, checkpoints);
 else
     builder.AddInventoryMessaging(configuration, checkpoints);
 using IHost host = builder.Build();

@@ -42,7 +42,29 @@ internal sealed class SalesOrder : IOrganizationOwned
     internal DateTimeOffset? SubmittedAt { get; private set; }
     internal Guid? ApprovedBy { get; private set; }
     internal DateTimeOffset? ApprovedAt { get; private set; }
+    internal Guid? CancelledBy { get; private set; }
+    internal DateTimeOffset? CancelledAt { get; private set; }
+    internal string? CancellationReason { get; private set; }
     internal IReadOnlyCollection<SalesOrderLine> Lines => _lines;
+
+    internal bool TryCancel(Guid actorUserId, string reason, DateTimeOffset cancelledAt)
+    {
+        if (Status == SalesOrderStatus.Cancelled)
+            return false;
+        ArgumentOutOfRangeException.ThrowIfEqual(actorUserId, Guid.Empty);
+        string normalized = reason?.Trim() ?? "";
+        if (normalized.Length is < 1 or > 500 || normalized.Any(char.IsControl))
+            throw new InvalidSalesOrderInputException(
+                "reason",
+                "A cancellation reason must contain 1–500 printable characters."
+            );
+        Status = SalesOrderStatus.Cancelled;
+        CancelledBy = actorUserId;
+        CancelledAt = cancelledAt;
+        CancellationReason = normalized;
+        Version = checked(Version + 1);
+        return true;
+    }
 
     internal bool TryApprove(Guid actorUserId, DateTimeOffset approvedAt)
     {

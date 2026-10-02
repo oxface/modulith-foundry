@@ -15,6 +15,7 @@ using ModulithFoundry.Modules.Sales.Fulfilment.Queries;
 using ModulithFoundry.Modules.Sales.Fulfilment.QueuePendingFulfilment;
 using ModulithFoundry.Modules.Sales.Orders;
 using ModulithFoundry.Modules.Sales.Orders.ApproveSalesOrder;
+using ModulithFoundry.Modules.Sales.Orders.CancelSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.CreateDraftSalesOrder;
 using ModulithFoundry.Modules.Sales.Orders.Persistence;
 using ModulithFoundry.Modules.Sales.Orders.Queries;
@@ -39,6 +40,7 @@ public static class SalesModule
         services.AddScoped<CreateDraftSalesOrderHandler>();
         services.AddScoped<SubmitSalesOrderHandler>();
         services.AddScoped<ISalesOrderApproval, ApproveSalesOrderHandler>();
+        services.AddScoped<ISalesOrderCancellation, CancelSalesOrderHandler>();
         services.AddScoped<OrderFulfilmentQueries>();
         services.AddScoped<QueuePendingFulfilmentHandler>();
         services.AddScoped<QueuePendingReplenishmentHandler>();

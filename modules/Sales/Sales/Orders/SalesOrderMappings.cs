@@ -32,7 +32,10 @@ internal static class SalesOrderMappings
             order.SubmittedBy.HasValue ? new UserId(order.SubmittedBy.Value) : (UserId?)null,
             order.SubmittedAt,
             order.ApprovedBy.HasValue ? new UserId(order.ApprovedBy.Value) : (UserId?)null,
-            order.ApprovedAt
+            order.ApprovedAt,
+            order.CancelledBy.HasValue ? new UserId(order.CancelledBy.Value) : (UserId?)null,
+            order.CancelledAt,
+            order.CancellationReason
         );
 
     private static readonly Func<SalesOrder, SalesOrderView> MapView = ViewProjection.Compile();

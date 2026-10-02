@@ -46,7 +46,14 @@ internal static class OrderFulfilmentEndpoint
                             line.ReplenishmentQuantity,
                             line.ReplenishmentRequirementId,
                             line.ReplenishmentRequirementNumber,
-                            line.ReplenishmentReasonCode
+                            line.ReplenishmentReasonCode,
+                            line.ReleaseStatus.HasValue
+                                ? OrderFulfilmentReleaseStatusValues.ToValue(
+                                    line.ReleaseStatus.Value
+                                )
+                                : null,
+                            line.ReleaseReasonCode,
+                            line.ReleaseResponseDeadline
                         )),
                     ]
                 )
@@ -81,6 +88,9 @@ internal static class OrderFulfilmentEndpoint
         decimal? ReplenishmentQuantity,
         Guid? ReplenishmentRequirementId,
         long? ReplenishmentRequirementNumber,
-        string? ReplenishmentReasonCode
+        string? ReplenishmentReasonCode,
+        string? ReleaseStatus,
+        string? ReleaseReasonCode,
+        DateTimeOffset? ReleaseResponseDeadline
     );
 }

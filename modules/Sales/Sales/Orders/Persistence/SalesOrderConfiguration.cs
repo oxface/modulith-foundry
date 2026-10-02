@@ -34,6 +34,12 @@ internal sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOr
         order.Property(entity => entity.SubmittedAt).HasColumnName("submitted_at");
         order.Property(entity => entity.ApprovedBy).HasColumnName("approved_by");
         order.Property(entity => entity.ApprovedAt).HasColumnName("approved_at");
+        order.Property(entity => entity.CancelledBy).HasColumnName("cancelled_by");
+        order.Property(entity => entity.CancelledAt).HasColumnName("cancelled_at");
+        order
+            .Property(entity => entity.CancellationReason)
+            .HasColumnName("cancellation_reason")
+            .HasMaxLength(500);
         order
             .HasIndex(entity => new { entity.OrganizationId, entity.OrderNumber })
             .IsUnique()

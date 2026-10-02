@@ -11,6 +11,10 @@ public static class SalesOrderActivityKindValues
     public const string ReservationRejected = "reservation-rejected";
     public const string ReplenishmentCreated = "replenishment-created";
     public const string ReplenishmentRejected = "replenishment-rejected";
+    public const string Cancelled = "cancelled";
+    public const string ReservationReleased = "reservation-released";
+    public const string ReservationReleaseRejected = "reservation-release-rejected";
+    public const string CompensationCompleted = "compensation-completed";
 
     public static string ToValue(SalesOrderActivityKind kind) =>
         kind switch
@@ -24,6 +28,10 @@ public static class SalesOrderActivityKindValues
             SalesOrderActivityKind.ReservationRejected => ReservationRejected,
             SalesOrderActivityKind.ReplenishmentCreated => ReplenishmentCreated,
             SalesOrderActivityKind.ReplenishmentRejected => ReplenishmentRejected,
+            SalesOrderActivityKind.Cancelled => Cancelled,
+            SalesOrderActivityKind.ReservationReleased => ReservationReleased,
+            SalesOrderActivityKind.ReservationReleaseRejected => ReservationReleaseRejected,
+            SalesOrderActivityKind.CompensationCompleted => CompensationCompleted,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(kind),
                 kind,
@@ -43,6 +51,10 @@ public static class SalesOrderActivityKindValues
             ReservationRejected => SalesOrderActivityKind.ReservationRejected,
             ReplenishmentCreated => SalesOrderActivityKind.ReplenishmentCreated,
             ReplenishmentRejected => SalesOrderActivityKind.ReplenishmentRejected,
+            Cancelled => SalesOrderActivityKind.Cancelled,
+            ReservationReleased => SalesOrderActivityKind.ReservationReleased,
+            ReservationReleaseRejected => SalesOrderActivityKind.ReservationReleaseRejected,
+            CompensationCompleted => SalesOrderActivityKind.CompensationCompleted,
             _ => throw new InvalidOperationException(
                 $"Unknown sales order activity kind '{value}'."
             ),

@@ -96,7 +96,7 @@ The module-local relay atomically leases committed rows with `FOR UPDATE SKIP LO
 
 ## Durable release receiver
 
-The [release protocol](../plans/reservation-release.md) adds a second directed command on the same isolated endpoint. Inventory validates the retained original reservation and its process/order/line correlation, owns release quantity/unit, and commits its inbox, separate compensation-operation receipt, private release event, inline state, audit and outgoing outcome atomically. Ended child identity is retained through replay/rebuild. Duplicate intent cannot release twice or let a delayed reserve replay resurrect stock. Inconsistent required state fails technically and requires repair/redrive; it is not reported as completed compensation. No HTTP capability is exposed. Sales cancellation remains the next increment.
+The [release protocol](../plans/reservation-release.md) adds a second directed command on the same isolated endpoint. Inventory validates the retained original reservation and its process/order/line correlation, owns release quantity/unit, and commits its inbox, separate compensation-operation receipt, private release event, inline state, audit and outgoing outcome atomically. Ended child identity is retained through replay/rebuild. Duplicate intent cannot release twice or let a delayed reserve replay resurrect stock. Inconsistent required state fails technically and requires repair/redrive; it is not reported as completed compensation. No HTTP capability is exposed. Sales cancellation now supplies durable release intent and consumes the outcome without accessing Inventory tables.
 
 ## Stock Item reference export and publication
 

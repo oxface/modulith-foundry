@@ -50,6 +50,19 @@ internal sealed class ReceiverProcess : IAsyncDisposable
             fixture.CancellationToken
         );
 
+    internal static Task<ReceiverProcess> StartSalesAsync(
+        SalesFulfilmentFixture fixture,
+        bool pauseAfterCommit = false
+    ) =>
+        StartAsync(
+            fixture.DatabaseConnectionString,
+            fixture.BrokerConnectionString,
+            "sales",
+            pauseAfterCommit,
+            false,
+            fixture.CancellationToken
+        );
+
     private static async Task<ReceiverProcess> StartAsync(
         string databaseConnection,
         string brokerConnection,

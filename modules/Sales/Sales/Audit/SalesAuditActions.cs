@@ -2,6 +2,14 @@ namespace ModulithFoundry.Modules.Sales.Audit;
 
 internal static class SalesAuditActions
 {
+    internal const string OrderCancelled = "sales-order.cancelled";
+    internal const string OrderCancelDenied = "sales-order.cancel-denied";
+    internal const string ReservationReleaseQueued = "order-fulfilment.release-queued";
+    internal const string ReservationReleaseOutcomeRecorded =
+        "order-fulfilment.release-outcome-recorded";
+    internal const string ReservationReleaseOutcomeIgnored =
+        "order-fulfilment.release-outcome-ignored";
+    internal const string CompensationCompleted = "order-fulfilment.compensation-completed";
     internal const string ReplenishmentQueued = "order-fulfilment.replenishment-queued";
     internal const string ReplenishmentOutcomeRecorded =
         "order-fulfilment.replenishment-outcome-recorded";

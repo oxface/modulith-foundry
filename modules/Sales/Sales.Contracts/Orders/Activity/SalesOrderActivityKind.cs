@@ -11,4 +11,8 @@ public enum SalesOrderActivityKind
     ReservationRejected = 7,
     ReplenishmentCreated = 8,
     ReplenishmentRejected = 9,
+    Cancelled = 10,
+    ReservationReleased = 11,
+    ReservationReleaseRejected = 12,
+    CompensationCompleted = 13,
 }

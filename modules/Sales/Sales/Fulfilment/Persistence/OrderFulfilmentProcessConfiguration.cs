@@ -29,6 +29,9 @@ internal sealed class OrderFulfilmentProcessConfiguration
         process.Property(entity => entity.Version).HasColumnName("version").IsConcurrencyToken();
         process.Property(entity => entity.OrderNumber).HasColumnName("order_number");
         process.Property(entity => entity.StockingLocationId).HasColumnName("stocking_location_id");
+        process
+            .Property(entity => entity.CancellationRequested)
+            .HasColumnName("cancellation_requested");
         process.OwnsMany(
             entity => entity.Lines,
             line =>
@@ -85,6 +88,27 @@ internal sealed class OrderFulfilmentProcessConfiguration
                 line.Property(entity => entity.ReplenishmentOutcomeFingerprint)
                     .HasColumnName("replenishment_outcome_fingerprint")
                     .HasMaxLength(64);
+                line.Property(entity => entity.ReleaseOperationId)
+                    .HasColumnName("release_operation_id");
+                line.Property(entity => entity.ReleaseCommandMessageId)
+                    .HasColumnName("release_command_message_id");
+                line.Property(entity => entity.ReleaseStatus)
+                    .HasColumnName("release_status")
+                    .HasMaxLength(32)
+                    .HasConversion(
+                        value => OrderFulfilmentReleaseStatusValues.ToValue(value!.Value),
+                        value =>
+                            (OrderFulfilmentReleaseStatus?)
+                                OrderFulfilmentReleaseStatusValues.FromValue(value)
+                    );
+                line.Property(entity => entity.ReleaseReasonCode)
+                    .HasColumnName("release_reason_code")
+                    .HasMaxLength(100);
+                line.Property(entity => entity.ReleaseOutcomeFingerprint)
+                    .HasColumnName("release_outcome_fingerprint")
+                    .HasMaxLength(64);
+                line.Property(entity => entity.ReleaseResponseDeadline)
+                    .HasColumnName("release_response_deadline");
                 line.HasIndex(entity => entity.OperationId)
                     .IsUnique()
                     .HasDatabaseName("ux_fulfilment_lines_operation");

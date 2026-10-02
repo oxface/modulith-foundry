@@ -12,6 +12,10 @@ A **slice** is a capability and acceptance unit. An **increment** is the normal 
 
 If an increment becomes difficult to review in one sitting, split it at a vertical, independently verifiable outcome. Do not split by creating speculative layers, empty abstractions, temporary architecture, or knowingly broken intermediate states.
 
+### Execution order
+
+Keep increment identifiers stable for historical references. The accepted order is to finish Slice 5, complete Slice 6, then implement 8.1 and 8.1b before packaging/deployment. Increments 7.1–7.3 and 8.2–8.3 are temporarily deferred; resume them after those local proofs and explicit owner direction. This reordering does not pull library extraction forward or remove the eventual deployed-product goal.
+
 ### Formatter baseline
 
 Use [CSharpier](https://csharpier.com/docs/Installation) as the pinned repository-local C#/XML layout formatter. Editor, Lefthook and CI share `.editorconfig` settings. Retain compiler/analyzer policy and limit `dotnet format` to semantic style and analyzer checks. Formatter adoption or upgrades and their mechanical baseline diffs are separate reviewable increments, not mixed with business slices.

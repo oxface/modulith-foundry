@@ -78,6 +78,13 @@ internal sealed class SalesOutboxRelay(
             Guid processId;
             switch (message.MessageType)
             {
+                case ReleaseReservationV1.LogicalName:
+                    var release =
+                        message.Payload.Deserialize<ReleaseReservationV1>()
+                        ?? throw new InvalidDataException("Sales release payload is unreadable.");
+                    command = release;
+                    processId = release.ProcessId;
+                    break;
                 case ReserveStockV1.LogicalName:
                     var reservation =
                         message.Payload.Deserialize<ReserveStockV1>()

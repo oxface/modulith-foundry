@@ -19,7 +19,44 @@ internal sealed class OrderFulfilmentProcess : IOrganizationOwned
     internal long Version { get; private set; } = 1;
     internal long OrderNumber { get; private set; }
     internal Guid? StockingLocationId { get; private set; }
+    internal bool CancellationRequested { get; private set; }
     internal IReadOnlyCollection<OrderFulfilmentLine> Lines => _lines;
+
+    internal void RequestCancellation()
+    {
+        if (CancellationRequested)
+            return;
+        CancellationRequested = true;
+        Version = checked(Version + 1);
+        RefreshStatus();
+    }
+
+    internal bool QueueRelease(OrderFulfilmentLine line, DateTimeOffset now)
+    {
+        if (!_lines.Contains(line))
+            throw new InvalidOperationException("The line does not belong to this process.");
+        if (!CancellationRequested || !line.QueueRelease(now))
+            return false;
+        Version = checked(Version + 1);
+        RefreshStatus();
+        return true;
+    }
+
+    internal void ApplyRelease(
+        OrderFulfilmentLine line,
+        OrderFulfilmentReleaseStatus status,
+        string? reason,
+        string fingerprint
+    )
+    {
+        if (!_lines.Contains(line) || !CancellationRequested)
+            throw new InvalidOperationException(
+                "Release requires this process's cancelled demand."
+            );
+        line.CompleteRelease(status, reason, fingerprint);
+        Version = checked(Version + 1);
+        RefreshStatus();
+    }
 
     internal static OrderFulfilmentProcess Start(SalesOrder order, DateTimeOffset createdAt)
     {
@@ -76,7 +113,7 @@ internal sealed class OrderFulfilmentProcess : IOrganizationOwned
     {
         if (!_lines.Contains(line))
             throw new InvalidOperationException("The line does not belong to this process.");
-        if (!line.QueueReplenishment(now))
+        if (CancellationRequested || !line.QueueReplenishment(now))
             return false;
         Version = checked(Version + 1);
         return true;
@@ -99,7 +136,8 @@ internal sealed class OrderFulfilmentProcess : IOrganizationOwned
 
     private void RefreshStatus() =>
         Status =
-            _lines.Any(item => item.Status == OrderFulfilmentLineStatus.Rejected)
+            CancellationRequested ? GetCompensationStatus()
+            : _lines.Any(item => item.Status == OrderFulfilmentLineStatus.Rejected)
             || _lines.Any(item => item.ReplenishmentReasonCode != null)
                 ? OrderFulfilmentStatus.AttentionRequired
             : _lines.Any(item => item.Status == OrderFulfilmentLineStatus.PendingReservation)
@@ -107,4 +145,24 @@ internal sealed class OrderFulfilmentProcess : IOrganizationOwned
             : _lines.Any(item => item.Status == OrderFulfilmentLineStatus.Shortage)
                 ? OrderFulfilmentStatus.AwaitingReplenishment
             : OrderFulfilmentStatus.Reserved;
+
+    private OrderFulfilmentStatus GetCompensationStatus()
+    {
+        if (_lines.Any(item => item.ReleaseStatus == OrderFulfilmentReleaseStatus.Rejected))
+            return OrderFulfilmentStatus.AttentionRequired;
+        bool waiting = _lines.Any(item =>
+            (item.AttemptCount > 0 && item.Status == OrderFulfilmentLineStatus.PendingReservation)
+            || (
+                item.Status == OrderFulfilmentLineStatus.Reserved
+                && item.ReleaseStatus
+                    is not (
+                        OrderFulfilmentReleaseStatus.Released
+                        or OrderFulfilmentReleaseStatus.AlreadyReleased
+                    )
+            )
+        );
+        return waiting
+            ? OrderFulfilmentStatus.CompensationPending
+            : OrderFulfilmentStatus.Compensated;
+    }
 }

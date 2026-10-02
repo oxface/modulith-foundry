@@ -14,5 +14,8 @@ public sealed record SalesOrderView(
     UserId? SubmittedBy,
     DateTimeOffset? SubmittedAt,
     UserId? ApprovedBy,
-    DateTimeOffset? ApprovedAt
+    DateTimeOffset? ApprovedAt,
+    UserId? CancelledBy,
+    DateTimeOffset? CancelledAt,
+    string? CancellationReason
 );

@@ -28,7 +28,10 @@ internal static class SalesOrderResponses
             order.SubmittedBy?.Value,
             order.SubmittedAt,
             order.ApprovedBy?.Value,
-            order.ApprovedAt
+            order.ApprovedAt,
+            order.CancelledBy?.Value,
+            order.CancelledAt,
+            order.CancellationReason
         );
 
     internal sealed record Order(
@@ -43,7 +46,10 @@ internal static class SalesOrderResponses
         Guid? SubmittedBy,
         DateTimeOffset? SubmittedAt,
         Guid? ApprovedBy,
-        DateTimeOffset? ApprovedAt
+        DateTimeOffset? ApprovedAt,
+        Guid? CancelledBy,
+        DateTimeOffset? CancelledAt,
+        string? CancellationReason
     );
 
     internal sealed record Line(

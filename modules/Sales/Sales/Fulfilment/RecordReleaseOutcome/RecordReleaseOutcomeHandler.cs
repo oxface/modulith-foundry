@@ -6,19 +6,15 @@ using ModulithFoundry.Modules.Inventory.Contracts;
 using ModulithFoundry.Modules.Sales.Audit;
 using ModulithFoundry.Modules.Sales.Contracts;
 using ModulithFoundry.Modules.Sales.Messaging.Persistence;
-using ModulithFoundry.Modules.Sales.Orders;
 using ModulithFoundry.Modules.Sales.Orders.Activity;
 using ModulithFoundry.Modules.Sales.Persistence;
 
-namespace ModulithFoundry.Modules.Sales.Fulfilment.RecordReservationOutcome;
+namespace ModulithFoundry.Modules.Sales.Fulfilment.RecordReleaseOutcome;
 
-internal sealed class RecordReservationOutcomeHandler(
-    SalesDbContext context,
-    TimeProvider timeProvider
-)
+internal sealed class RecordReleaseOutcomeHandler(SalesDbContext context, TimeProvider clock)
 {
     internal async Task HandleAsync(
-        StockReservationOutcomeV1 outcome,
+        StockReservationReleaseOutcomeV1 outcome,
         CancellationToken cancellationToken
     )
     {
@@ -28,7 +24,7 @@ internal sealed class RecordReservationOutcomeHandler(
             cancellationToken
         );
         string deliveryFingerprint = Hash(outcome);
-        SalesInboxReceipt? receipt = await context.InboxReceipts.SingleOrDefaultAsync(
+        var receipt = await context.InboxReceipts.SingleOrDefaultAsync(
             item => item.MessageId == outcome.MessageId,
             cancellationToken
         );
@@ -36,37 +32,41 @@ internal sealed class RecordReservationOutcomeHandler(
         {
             if (receipt.Fingerprint != deliveryFingerprint)
                 throw new InvalidDataException(
-                    "A message identity was reused with different content."
+                    "A release outcome identity was reused with different content."
                 );
             return;
         }
-        DateTimeOffset timestamp = timeProvider.GetUtcNow();
-        DateTimeOffset now = new(timestamp.UtcTicks - timestamp.UtcTicks % 10, TimeSpan.Zero);
-        OrderFulfilmentProcess? process = await context.FulfilmentProcesses.SingleOrDefaultAsync(
+        var time = clock.GetUtcNow();
+        DateTimeOffset now = new(time.UtcTicks - time.UtcTicks % 10, TimeSpan.Zero);
+        var process = await context.FulfilmentProcesses.SingleOrDefaultAsync(
             item => item.Id == outcome.ProcessId,
             cancellationToken
         );
-        OrderFulfilmentLine? line = process?.Lines.SingleOrDefault(item =>
-            item.LineNumber == outcome.LineNumber
-        );
+        var line = process?.Lines.SingleOrDefault(item => item.LineNumber == outcome.LineNumber);
         bool matches =
-            process is not null
+            process is { CancellationRequested: true }
             && process.OrderNumber == outcome.OrderNumber
             && line is not null
-            && line.AttemptCount == 1
-            && line.OperationId == outcome.OperationId
-            && line.CommandMessageId == outcome.CausationId
-            && line.Quantity == outcome.RequestedQuantity
-            && line.BaseUnitCode == outcome.BaseUnitCode;
+            && line.ReleaseCommandMessageId == outcome.CausationId
+            && line.ReleaseOperationId == outcome.OperationId
+            && line.OperationId == outcome.ReservationOperationId
+            && line.ReservationId == outcome.ReservationId
+            && (
+                outcome.Outcome == StockReservationReleaseOutcome.Rejected
+                || (
+                    line.Quantity == outcome.ReservationQuantity
+                    && line.BaseUnitCode == outcome.BaseUnitCode
+                )
+            );
         if (!matches)
         {
             context.AuditEntries.Add(
                 SalesAuditEntry.WorkflowDecision(
                     outcome.OrganizationId,
-                    SalesAuditActions.ReservationOutcomeIgnored,
+                    SalesAuditActions.ReservationReleaseOutcomeIgnored,
                     outcome.ProcessId,
                     SalesAuditOutcomes.Ignored,
-                    ReservationOutcomeReasonCodes.CorrelationMismatch,
+                    ReleaseOutcomeReasonCodes.CorrelationMismatch,
                     new
                     {
                         outcome.MessageId,
@@ -79,7 +79,6 @@ internal sealed class RecordReservationOutcomeHandler(
         }
         else
         {
-            // Delivery identity may change during an explicit replay; the retained business decision may not.
             string fingerprint = Hash(
                 new
                 {
@@ -89,13 +88,10 @@ internal sealed class RecordReservationOutcomeHandler(
                     outcome.ProcessId,
                     outcome.OrderNumber,
                     outcome.LineNumber,
-                    outcome.Outcome,
+                    outcome.ReservationOperationId,
                     outcome.ReservationId,
-                    RequestedQuantity = outcome.RequestedQuantity.ToString(
-                        "G29",
-                        CultureInfo.InvariantCulture
-                    ),
-                    AvailableQuantity = outcome.AvailableQuantity.ToString(
+                    outcome.Outcome,
+                    Quantity = outcome.ReservationQuantity?.ToString(
                         "G29",
                         CultureInfo.InvariantCulture
                     ),
@@ -103,48 +99,36 @@ internal sealed class RecordReservationOutcomeHandler(
                     outcome.ReasonCode,
                 }
             );
-            if (line!.OutcomeFingerprint is { } accepted)
+            if (line!.ReleaseOutcomeFingerprint is { } accepted)
             {
                 if (accepted != fingerprint)
-                    throw new InvalidDataException(
-                        "A reservation operation has conflicting outcomes."
-                    );
+                    throw new InvalidDataException("A release operation has conflicting outcomes.");
             }
             else
             {
-                OrderFulfilmentLineStatus status = outcome.Outcome switch
-                {
-                    StockReservationOutcome.Reserved => OrderFulfilmentLineStatus.Reserved,
-                    StockReservationOutcome.Shortage => OrderFulfilmentLineStatus.Shortage,
-                    StockReservationOutcome.Rejected => OrderFulfilmentLineStatus.Rejected,
-                    _ => throw new InvalidDataException("Reservation outcome is unsupported."),
-                };
                 var previousStatus = process!.Status;
-                process.ApplyOutcome(
-                    line,
-                    new(
-                        status,
-                        outcome.ReservationId,
-                        outcome.AvailableQuantity,
-                        outcome.ReasonCode,
-                        fingerprint
-                    )
-                );
+                var status = outcome.Outcome switch
+                {
+                    StockReservationReleaseOutcome.Released =>
+                        OrderFulfilmentReleaseStatus.Released,
+                    StockReservationReleaseOutcome.AlreadyReleased =>
+                        OrderFulfilmentReleaseStatus.AlreadyReleased,
+                    StockReservationReleaseOutcome.Rejected =>
+                        OrderFulfilmentReleaseStatus.Rejected,
+                    _ => throw new InvalidDataException("Release outcome is unsupported."),
+                };
+                process.ApplyRelease(line, status, outcome.ReasonCode, fingerprint);
                 long orderVersion = await context
                     .SalesOrders.Where(order => order.Id == process.OrderId)
                     .Select(order => order.Version)
                     .SingleAsync(cancellationToken);
-                SalesOrderActivityKind kind = status switch
-                {
-                    OrderFulfilmentLineStatus.Reserved => SalesOrderActivityKind.StockReserved,
-                    OrderFulfilmentLineStatus.Shortage => SalesOrderActivityKind.StockShortage,
-                    _ => SalesOrderActivityKind.ReservationRejected,
-                };
                 context.OrderActivity.Add(
                     SalesOrderActivity.RecordFulfilment(
                         process,
                         orderVersion,
-                        kind,
+                        status == OrderFulfilmentReleaseStatus.Rejected
+                            ? SalesOrderActivityKind.ReservationReleaseRejected
+                            : SalesOrderActivityKind.ReservationReleased,
                         line.LineNumber,
                         now
                     )
@@ -152,25 +136,23 @@ internal sealed class RecordReservationOutcomeHandler(
                 context.AuditEntries.Add(
                     SalesAuditEntry.WorkflowDecision(
                         process.OrganizationId,
-                        SalesAuditActions.ReservationOutcomeRecorded,
+                        SalesAuditActions.ReservationReleaseOutcomeRecorded,
                         process.Id,
-                        SalesAuditOutcomes.Succeeded,
-                        null,
+                        status == OrderFulfilmentReleaseStatus.Rejected
+                            ? SalesAuditOutcomes.Rejected
+                            : SalesAuditOutcomes.Succeeded,
+                        outcome.ReasonCode,
                         new
                         {
                             process.Version,
                             line.LineNumber,
-                            line.OperationId,
+                            line.ReleaseOperationId,
                             line.ReservationId,
-                            Status = OrderFulfilmentLineStatusValues.ToValue(line.Status),
+                            Status = OrderFulfilmentReleaseStatusValues.ToValue(status),
                         },
                         now
                     )
                 );
-                if (status == OrderFulfilmentLineStatus.Shortage)
-                    ReplenishmentCommandStaging.Stage(context, process, line, now);
-                if (process.CancellationRequested)
-                    ReleaseCommandStaging.Stage(context, process, line, now);
                 CompensationActivity.StageCompletion(
                     context,
                     process,
@@ -195,7 +177,7 @@ internal sealed class RecordReservationOutcomeHandler(
     private static string Hash<T>(T value) =>
         Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value)));
 
-    private static void Validate(StockReservationOutcomeV1 outcome)
+    private static void Validate(StockReservationReleaseOutcomeV1 outcome)
     {
         if (
             outcome.MessageId == Guid.Empty
@@ -203,31 +185,28 @@ internal sealed class RecordReservationOutcomeHandler(
             || outcome.OrganizationId == Guid.Empty
             || outcome.OperationId == Guid.Empty
             || outcome.ProcessId == Guid.Empty
+            || outcome.ReservationOperationId == Guid.Empty
+            || outcome.ReservationId == Guid.Empty
             || outcome.OrderNumber <= 0
             || outcome.LineNumber <= 0
-            || string.IsNullOrWhiteSpace(outcome.BaseUnitCode)
-            || outcome.BaseUnitCode.Length > 16
             || outcome.ReasonCode?.Length > 100
-            || outcome.AvailableQuantity < 0
-            || outcome.AvailableQuantity > 9_999_999_999_999.999999m
-            || decimal.Round(outcome.AvailableQuantity, 6) != outcome.AvailableQuantity
-            || (
-                outcome.Outcome == StockReservationOutcome.Shortage
-                && outcome.AvailableQuantity >= outcome.RequestedQuantity
-            )
+            || outcome.BaseUnitCode?.Length > 16
         )
-            throw new InvalidDataException("Reservation outcome metadata is invalid.");
-        _ = OrderQuantity.Create(outcome.RequestedQuantity);
+            throw new InvalidDataException("Release outcome metadata is invalid.");
         bool valid = outcome.Outcome switch
         {
-            StockReservationOutcome.Reserved => outcome.ReservationId is { } id
-                && id != Guid.Empty
+            StockReservationReleaseOutcome.Released
+            or StockReservationReleaseOutcome.AlreadyReleased => outcome.ReservationQuantity is > 0
+                && !string.IsNullOrWhiteSpace(outcome.BaseUnitCode)
                 && outcome.ReasonCode is null,
-            StockReservationOutcome.Shortage or StockReservationOutcome.Rejected =>
-                outcome.ReservationId is null && !string.IsNullOrWhiteSpace(outcome.ReasonCode),
+            StockReservationReleaseOutcome.Rejected => outcome.ReservationQuantity is null
+                && outcome.BaseUnitCode is null
+                && !string.IsNullOrWhiteSpace(outcome.ReasonCode),
             _ => false,
         };
         if (!valid)
-            throw new InvalidDataException("Reservation outcome shape is invalid.");
+            throw new InvalidDataException("Release outcome shape is invalid.");
+        if (outcome.ReservationQuantity is { } quantity)
+            _ = Orders.OrderQuantity.Create(quantity);
     }
 }
