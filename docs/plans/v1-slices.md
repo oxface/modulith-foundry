@@ -368,6 +368,8 @@ Deliver through review-sized proof increments rather than a generic operations f
 
 The [durability evidence ledger](broker-durability.md) separates 5.6a's committed-delivery failover proof from the still-open operational and full-application failure windows.
 
+Operational work is also delivered vertically. **5.6b1** adds the [retained Inventory outcome recovery](message-delivery-recovery.md): authorized metadata inspection and audited republication through the existing relay, proven against a real Sales compensation gap. It adds no public recovery route or generic message replay tool. **5.6b2** retains telemetry, broader publisher/destination recovery procedures and any justified production maintenance adapter; 5.6b is not closed by the first Contract alone.
+
 ## Slice 6 — Minimal frontend journey
 
 ### Increment 6.1 — Vite/BFF shell and Organization navigation

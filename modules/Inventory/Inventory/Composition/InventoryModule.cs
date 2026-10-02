@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Modules.Access.Contracts;
 using ModulithFoundry.Modules.Inventory.Contracts;
+using ModulithFoundry.Modules.Inventory.Messaging.Recovery;
 using ModulithFoundry.Modules.Inventory.Persistence;
 using ModulithFoundry.Modules.Inventory.ReferenceData;
 using ModulithFoundry.Modules.Inventory.ReferenceData.StockingLocations;
@@ -35,6 +36,7 @@ public static class InventoryModule
         services.AddSingleton(InventoryAuthorizationManifest.Instance);
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<InventoryRequestAuthorization>();
+        services.AddScoped<IInventoryMessageDeliveryRecovery, InventoryMessageDeliveryRecovery>();
         services.AddScoped<CreateStockItemHandler>();
         services.AddScoped<ChangeStockItemDescriptionHandler>();
         services.AddScoped<SetStockItemActiveHandler>();

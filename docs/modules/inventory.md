@@ -96,6 +96,8 @@ The module-local relay atomically leases committed rows with `FOR UPDATE SKIP LO
 
 ## Durable release receiver
 
+The authorized [delivery-recovery Contract and runbook](../plans/message-delivery-recovery.md) inspect retained publication metadata and explicitly requeue reservation/release outcomes with their original identity. Inventory Manager gains `inventory.message-deliveries.recover`; no public route is mapped. Recovery changes only retained scheduling plus operator audit, not stock, private events or business-operation receipts. Active leases and stale attempt snapshots are refused; publisher confirmation is not receiver completion.
+
 The [release protocol](../plans/reservation-release.md) adds a second directed command on the same isolated endpoint. Inventory validates the retained original reservation and its process/order/line correlation, owns release quantity/unit, and commits its inbox, separate compensation-operation receipt, private release event, inline state, audit and outgoing outcome atomically. Ended child identity is retained through replay/rebuild. Duplicate intent cannot release twice or let a delayed reserve replay resurrect stock. Inconsistent required state fails technically and requires repair/redrive; it is not reported as completed compensation. No HTTP capability is exposed. Sales cancellation now supplies durable release intent and consumes the outcome without accessing Inventory tables.
 
 ## Stock Item reference export and publication

@@ -7,4 +7,5 @@ public static class InventoryPermissionIds
     public const string StockAdjust = "inventory.stock.adjust";
     public const string StockView = "inventory.stock.view";
     public const string ProjectionRebuild = "inventory.projections.rebuild";
+    public const string MessageDeliveryRecover = "inventory.message-deliveries.recover";
 }

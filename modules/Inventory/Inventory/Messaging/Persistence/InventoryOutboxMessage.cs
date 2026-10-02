@@ -22,6 +22,14 @@ internal sealed class InventoryOutboxMessage : IOrganizationOwned
     internal DateTimeOffset? LeaseUntil { get; private set; }
     internal int Attempts { get; private set; }
 
+    internal void Requeue(DateTimeOffset now)
+    {
+        DispatchedAt = null;
+        AvailableAt = now;
+        LeaseToken = null;
+        LeaseUntil = null;
+    }
+
     internal static InventoryOutboxMessage Stage(StockReservationOutcomeV1 outcome) =>
         new()
         {

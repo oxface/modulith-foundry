@@ -2,6 +2,8 @@ namespace ModulithFoundry.Modules.Inventory.ReferenceData;
 
 internal static class InventoryAuditActions
 {
+    internal const string MessageDeliveryRequeued = "message-delivery.requeued";
+    internal const string MessageDeliveryRecoveryDenied = "message-delivery.recovery-denied";
     internal const string StockItemCreated = "stock-item.created";
     internal const string StockItemCreateDenied = "stock-item.create-denied";
     internal const string StockItemDescriptionChanged = "stock-item.description-changed";

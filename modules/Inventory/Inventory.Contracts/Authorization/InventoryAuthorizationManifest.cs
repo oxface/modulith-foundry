@@ -13,6 +13,10 @@ public static class InventoryAuthorizationManifest
                 new(InventoryPermissionIds.StockAdjust, "Adjust stock"),
                 new(InventoryPermissionIds.StockView, "View stock"),
                 new(InventoryPermissionIds.ProjectionRebuild, "Rebuild stock projections"),
+                new(
+                    InventoryPermissionIds.MessageDeliveryRecover,
+                    "Recover retained message delivery"
+                ),
             ],
             [
                 new(
@@ -24,6 +28,7 @@ public static class InventoryAuthorizationManifest
                         InventoryPermissionIds.StockAdjust,
                         InventoryPermissionIds.StockView,
                         InventoryPermissionIds.ProjectionRebuild,
+                        InventoryPermissionIds.MessageDeliveryRecover,
                     ]
                 ),
             ]

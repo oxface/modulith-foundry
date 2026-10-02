@@ -33,6 +33,8 @@ All four cases run in the existing Broker CI lane, without personal credentials 
 
 ## Remaining 5.6 work
 
+5.6b1 now supplies a narrow [Inventory retained-outcome recovery](message-delivery-recovery.md) proof: a real Sales receiver failure leaves compensation pending after Inventory's release, and explicit authorized republication of the original outcome closes that gap without a second stock effect. This is not automatic process reconciliation or a production operator UI/CLI. The runbook separates receiver redrive from source republication; generic metrics and the broader operational matrix remain open.
+
 This proof does not close graceful shutdown, two complete application replicas and their shared workers, first-time concurrent receipt insertion, module failure isolation under outage, broker/database interruption, stalled outbox lease recovery across replicas, cancellation-ingress process death, globally bounded poison retries, or reconciliation after a missing response. Nor does it prove every message type on each endpoint.
 
 5.6b adds narrowly justified diagnostics and explicit operator recovery. 5.6c closes the remaining failure matrix against the actual application. An expired business response deadline is diagnostic, not evidence of failure or permission to fabricate a new operation identity. Redrive retains original intent/identity and requires the owning protocol's idempotency proof. Until those increments land, do not present automatic retry exhaustion handling or operator reconciliation as implemented.
