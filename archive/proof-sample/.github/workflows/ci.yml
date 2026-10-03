@@ -13,10 +13,6 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: archive/proof-sample
-
 jobs:
   fast:
     name: Fast lane
@@ -33,7 +29,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: archive/proof-sample/global.json
+          global-json-file: global.json
 
       - name: Set up Node.js for repository checks
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -42,29 +38,16 @@ jobs:
           package-manager-cache: false
 
       - name: Install repository tools
-        working-directory: ${{ github.workspace }}
         run: npm ci --prefix tools/repository
-
-      - name: Verify archive snapshot
-        working-directory: ${{ github.workspace }}
-        run: python3 tools/repository/verify-archive.py
 
       - name: Restore
         run: dotnet restore ModulithFoundry.slnx
 
-      - name: Restore archived tools
+      - name: Restore repository tools
         run: dotnet tool restore
 
-      - name: Restore active formatter
-        working-directory: ${{ github.workspace }}
-        run: dotnet tool restore
-
-      - name: Verify root formatting
-        working-directory: ${{ github.workspace }}
+      - name: Verify formatting
         run: dotnet csharpier check . --include-generated
-
-      - name: Verify archived formatting
-        run: dotnet csharpier check . --include-generated --ignore-path .gitignore
 
       - name: Verify code style
         run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
@@ -91,7 +74,6 @@ jobs:
 
       - name: Check pull-request commits
         if: github.event_name == 'pull_request'
-        working-directory: ${{ github.workspace }}
         run: >-
           npm exec --prefix tools/repository -- commitlint
           --config tools/repository/commitlint.config.mjs
@@ -101,7 +83,6 @@ jobs:
 
       - name: Check pushed commit
         if: github.event_name == 'push'
-        working-directory: ${{ github.workspace }}
         run: >-
           npm exec --prefix tools/repository -- commitlint
           --config tools/repository/commitlint.config.mjs
@@ -122,7 +103,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: archive/proof-sample/global.json
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore ModulithFoundry.slnx
@@ -147,7 +128,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: archive/proof-sample/global.json
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore ModulithFoundry.slnx
@@ -172,7 +153,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: archive/proof-sample/global.json
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore ModulithFoundry.slnx

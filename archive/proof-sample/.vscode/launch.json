@@ -7,8 +7,8 @@
         {
             "type": "aspire",
             "request": "launch",
-            "name": "Aspire: Launch archived proof sample",
-            "program": "${workspaceFolder}/archive/proof-sample"
+            "name": "Aspire: Launch AppHost",
+            "program": "${workspaceFolder}"
         }
     ]
 }

@@ -5,13 +5,13 @@ pre-commit:
       run: dotnet csharpier check . --include-generated
     - name: dotnet-style
       glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet format style archive/proof-sample/ModulithFoundry.slnx --verify-no-changes --no-restore
+      run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
     - name: dotnet-analyzers
       glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet format analyzers archive/proof-sample/ModulithFoundry.slnx --verify-no-changes --no-restore
+      run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
+      run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
 
 commit-msg:
   jobs:
