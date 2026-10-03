@@ -8,8 +8,11 @@ testing, plan approval, and approval of an earlier commit do not authorize `git 
 
 ## Library and sample work
 
+- Before changing C# code, read [the .NET conventions](docs/conventions/dotnet.md).
 - Before architecture, dependencies, or public-interface work, read
   [the current design decisions](docs/design.md) and [the extraction plan](docs/plans/library-extraction.md).
+- Before changing shared terminology, read [the project glossary](CONTEXT.md). Keep it to
+  resolved definitions; implementation choices belong in the design documents.
 - Implement one reviewable capability with executable consumer usage and relevant proofs.
   Library interfaces and implementations receive owner review line by line. Leave changes
   unstaged for review; the historical automatic-staging workflow has ended.

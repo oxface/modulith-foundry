@@ -19,6 +19,169 @@ Authentication establishes identity. Tenant/actor execution context is independe
 sample Access model and does not grant authorization. Membership, invitation lifecycle,
 roles, permissions, and business authorization belong to the consumer.
 
+## Current adoption strategy
+
+For now, a library segment must also be usable in an ordinary .NET API or worker without
+adopting the template's module layout or Access model. The template supplies a coherent
+composition; standalone consumers receive the segment's documented guarantees through their
+own explicit wiring. This is a current delivery choice, open to revision when implementation
+evidence demonstrates value in more involved libraries.
+
+Access starts as consumer-owned sample/template code, including the product's user,
+Organization, membership, invitation and role behavior. Consumers can copy and customize it.
+Shipping it in the template preserves a practical path to later extraction; it does not make
+the Access model a dependency of the tenant/actor seam or other technical libraries.
+
+Revisit either choice through [the plan's extraction and strategy gate](plans/library-extraction.md#extraction-and-strategy-gate).
+The trigger is demonstrated reuse or complexity removed, followed by review of added policy,
+coupling, customization and proof obligations. More involved integration is a possible outcome,
+not a requirement to add speculative abstractions now.
+
+## Tenant and actor meaning
+
+Tenantless execution is an explicit choice, distinct from failing to establish a required
+tenant. Each capability declares whether tenantless execution is permitted; operations that
+require a tenant reject missing context. Login or tenant creation can run outside a tenant
+boundary. Tenantless execution does not grant access to every tenant's data.
+
+Keep the executing actor separate from the initiator. For deferred work performed by a
+named workflow/system identity, that identity is the actor; the human who triggered it can
+remain its initiator. Attribution grants no authority. Whether work continues after the
+initiator loses membership or permission is an explicit consumer policy, not a decision made
+by the context library. Consumers establish trusted actor identities and authorize operations.
+
+Anonymous execution is explicitly represented, distinct from missing actor context. Consumer
+policy decides which capabilities allow it; capabilities requiring a trusted human or
+system actor reject anonymous or missing actor context. Anonymous and tenantless execution
+are independent choices: a public operation may have a selected tenant, and an identified
+actor may perform tenantless work. Context establishment itself grants no authority.
+
+Tenant, actor and initiator stay fixed throughout one operation. Internal module calls may
+share that immutable context. A worker processing different tenants or acting identities
+establishes a separate operation context for each; it does not rebind its current context.
+
+Use opaque string keys carried by distinct tenant/actor value types. Consumers explicitly
+map their domain identities into these keys; the library does not prescribe GUIDs or depend
+on authentication-provider identity types. Compare keys exactly using ordinal comparison.
+Reject empty and whitespace-only keys; preserve accepted values without trimming, case
+conversion or parsing. Consumers own canonicalization at the mapping point.
+The representation trade-off is recorded in [ADR 0001](adr/0001-opaque-operation-identities.md).
+
+Start the sample/template with a stable, globally unique application UserId and external
+identities resolved by consumer-owned Access code. For OIDC, resolve validated issuer and
+subject to that UserId; human actor keys carry the resulting application identity. Provider
+resolution, account linking and email-based admission remain Access policy. The technical
+library does not require provider/issuer fields or a User entity. Human and system actor
+identities remain distinguishable even when their key text matches.
+
+Operations obtain context through an injected, read-only accessor. The immutable context
+value remains independent of DI, EF, web and transport types. Consumers wire context
+establishment and accessor lifetime explicitly. The host initializes complete context
+exactly once per operation scope through a separate initialization interface. Reading before
+initialization or initializing again is an error. Reset, replacement and automatic fallback
+to anonymous context are excluded. Business code depends on the read interface; this
+separation expresses consumer roles and does not replace application authorization.
+
+Initiator attribution is optional. Consumers supply it when known; the library neither
+infers it from the current actor nor automatically propagates it to another operation.
+Scheduled maintenance and work with unavailable original attribution can omit it.
+
+Once initialized, the accessor supports concurrent reads of the immutable context within
+one operation. Establishment finishes before parallel business work begins; separate
+operations have separate scopes. This guarantee covers context reads and does not extend
+the concurrency guarantees of other injected dependencies.
+
+Provide explicitly called checks for context requirements, such as a selected tenant or
+an identified actor. Consumers choose where to apply those checks and how to present
+failures. The checks do not resolve membership, authenticate an identity, decide permission
+or select HTTP responses.
+
+The concrete E1 interface, lifecycle and proof proposal is in
+[the tenant/actor slice plan](plans/e1-tenant-actor.md). Its public names and implementation
+details remain subject to owner review; interview decisions above are the agreed direction.
+
+## Scope and HTTP integration review
+
+The current context library covers operation identity and tenant scope: actor kind/key,
+optional initiator, tenant choice, accessor lifetime and explicit requirement checks. It is
+not a general home for transaction, trace, HTTP or module-persistence contexts. Authentication
+and complete multi-tenancy behavior have their own consumer wiring and later proof slices.
+The library is named `ModulithFoundry.ExecutionIdentity` to express that boundary. The owner
+authorized this review revision; the renamed project and public interfaces await re-review.
+
+The common capability requirement now has one call, `RequireTenantAndIdentifiedActor()`.
+Separate checks remain useful for anonymous tenant reads and identified tenantless work.
+Actor identity is kind plus canonical key; consumer-owned Access resolves profiles, external
+identities, memberships and permissions. Those records do not become context fields.
+
+For HTTP usage, propose an explicitly registered ASP.NET Core adapter with context
+establishment middleware and consumer-selected tenancy defaults. The template should
+require authentication through native authorization configuration and a selected tenant
+through the tenancy adapter, with explicit endpoint/group exceptions. Registering the
+adapter is an explicit consumer choice; the template's default is not a compulsory policy
+of the core library.
+
+Keep native authentication and authorization: `[Authorize]`, `.RequireAuthorization()`,
+named policies, roles, schemes and `IAuthorizationService` retain their ASP.NET Core meaning.
+The adapter can make established context available to consumer authorization handlers.
+Identified actor presence is not a substitute for authentication or permission checks.
+There is no parallel HTTP actor authorization policy or actor-specific endpoint extension.
+Native authorization decides whether a caller may execute the endpoint; the resolver maps
+the effective authenticated principal to an application actor. An authenticated principal
+that cannot be mapped must fail establishment rather than silently become anonymous.
+The core's explicit actor guards remain useful for capability invariants and non-HTTP calls.
+
+Honor native `[AllowAnonymous]`/`.AllowAnonymous()` without a second actor opt-out, and propose
+separate tenantless endpoint metadata for the tenant exception. An anonymous tenant catalog
+can still require a tenant; authenticated tenant creation can require an
+actor without a tenant. Login/health endpoints can explicitly allow both. Allowing anonymous
+access must not replace an authenticated caller's resolved actor with an anonymous actor.
+Public names for tenantless metadata remain under review.
+
+Enforce tenancy requirements separately from native authorization-policy selection. Native
+`FallbackPolicy` is not combined with named/default policies, and `AllowAnonymous` bypasses
+authorization enforcement. The template uses native fallback/default policies requiring
+authentication; named permission policies explicitly include their intended authentication
+requirements. The adapter does not impose an extra actor rule when native authorization
+permits anonymous access. Putting tenancy only in a fallback policy would leave gaps.
+The adapter's tenant default must survive both named permission policies and anonymous access
+unless the endpoint explicitly permits tenantless execution.
+See [native policy selection rules](https://learn.microsoft.com/en-us/aspnet/core/security/authorization/policies?view=aspnetcore-10.0).
+`HttpContext.User` remains available for claims and native APIs; the accessor supplies the
+canonical application actor and tenant for ordinary capability calls. It does not replace
+`ClaimsPrincipal` or require consumers to abandon native identity access.
+
+The consumer provides the resolver. It maps a validated external identity to the application
+actor, selects and resolves a canonical tenant using the consumer's route/host/header policy,
+and checks applicable admission or membership before initializing complete context once.
+An OIDC claim is not automatically an application UserId or an admitted tenant. Resolution
+may perform asynchronous Access lookups; it is not limited to copying claims. Anonymous and
+tenantless cases are deliberate outputs. Tenant business data can load later; the context's
+tenant identity is never appended or changed after initialization.
+
+Routing and native authentication precede context establishment; complete context must
+exist before handlers and any authorization handlers that consume it. Prove the exact
+middleware order and failure behavior with the selected native authentication schemes.
+In particular, scheme-specific authorization must not leave context based on a different
+principal. Native challenges must remain intact. Consumers choose admission/failure responses
+and keep relevant requirements/permissions at module entry points for non-HTTP callers.
+
+Build the adapter alongside trusted HTTP ingress in E3. Review its public interfaces and
+prove defaults, endpoint/group precedence, anonymous and tenantless exceptions, named policies,
+authentication schemes, denied admission, challenges and login/callback/health paths before
+claiming support. Include unmapped authenticated principals, retained authenticated identity
+on anonymous endpoints, and native policies that deliberately permit anonymous access.
+The core remains package-free; worker/message consumers initialize their own operation scopes
+directly. E1 currently includes no HTTP middleware.
+
+OIDC/BFF registration starts as a small, editable sample/template helper in E3, composing
+native `AddAuthentication`, `AddCookie` and `AddOpenIdConnect`. Provider settings, claim
+mapping, session behavior, account linking and directory-gated/open admission stay visible
+and consumer-owned. Promote focused authentication utilities only when exercised reuse
+justifies a separate library. The later bootstrap CLI materializes the proven alternatives;
+it does not turn authentication policy into a mandatory runtime layer. See
+[native OIDC registration](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/configure-oidc-web-authentication?view=aspnetcore-10.0).
+
 ## Explicit control
 
 Consumers register their DbContexts, entity mappings, migrations, handlers, transports,
@@ -60,6 +223,20 @@ worker hosting, and application policy remain consumer choices.
 Keep the email replacement seam narrow; SMTP/MailKit does not become a mandatory foundational
 dependency. Authentication, general notifications, and a transport/provider matrix are not
 automatically promoted into libraries.
+
+## Template bootstrap direction
+
+Provide a bootstrap CLI later to apply the template to a consumer repository. It will select
+reviewed template alternatives and optional capabilities and materialize ordinary,
+consumer-owned code and configuration. Intended choices include transport, event sourcing,
+Aspire resources and authentication/admission setup such as Keycloak with directory-gated
+or open registration. These are configuration goals, not currently supported alternatives.
+
+Introduce an option after its implementation and composition have been exercised. Provider
+selection does not require a common provider abstraction. Authentication/admission choices
+configure consumer-owned Access policy. CLI implementation, existing-file handling and the
+supported combinations remain later design decisions in E10; this adds no runtime dependency
+or immediate CLI implementation work.
 
 ## Telemetry and tooling
 

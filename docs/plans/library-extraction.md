@@ -2,8 +2,9 @@
 
 Status: review proposal, 2026-10-03. The owner approved the archive-and-plan direction.
 This document proposes implementation increments; it does not freeze public interfaces,
-package boundaries, or authorize a commit. No new runtime library is implemented in this
-checkpoint. Read [the approved design posture](../design.md) alongside this plan.
+package boundaries, or authorize a commit. E1 now has an implementation awaiting owner code
+review; [its report](../reports/e1-tenant-actor.md) distinguishes new proofs from historical
+evidence. Read [the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model
 
@@ -17,6 +18,34 @@ interface tests, executable sample integration, relevant failure proofs, and doc
 Add a template recipe or file only when a new consumer setup pattern is exercised. The sample
 can supply the concrete source for the final template; it is not a third implementation.
 Sample-only capability proofs and adapter increments may introduce no new library.
+
+### Extraction and strategy gate
+
+The owner confirmed standalone library adoption as the current strategy: a segment can be
+used in an ordinary .NET API or worker without the template's module structure or Access
+model. This can be revisited if actual implementation shows value in more involved libraries.
+Until reviewed otherwise, standalone consumer proofs remain part of the relevant increments.
+
+Access begins as customizable sample/template code. Its presence in the template makes later
+extraction possible when reuse earns it; a reusable Access module is not required for E1.
+Apply the same evidence-based assessment to other candidate mechanisms rather than treating
+the candidate inventory as a promise that each entry becomes a package.
+
+Before promoting template behavior into a library or changing the adoption strategy, present:
+
+1. Concrete consumers or use cases that repeat the behavior, or implementation evidence of
+   meaningful complexity removed by the proposed integration.
+2. Which behavior is a reusable mechanism and which product policies would travel with it.
+3. Consumer usage and customization examples, dependencies and ownership changes, and the
+   effect on standalone adoption and existing compositions.
+4. Public-interface and end-to-end proof obligations, compatibility responsibilities and
+   supported limits. A more involved implementation does not automatically inherit the old
+   guarantees or supersede explicit-control decisions.
+
+Review that proposal before promotion. Access extraction may produce an optional feature
+module with explicit policies rather than a technical foundation; do not move its membership
+or role model into the tenant/actor seam to make extraction convenient. New evidence and a
+reviewed strategy change can reorder later increments; neither is silently assumed.
 
 ### Planned layout
 
@@ -49,7 +78,7 @@ interfaces. Links below deliberately point to the historical evidence.
 | Reliable messaging | Inbox/outbox storage, lease claims, token-guarded completion/backoff and callable dispatch | Semantic operation identities, fingerprint meaning, producer trust, retention, routes and payload mapping. Delivery deduplication is not business idempotency. |
 | Rebus/RabbitMQ integration | Optional adapters around demonstrated delivery/publishing behavior | Consumer creates endpoints and wires queues, topics, subscriptions, handlers, routing and retry/error policy. No generic bus registration facade. |
 | Audit | Common technical envelope and explicit staging, if comparison earns a library | Action/reason vocabulary, denial policy, sensitive details, retention and query visibility. Event streams are not security audits. |
-| Authentication | Evaluate focused technical utilities such as ticket storage | BFF/OIDC settings, principal completion and Access behavior begin as sample/template code. No general identity framework is assumed. |
+| Authentication and Access | Evaluate focused technical utilities and, later, an optional Access feature module if reuse earns it | BFF/OIDC settings, principal completion, users, Organizations, memberships, invitations and roles begin as customizable sample/template code. Promotion follows the extraction and strategy gate; Access is not a technical-library foundation. |
 | Saga/process coordination | Compare repeated persistence/claim mechanics after reliable delivery | Concrete transitions, deadlines, compensation and operator attention remain in Sales/Purchasing. No generic saga engine is justified yet. |
 | DDD and CQRS | Small pending-event or value utilities only if they remove meaningful duplication | Rich aggregates, children, value-object rules, domain services, handlers/results and direct queries begin as consumer code. No mandatory inheritance or mediator. |
 | Structure, API and registration | Explicit sample conventions and configurable architecture utilities | Consumer-selected graph, HTTP ingress and module composition. A configurable policy tool must demonstrate an alternative layout and detect violations. |
@@ -116,7 +145,7 @@ the interface and failure matrix cannot be reviewed together in one sitting.
 
 ### E0 Archive and active documentation
 
-This is the completed archive-and-plan checkpoint; its changes await owner review.
+This checkpoint was reviewed and committed as `0690475` on 2026-10-03.
 
 Preserve the original tracked source and its provenance without implementation changes.
 Retain minimal active policy, tooling, CI and a proposed extraction plan. Verify checksum
@@ -136,20 +165,74 @@ format/test hosts needed local IPC/container access. No audit or assertion was d
 
 ### E1 Tenant and actor seam with a minimal sample
 
-Review immutable tenant/actor context, identity representation and explicit scope lifetime.
-Compare passing context explicitly with a fresh DI scope; choose the smaller interface that
-handles both human and workflow consumers. Tenant selection never asserts membership or
-permission. System actor identities come from trusted consumer wiring, not caller input.
+The owner approved [the E1 slice plan](e1-tenant-actor.md) for implementation. Its interface,
+consumer wiring and proof results now await line-by-line code review; see
+[the implementation report](../reports/e1-tenant-actor.md). New lifecycle/concurrency proofs
+are distinguished from inherited archive evidence.
+
+Context is immutable within one operation; changing tenant, actor or initiator requires a
+separate operation context. Use opaque string keys in distinct tenant/actor value types,
+with consumer-owned domain identity mapping. Keys use ordinal comparison, reject empty or
+whitespace-only values, and preserve accepted values exactly; canonicalization is consumer
+policy. Operations read context through an injected, read-only accessor. The host initializes
+it exactly once per operation scope through a separate initialization interface. Reading
+before establishment and any repeated initialization are errors; no reset, replacement or
+anonymous fallback is supported. Review explicit registration and lifetime for human and
+workflow consumers. Immutable values do not depend on DI. Tenant selection never asserts
+membership or permission. System actor identities come from trusted consumer wiring, not
+caller input.
+
+Support concurrent reads after initialization within one operation; parallel business work
+starts only after establishment completes. Provide small, explicitly called context
+requirement checks; their use and failure presentation are consumer choices. Establishing
+trust, resolving membership, checking permissions and mapping HTTP failures remain outside
+the core seam.
+
+Support explicit tenantless execution separately from missing required context. Keep current
+actor and original initiator distinct, including a workflow acting on work initiated by a
+human. Initiator is optional, explicitly supplied when known, and neither inferred from the
+actor nor automatically propagated. Neither attribution nor context establishment grants
+permission; consumer policy owns authorization and the effect of later membership revocation.
+
+Represent anonymous execution explicitly, separately from missing actor context and from
+tenantless execution. Consumers choose which capabilities permit anonymous actors. A public
+tenant-specific operation and an identified actor's tenantless operation are both valid
+compositions when the owning capability permits them.
 
 Provide a runnable sample host and two real capability calls exercising isolated contexts,
-with concurrent operations and missing/mismatched context cases. Test setup actors are not a
-production authentication implementation; expose tenant business HTTP operations only after
-trusted ingress is in place. Prove no cross-scope leakage, allowed/forbidden scope reuse and
-cleanup on exceptions/cancellation. Build a minimal consumer without EF, ASP.NET Core, Rebus,
-Aspire or sample Access.Contracts. Add active solution, Fast lane and hook coverage.
+with concurrent operations, permitted tenantless work, rejected missing required tenants,
+permitted anonymous work, rejected anonymous actors where an identified actor is required,
+missing/mismatched context cases and distinct actor/initiator attribution. Test setup actors
+are not a production authentication implementation; expose tenant business HTTP operations
+only after trusted ingress is in place. Prove exact key comparison and validation, early-read
+and repeated-initialization errors, optional attribution, concurrent reads within a scope,
+no cross-scope leakage, explicit requirement checks, forbidden scope rebinding and cleanup
+on exceptions/cancellation. Build a minimal consumer without EF, ASP.NET Core, Rebus, Aspire
+or sample Access.Contracts. Add active solution, Fast lane and hook coverage.
 
 Template output: explicit context establishment and lifetime recipe if this is a new setup
 pattern. Domain policy stays in the sample.
+
+Historical comparison: Access uses [GUID-based tenant IDs](../../archive/proof-sample/modules/Access/Access.Contracts/Organizations/OrganizationId.cs)
+and [user IDs](../../archive/proof-sample/modules/Access/Access.Contracts/Identity/UserId.cs),
+while [external identity](../../archive/proof-sample/modules/Access/Access.Contracts/Identity/ExternalIdentity.cs)
+uses issuer/subject strings and [Sales workflow identity](../../archive/proof-sample/modules/Sales/Sales/Fulfilment/OrderFulfilmentProcess.cs)
+is a name. This does not prove that a reusable context must prescribe GUIDs. Archived
+[HTTP admission](../../archive/proof-sample/apps/Api/Modules/Access/Middleware/OrganizationScopeMiddleware.cs)
+and [module authorization](../../archive/proof-sample/modules/Sales/Sales/Authorization/SalesRequestAuthorization.cs)
+are explicit consumer checks; they do not prove a universal library authorization mechanism.
+
+The owner agreed to start the sample/template with a stable, globally unique application
+UserId, with consumer-owned external-identity resolution feeding the human actor key.
+Authentication-provider details stay outside the tenant/actor library; it requires neither
+provider fields nor an application User entity. Human/system actor kind distinguishes
+otherwise equal key text.
+In the archive, [identity resolution](../../archive/proof-sample/modules/Access/Access/Identity/LinkExternalIdentityHandler.cs)
+matches issuer and subject; an unrecognized pair creates a new user. It does not automatically
+merge users with matching email addresses. For OIDC, [claim stability rules](https://openid.net/specs/openid-connect-core-1_0.html#ClaimStability)
+identify issuer/subject as the stable pair and do not guarantee email stability or uniqueness.
+Recommend explicit, verified account linking as consumer Access policy; its implementation
+and admission choices belong to a later sample slice, not E1.
 
 ### E2 Explicit EF tenant and module persistence utilities
 
@@ -176,6 +259,26 @@ users/tenants, current membership and antiforgery behavior through real ingress.
 
 This may be several reviewable sample-only increments. A ticket-store or policy utility
 becomes a separate library only if its comparison removes meaningful repeated complexity.
+The review proposes an opt-in ASP.NET Core context adapter: explicit consumer identity/tenant
+resolution, one initialization, and configurable tenancy defaults with endpoint/group
+exceptions. The template defaults to native authentication requirements plus a required
+tenant. Native authorization decides caller access, with `AllowAnonymous` working without
+an extra actor opt-out. Do not introduce a separate HTTP actor policy or actor-specific
+endpoint extension. Propose separate tenantless metadata as the tenant exception. Tenancy
+defaults must survive named authorization policies; native named policies own their intended
+authentication requirements. Resolve authenticated principals to application actors without
+silently downgrading mapping failures to anonymous execution.
+Review the resolver and error/selection interfaces with real HTTP proofs, including metadata
+precedence, anonymous tenant access, identified tenantless access, authentication schemes,
+native challenges, denied admission, pipeline ordering, login/callback/health paths and
+independent adoption. Include unmapped authenticated principals, authenticated callers on
+anonymous endpoints, and native policies deliberately permitting anonymous access. Resolve
+tenant identity/admission before complete context initialization;
+do not mutate it later. Provider-specific authentication, membership/admission and HTTP failure
+policy stay consumer-owned; generic context establishment can be reusable without embedding
+that policy. Introduce an editable template-local native cookie/OIDC registration helper here;
+focused authentication library utilities require subsequent reuse evidence. The details and
+native-policy references are in [the HTTP integration review](../design.md#scope-and-http-integration-review).
 Native host ServiceDefaults/AppHost/Migrator are sample/template composition. Add Topology
 coverage with actual identity/session wiring, not a production fake actor. This establishes
 that state-stored modules work without event sourcing or messaging.
@@ -260,8 +363,22 @@ large library PR; each selected mechanism receives its own consumer/proof slice.
 
 Consolidate exercised sample setup into the template and create a second consumer with
 selected segments. Verify build, migrations, local startup, independent adoption and CI.
-Naming/configuration stays bounded by actual exercised choices; no runtime code generation
-or provider matrix is introduced. Scan durable aliases/schema/route names deliberately.
+Naming/configuration stays bounded by actual exercised choices. Scan durable aliases/schema/
+route names deliberately.
+
+Plan a bootstrap CLI that applies selected template code and configuration to a repository.
+Future selections may include RabbitMQ or Service Bus, optional event sourcing, selected
+Aspire resources and OIDC/Keycloak setup with directory-gated or open registration. These
+are intended configuration axes; implementing every alternative is not required by the
+initial extraction. Add supported options as the corresponding implementations and real
+consumer compositions are proven. Materialized files remain consumer-owned and reviewable.
+
+Before implementing the CLI, review its supported compositions, input/configuration format,
+existing-file conflict behavior and repeat-invocation semantics. Verify each supported
+composition and relevant interactions; reject unsupported combinations explicitly. Prove
+that omitted capabilities do not leave required packages, workers, resources or registration
+behind. Template-time selection preserves explicit runtime wiring and provider-specific
+features; it does not require a universal provider interface or runtime code generation.
 
 Add the selected dependency-update policy and, when frontend work starts, a pinned pnpm
 workspace with actual shared subpackage usage. OCI packaging, real Service Bus/production
@@ -296,4 +413,5 @@ complexity removed. All changes remain unstaged; every commit needs exact-change
 Completion of extraction requires a working sample using the libraries through project
 references, passing capability-specific proofs, tested independent adoption, and exercised
 template creation. Candidate inventory and matching archived results alone do not complete
-that goal. No new reusable mechanism is proven by this planning checkpoint.
+that goal. Only guarantees exercised by the active implementation and documented in its
+report count as new reusable proofs; later increments remain proposals.

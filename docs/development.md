@@ -1,10 +1,13 @@
 # Development and verification
 
-The repository is in the archive-and-plan checkpoint. There is no active library/sample
-solution yet. Root build defaults and central package management are retained, with no
-active package versions until a project needs them.
+`ModulithFoundry.slnx` contains the active `ModulithFoundry.ExecutionIdentity` library, console
+sample and their tests.
+The archived solution is independent. Root build defaults target .NET 10; central package
+management pins only the test framework and standard DI package needed by E1.
 
 ## Repository tooling
+
+Follow [the .NET conventions](conventions/dotnet.md) when changing C# code.
 
 ```bash
 dotnet tool restore
@@ -17,9 +20,34 @@ Root formatting excludes `archive/` through `.csharpierignore`; archived formatt
 verified separately against its original configuration. CSharpier owns C#/XML layout.
 Semantic style and analyzer checks operate on a concrete solution.
 
-Lefthook currently checks root formatting and the archived semantic/architecture baseline.
-The first active project increment must add its build, tests, formatting, and analyzer
-checks to CI and update hooks. Container suites stay outside local commit hooks.
+Lefthook checks root formatting, active style/analyzers/context tests/dependencies and the
+archived semantic/architecture baseline. Restore the active and archived solutions before
+using hooks. Container suites stay outside local commit hooks.
+
+## Active context lane
+
+Run from the repository root:
+
+```bash
+dotnet restore ModulithFoundry.slnx
+python3 tools/repository/verify-context-dependencies.py
+dotnet csharpier check . --include-generated
+dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
+dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
+dotnet build ModulithFoundry.slnx --no-restore
+dotnet test --project tests/ContextTests/ContextTests.csproj --no-build --no-restore
+dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
+dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
+```
+
+These checks require no containers, identity provider or personal credentials. The
+dependency verifier reads restored assets: the context library has no package/project
+dependencies, and the sample references that library plus standard DI. Run restore again
+after dependency changes so those graphs are current.
+
+CI's Active context lane runs dependency verification, style, analyzers, build, both test
+projects and the console. Root formatter verification remains in the repository-check lane.
+See [the E1 report](reports/e1-tenant-actor.md) for verified behavior and limits.
 
 ## Archived backend
 

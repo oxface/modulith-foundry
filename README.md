@@ -7,10 +7,15 @@ transactions, transport routing, and worker deployment.
 The original wholesale sample and its documentation are preserved under
 [`archive/proof-sample`](archive/proof-sample/). They supply behavioral evidence and known
 limits for deliberate reimplementation, rather than prescribing the new library design.
-The new libraries and sample have not been implemented yet.
+The first active segment is [operation context](src/ModulithFoundry.ExecutionIdentity/README.md),
+exercised by [the finite wholesale context sample](samples/Wholesale/ContextDemo/README.md).
+Persistence, trusted HTTP ingress and messaging follow later extraction increments.
 
 - [Current design decisions](docs/design.md)
+- [Project glossary](CONTEXT.md)
 - [Library and sample extraction plan](docs/plans/library-extraction.md)
+- [E1 tenant/actor slice proposal](docs/plans/e1-tenant-actor.md)
+- [E1 implementation and proof report](docs/reports/e1-tenant-actor.md)
 - [Development and verification](docs/development.md)
 - [Repository workflow](docs/conventions/repository.md)
 - [Archive provenance and commands](archive/README.md)
@@ -26,5 +31,11 @@ npm ci --prefix tools/repository
 npm exec --prefix tools/repository -- lefthook install
 ```
 
-CI continues to run the archived Fast, PostgreSQL, RabbitMQ, and Aspire Topology proofs.
-New library and sample checks will join CI in the increment that introduces them.
+Run the active sample with:
+
+```bash
+dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
+```
+
+CI checks the active context library/sample separately from archived Fast, PostgreSQL,
+RabbitMQ and Aspire Topology proofs.

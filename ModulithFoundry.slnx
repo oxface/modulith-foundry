@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Libraries/">
+    <Project Path="src/ModulithFoundry.ExecutionIdentity/ModulithFoundry.ExecutionIdentity.csproj" />
+  </Folder>
+  <Folder Name="/Samples/">
+    <Project Path="samples/Wholesale/ContextDemo/ContextDemo.csproj" />
+    <Project Path="samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/ContextTests/ContextTests.csproj" />
+  </Folder>
+</Solution>

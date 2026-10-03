@@ -6,9 +6,24 @@ pre-commit:
     - name: dotnet-style
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet format style archive/proof-sample/ModulithFoundry.slnx --verify-no-changes --no-restore
+    - name: active-dotnet-style
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
     - name: dotnet-analyzers
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet format analyzers archive/proof-sample/ModulithFoundry.slnx --verify-no-changes --no-restore
+    - name: active-dotnet-analyzers
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
+    - name: context-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/ContextTests/ContextTests.csproj --no-restore
+    - name: context-composition-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-restore
+    - name: context-dependencies
+      glob: "*.{csproj,props,targets,slnx,py}"
+      run: python3 tools/repository/verify-context-dependencies.py
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
