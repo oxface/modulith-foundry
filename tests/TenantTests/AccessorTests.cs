@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using ModulithFoundry.ExecutionIdentity;
+using ModulithFoundry.Tenancy;
 
-namespace ModulithFoundry.ContextTests;
+namespace ModulithFoundry.TenantTests;
 
 [SuppressMessage(
     "Performance",
@@ -11,17 +11,17 @@ namespace ModulithFoundry.ContextTests;
 public sealed class AccessorTests
 {
     [Fact]
-    public void UnestablishedContextNeverFallsBackToAnonymous()
+    public void UnestablishedContextNeverFallsBackToTenantless()
     {
-        using var holder = new OperationContextAccessor();
-        IOperationContextAccessor reader = holder;
-        IOperationContextInitializer initializer = holder;
+        using var holder = new TenantContextAccessor();
+        ITenantContextAccessor reader = holder;
+        ITenantContextInitializer initializer = holder;
 
         Assert.Throws<InvalidOperationException>(() => reader.Current);
         Assert.Throws<ArgumentNullException>(() => initializer.Initialize(null!));
         Assert.Throws<InvalidOperationException>(() => reader.Current);
 
-        OperationContext deliberate = OperationContext.Tenantless(Actor.Anonymous);
+        TenantContext deliberate = TenantContext.Tenantless();
         initializer.Initialize(deliberate);
         Assert.Same(deliberate, reader.Current);
     }
@@ -29,20 +29,15 @@ public sealed class AccessorTests
     [Fact]
     public void SameOrDifferentContextCannotReplaceTheEstablishedValue()
     {
-        using var holder = new OperationContextAccessor();
-        IOperationContextAccessor reader = holder;
-        IOperationContextInitializer initializer = holder;
-        OperationContext first = OperationContext.ForTenant(new TenantId("alpha"), Actor.Anonymous);
+        using var holder = new TenantContextAccessor();
+        ITenantContextAccessor reader = holder;
+        ITenantContextInitializer initializer = holder;
+        TenantContext first = TenantContext.ForTenant(new TenantId("alpha"));
         initializer.Initialize(first);
 
         Assert.Throws<InvalidOperationException>(() => initializer.Initialize(first));
         Assert.Throws<InvalidOperationException>(() =>
-            initializer.Initialize(
-                OperationContext.ForTenant(
-                    new TenantId("beta"),
-                    Actor.System(new ActorId("workflow"))
-                )
-            )
+            initializer.Initialize(TenantContext.ForTenant(new TenantId("beta")))
         );
         Assert.Same(first, reader.Current);
     }
@@ -50,34 +45,24 @@ public sealed class AccessorTests
     [Fact]
     public async Task CompetingInitializersPublishExactlyOneCompleteContext()
     {
-        using var holder = new OperationContextAccessor();
-        IOperationContextAccessor reader = holder;
-        IOperationContextInitializer initializer = holder;
+        using var holder = new TenantContextAccessor();
+        ITenantContextAccessor reader = holder;
+        ITenantContextInitializer initializer = holder;
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        OperationContext alpha = OperationContext.ForTenant(
-            new TenantId("alpha"),
-            Actor.System(new ActorId("alpha-workflow")),
-            Actor.Human(new ActorId("alpha-user"))
-        );
-        OperationContext beta = OperationContext.ForTenant(
-            new TenantId("beta"),
-            Actor.System(new ActorId("beta-workflow")),
-            Actor.Human(new ActorId("beta-user"))
-        );
+        TenantContext alpha = TenantContext.ForTenant(new TenantId("alpha"));
+        TenantContext beta = TenantContext.ForTenant(new TenantId("beta"));
 
-        Task<OperationContext?>[] attempts = [AttemptAsync(alpha), AttemptAsync(beta)];
+        Task<TenantContext?>[] attempts = [AttemptAsync(alpha), AttemptAsync(beta)];
         start.SetResult();
-        OperationContext?[] results = await Task.WhenAll(attempts)
+        TenantContext?[] results = await Task.WhenAll(attempts)
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
-        OperationContext winner = Assert.Single(results.OfType<OperationContext>());
+        TenantContext winner = Assert.Single(results.OfType<TenantContext>());
         Assert.Single(results, result => result is null);
         Assert.Same(winner, reader.Current);
         Assert.Equal(winner.Tenant, reader.Current.Tenant);
-        Assert.Equal(winner.Actor, reader.Current.Actor);
-        Assert.Equal(winner.Initiator, reader.Current.Initiator);
 
-        async Task<OperationContext?> AttemptAsync(OperationContext context)
+        async Task<TenantContext?> AttemptAsync(TenantContext context)
         {
             await start.Task.WaitAsync(TestContext.Current.CancellationToken);
             try
@@ -95,13 +80,9 @@ public sealed class AccessorTests
     [Fact]
     public async Task ParallelReadersObserveTheSameCompleteImmutableValue()
     {
-        using var holder = new OperationContextAccessor();
-        IOperationContextAccessor reader = holder;
-        OperationContext expected = OperationContext.ForTenant(
-            new TenantId("alpha"),
-            Actor.System(new ActorId("workflow")),
-            Actor.Human(new ActorId("initiator"))
-        );
+        using var holder = new TenantContextAccessor();
+        ITenantContextAccessor reader = holder;
+        TenantContext expected = TenantContext.ForTenant(new TenantId("alpha"));
         holder.Initialize(expected);
 
         Task[] reads = Enumerable
@@ -112,11 +93,9 @@ public sealed class AccessorTests
                     {
                         for (int index = 0; index < 100; index++)
                         {
-                            OperationContext actual = reader.Current;
+                            TenantContext actual = reader.Current;
                             Assert.Same(expected, actual);
                             Assert.Equal("alpha", actual.RequireTenant().Value);
-                            Assert.Equal(ActorKind.System, actual.RequireIdentifiedActor().Kind);
-                            Assert.Equal("initiator", actual.Initiator!.Id!.Value);
                         }
                     },
                     TestContext.Current.CancellationToken
@@ -132,10 +111,10 @@ public sealed class AccessorTests
     [InlineData(true)]
     public void DisposalIsIdempotentAndPreventsReadsOrReinitialization(bool initialize)
     {
-        var holder = new OperationContextAccessor();
-        IOperationContextAccessor reader = holder;
-        IOperationContextInitializer initializer = holder;
-        OperationContext context = OperationContext.Tenantless(Actor.Anonymous);
+        var holder = new TenantContextAccessor();
+        ITenantContextAccessor reader = holder;
+        ITenantContextInitializer initializer = holder;
+        TenantContext context = TenantContext.Tenantless();
         if (initialize)
         {
             initializer.Initialize(context);
@@ -145,6 +124,6 @@ public sealed class AccessorTests
         holder.Dispose();
         Assert.Throws<ObjectDisposedException>(() => reader.Current);
         Assert.Throws<ObjectDisposedException>(() => initializer.Initialize(context));
-        Assert.Same(Actor.Anonymous, context.Actor);
+        Assert.Null(context.Tenant);
     }
 }

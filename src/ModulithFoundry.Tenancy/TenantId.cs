@@ -1,4 +1,4 @@
-namespace ModulithFoundry.ExecutionIdentity;
+namespace ModulithFoundry.Tenancy;
 
 /// <summary>A consumer-supplied tenant key, preserved and compared exactly.</summary>
 public sealed record TenantId

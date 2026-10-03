@@ -1,63 +1,64 @@
 using Microsoft.Extensions.DependencyInjection;
-using ModulithFoundry.ExecutionIdentity;
+using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.ContextDemo;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Sales.Contracts;
+using ModulithFoundry.Tenancy;
 
-await using var provider = DemoComposition
-    .CreateServices()
-    .BuildServiceProvider(
-        new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }
-    );
+var options = new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true };
+await using var tenantProvider = DemoComposition
+    .CreateTenantServices()
+    .BuildServiceProvider(options);
+await using var actorProvider = DemoComposition.CreateActorServices().BuildServiceProvider(options);
+await using var combinedProvider = DemoComposition.CreateServices().BuildServiceProvider(options);
 
 // These are explicit demonstration identities, with no authentication or HTTP ingress.
 var human = Actor.Human(new ActorId("demo-user-alex"));
 var workflow = Actor.System(new ActorId("sales.order-fulfilment"));
 string[] availability = await Task.WhenAll(
-    Task.Run(() => ReadAvailability(provider, "wholesale-alpha")),
-    Task.Run(() => ReadAvailability(provider, "wholesale-beta"))
+    Task.Run(() => ReadAvailability(tenantProvider, "wholesale-alpha")),
+    Task.Run(() => ReadAvailability(tenantProvider, "wholesale-beta"))
 );
 foreach (string line in availability)
 {
     Console.WriteLine(line);
 }
 
-Console.WriteLine(Preview(provider, "wholesale-alpha", human));
-Console.WriteLine(Preview(provider, "wholesale-beta", workflow, human));
+Console.WriteLine(Preview(combinedProvider, "wholesale-alpha", human));
+Console.WriteLine(Preview(combinedProvider, "wholesale-beta", workflow, human));
 
-using (var scope = provider.CreateScope())
+using (var scope = actorProvider.CreateScope())
 {
     scope
-        .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-        .Initialize(OperationContext.Tenantless(Actor.Anonymous));
-    OperationContext context = scope
-        .ServiceProvider.GetRequiredService<IOperationContextAccessor>()
+        .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+        .Initialize(new ActorContext(Actor.Anonymous));
+    ActorContext context = scope
+        .ServiceProvider.GetRequiredService<IActorContextAccessor>()
         .Current;
-    Console.WriteLine($"host-info: tenantless, actor={context.Actor.Kind}");
+    Console.WriteLine($"host-info: actor={context.Actor.Kind}");
 }
 
-using (var scope = provider.CreateScope())
+using (var scope = actorProvider.CreateScope())
 {
     scope
-        .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-        .Initialize(OperationContext.Tenantless(Actor.System(new ActorId("sample.maintenance"))));
-    OperationContext context = scope
-        .ServiceProvider.GetRequiredService<IOperationContextAccessor>()
-        .Current;
-    Actor actor = context.RequireIdentifiedActor();
-    Console.WriteLine($"maintenance: tenantless, actor={actor.Id!.Value}");
+        .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+        .Initialize(new ActorContext(Actor.System(new ActorId("sample.maintenance"))));
+    Actor actor = scope
+        .ServiceProvider.GetRequiredService<IActorContextAccessor>()
+        .Current.RequireIdentifiedActor();
+    Console.WriteLine($"maintenance: actor={actor.Id!.Value}");
 }
 
 static string ReadAvailability(ServiceProvider provider, string tenantKey)
 {
     using var scope = provider.CreateScope();
     scope
-        .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-        .Initialize(OperationContext.ForTenant(new TenantId(tenantKey), Actor.Anonymous));
+        .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+        .Initialize(TenantContext.ForTenant(new TenantId(tenantKey)));
     int available = scope
         .ServiceProvider.GetRequiredService<IStockAvailability>()
         .GetAvailableQuantity("WIDGET");
-    return $"{tenantKey}: anonymous availability={available}";
+    return $"{tenantKey}: availability={available}";
 }
 
 static string Preview(
@@ -68,9 +69,13 @@ static string Preview(
 )
 {
     using var scope = provider.CreateScope();
+    // Host-owned composition: establish both contexts before invoking Sales.
     scope
-        .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-        .Initialize(OperationContext.ForTenant(new TenantId(tenantKey), actor, initiator));
+        .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+        .Initialize(new ActorContext(actor, initiator));
+    scope
+        .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+        .Initialize(TenantContext.ForTenant(new TenantId(tenantKey)));
     DraftPreview preview = scope
         .ServiceProvider.GetRequiredService<IDraftOrderPreview>()
         .Preview("WIDGET", 10);

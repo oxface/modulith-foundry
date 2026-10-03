@@ -1,4 +1,4 @@
-namespace ModulithFoundry.ExecutionIdentity;
+namespace ModulithFoundry.ActorIdentity;
 
 /// <summary>Execution identity or explicit anonymity; it conveys no permission.</summary>
 public sealed record Actor

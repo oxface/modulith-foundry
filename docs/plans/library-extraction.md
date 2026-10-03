@@ -2,9 +2,12 @@
 
 Status: review proposal, 2026-10-03. The owner approved the archive-and-plan direction.
 This document proposes implementation increments; it does not freeze public interfaces,
-package boundaries, or authorize a commit. E1 now has an implementation awaiting owner code
-review; [its report](../reports/e1-tenant-actor.md) distinguishes new proofs from historical
-evidence. Read [the approved design posture](../design.md) alongside this plan.
+package boundaries, or authorize a commit. E1 was reviewed and checkpointed as `a8e45c9`;
+[the checkpoint report](../reports/e1-tenant-actor.md) records that original combined design.
+The authorized independent split is implemented, uncommitted and awaiting re-review;
+[its current report](../reports/e1-identity-split.md) records fresh proofs.
+E2 has a [concrete interface proposal](e2-persistence.md) awaiting review. Read
+[the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model
 
@@ -18,6 +21,25 @@ interface tests, executable sample integration, relevant failure proofs, and doc
 Add a template recipe or file only when a new consumer setup pattern is exercised. The sample
 can supply the concrete source for the final template; it is not a third implementation.
 Sample-only capability proofs and adapter increments may introduce no new library.
+
+### Current review: independent actor identity and tenancy
+
+Before implementing E2, the owner authorized revising E1 into independently adoptable
+`ModulithFoundry.ActorIdentity` and `ModulithFoundry.Tenancy` libraries, with no dependency
+between them. The split is implemented for re-review in [the E1 plan](e1-tenant-actor.md).
+Actor means the identity performing an operation, not an actor-model execution component.
+Executing actor and optional initiator stay together; tenant selection and tenantless
+execution belong to the separate tenancy context. The checkpointed combined implementation
+is historical evidence at `a8e45c9`. Each holder is single-assignment; combined composition
+and completion of required establishment belong to the host.
+
+The tenancy core accepts an explicitly established tenant without prescribing a URL shape.
+For E3, propose optional HTTP utilities for configurable route values and hostnames, plus a
+consumer resolver for other strategies such as one tenant per application user. Candidate
+selection, canonical identity resolution and admission are distinct responsibilities.
+Organization remains the sample's domain/UI term; Tenant denotes the technical isolation
+boundary. Membership is a separate consumer-owned Access increment in E3, not a prerequisite
+or dependency of either foundation library.
 
 ### Extraction and strategy gate
 
@@ -69,7 +91,7 @@ interfaces. Links below deliberately point to the historical evidence.
 
 | Capability | Reusable candidate | Consumer-owned part and decision |
 | --- | --- | --- |
-| Tenant and actor context | Independent identity/context seam and explicit scope validation | Membership, roles, invitation lifecycle, tenant admission, actor trust and authorization remain consumer policy. This is an agreed early library direction. |
+| Actor identity and tenancy | Independently adoptable identity and tenant-choice contexts, each with explicit scope validation | Membership, roles, invitation lifecycle, tenant admission, actor trust and authorization remain consumer policy. This is an agreed early library direction. |
 | Module persistence | Explicit EF ownership-filter/model utilities and justified write validation | Module DbContext, schema, mappings, migrations and transaction ownership. The archived `shared/Persistence` utility is a starting comparison, not a required base context. |
 | Event identity and codec | Explicit alias/version registry, payload encoding/decoding and compatibility errors | Event definitions, required/optional fields, allowed schemas and evolution. Compare both serializers before designing a common interface. |
 | Event history | Contiguous ordered-range checks, captured-head reads and deterministic hydration mechanics | Domain reducer, state shape and temporal meaning. Preserve application append time versus commit time. |
@@ -94,7 +116,8 @@ Evidence entry points:
 
 ## Dependency and interface review
 
-A tenant/actor library has no EF, web, transport, Aspire, or sample Access dependency.
+Actor-identity and tenancy libraries have no dependencies on each other, EF, web, transport,
+Aspire or sample Access.
 Provider-specific persistence depends on the selected EF/PostgreSQL packages and only the
 smaller seams its tested mechanism requires. An event codec need not depend on a database;
 event persistence and messaging need not depend on one another. Rebus integration is optional.
@@ -163,19 +186,21 @@ checks. Broker and Topology selections are focused relocation proofs; their comp
 remain wired into CI. Local restore needed network access for NuGet vulnerability data;
 format/test hosts needed local IPC/container access. No audit or assertion was disabled.
 
-### E1 Tenant and actor seam with a minimal sample
+### E1 Independent actor identity and tenancy with a minimal sample
 
-The owner approved [the E1 slice plan](e1-tenant-actor.md) for implementation. Its interface,
-consumer wiring and proof results now await line-by-line code review; see
-[the implementation report](../reports/e1-tenant-actor.md). New lifecycle/concurrency proofs
-are distinguished from inherited archive evidence.
+The owner reviewed the original combined E1 implementation and authorized checkpoint
+`a8e45c9`; [its report](../reports/e1-tenant-actor.md) remains historical evidence. The owner
+subsequently authorized the independent split, now implemented for re-review in
+[the revised plan](e1-tenant-actor.md) and [current report](../reports/e1-identity-split.md).
+New lifecycle/concurrency and independent-adoption proofs are distinct from archive evidence.
 
 Context is immutable within one operation; changing tenant, actor or initiator requires a
 separate operation context. Use opaque string keys in distinct tenant/actor value types,
 with consumer-owned domain identity mapping. Keys use ordinal comparison, reject empty or
 whitespace-only values, and preserve accepted values exactly; canonicalization is consumer
-policy. Operations read context through an injected, read-only accessor. The host initializes
-it exactly once per operation scope through a separate initialization interface. Reading
+policy. Operations read each selected segment through its injected, read-only accessor. The
+host initializes each exactly once per operation scope through its separate initialization
+interface, finishing the segments required by a capability before invoking it. Reading
 before establishment and any repeated initialization are errors; no reset, replacement or
 anonymous fallback is supported. Review explicit registration and lifetime for human and
 workflow consumers. Immutable values do not depend on DI. Tenant selection never asserts
@@ -224,7 +249,7 @@ are explicit consumer checks; they do not prove a universal library authorizatio
 
 The owner agreed to start the sample/template with a stable, globally unique application
 UserId, with consumer-owned external-identity resolution feeding the human actor key.
-Authentication-provider details stay outside the tenant/actor library; it requires neither
+Authentication-provider details stay outside both foundation libraries; neither requires
 provider fields nor an application User entity. Human/system actor kind distinguishes
 otherwise equal key text.
 In the archive, [identity resolution](../../archive/proof-sample/modules/Access/Access/Identity/LinkExternalIdentityHandler.cs)
@@ -235,6 +260,13 @@ Recommend explicit, verified account linking as consumer Access policy; its impl
 and admission choices belong to a later sample slice, not E1.
 
 ### E2 Explicit EF tenant and module persistence utilities
+
+The owner confirmed shared database/module schemas/tenant discriminator and immutable
+ownership for ordinary persistence. Review [the concrete proposal](e2-persistence.md) and
+[evidence findings](../reports/e2-persistence-design.md) before implementation. They propose
+explicit EF ownership filters plus tracked-write validation/native ownership predicates;
+the proposed mechanism is unproven. Shared cross-module transactions receive a separately
+designed workflow/proof rather than being implied by this increment.
 
 Use real sample module DbContexts and two consumer-selected schemas. Review explicit model
 registration, tenant-owned rows/indexes and the chosen write-validation mechanism. It must
@@ -257,10 +289,17 @@ persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endp
 CQRS code in the sample. Freshly record module ownership and domain language. Exercise two
 users/tenants, current membership and antiforgery behavior through real ingress.
 
+Review membership and tenant admission as a separate Access increment: an application user
+can belong to multiple Organizations, and admission concerns the Organization selected for
+this operation. Prove accepted and denied membership, independent operation scopes for the
+same actor in different Organizations, and the consumer's revocation policy. Membership
+management, invitations and role/permission behavior receive further increments as needed;
+none becomes part of the actor-identity or tenancy core.
+
 This may be several reviewable sample-only increments. A ticket-store or policy utility
 becomes a separate library only if its comparison removes meaningful repeated complexity.
-The review proposes an opt-in ASP.NET Core context adapter: explicit consumer identity/tenant
-resolution, one initialization, and configurable tenancy defaults with endpoint/group
+The review proposes independently adoptable ASP.NET Core actor and tenancy adapters: explicit
+consumer identity/tenant resolution, one initialization per segment, and configurable tenancy defaults with endpoint/group
 exceptions. The template defaults to native authentication requirements plus a required
 tenant. Native authorization decides caller access, with `AllowAnonymous` working without
 an extra actor opt-out. Do not introduce a separate HTTP actor policy or actor-specific
@@ -273,7 +312,7 @@ precedence, anonymous tenant access, identified tenantless access, authenticatio
 native challenges, denied admission, pipeline ordering, login/callback/health paths and
 independent adoption. Include unmapped authenticated principals, authenticated callers on
 anonymous endpoints, and native policies deliberately permitting anonymous access. Resolve
-tenant identity/admission before complete context initialization;
+tenant identity/admission before initializing the tenancy context;
 do not mutate it later. Provider-specific authentication, membership/admission and HTTP failure
 policy stay consumer-owned; generic context establishment can be reusable without embedding
 that policy. Introduce an editable template-local native cookie/OIDC registration helper here;

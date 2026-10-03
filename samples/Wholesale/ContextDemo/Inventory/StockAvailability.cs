@@ -1,9 +1,9 @@
-using ModulithFoundry.ExecutionIdentity;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory.Contracts;
+using ModulithFoundry.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory;
 
-internal sealed class StockAvailability(IOperationContextAccessor context, StockFixture stock)
+internal sealed class StockAvailability(ITenantContextAccessor context, StockFixture stock)
     : IStockAvailability
 {
     public int GetAvailableQuantity(string sku)

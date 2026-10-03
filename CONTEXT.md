@@ -40,6 +40,16 @@ _Avoid_: Application user, email address
 The boundary within which an application's data and operations are isolated.
 _Avoid_: Organization, membership
 
+**Organization**:
+The sample's business grouping of users, memberships and resources, corresponding to a
+technical tenant boundary in this sample.
+_Avoid_: Universal tenant model, authentication-provider tenant
+
+**Membership**:
+An application user's relationship to an Organization; one user can belong to multiple
+Organizations.
+_Avoid_: Actor identity, tenant selection, permission
+
 **Tenantless execution**:
 Work deliberately performed outside a tenant boundary.
 _Avoid_: Missing tenant, unrestricted access
@@ -47,7 +57,7 @@ _Avoid_: Missing tenant, unrestricted access
 **Actor**:
 The human or system identity performing the current operation, or its explicit anonymous
 designation when no such identity is established.
-_Avoid_: Initiator, authorized user
+_Avoid_: Initiator, authorized user, actor-model component
 
 **Anonymous execution**:
 Work deliberately performed without an identified human or system actor.

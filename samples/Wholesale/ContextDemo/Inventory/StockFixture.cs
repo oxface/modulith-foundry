@@ -1,5 +1,5 @@
 using System.Collections.Frozen;
-using ModulithFoundry.ExecutionIdentity;
+using ModulithFoundry.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory;
 

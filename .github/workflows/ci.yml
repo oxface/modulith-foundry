@@ -52,10 +52,17 @@ jobs:
       - name: Build active projects
         run: dotnet build ModulithFoundry.slnx --no-restore
 
-      - name: Test context library
+      - name: Test actor identity library
         run: >-
           dotnet test
-          --project tests/ContextTests/ContextTests.csproj
+          --project tests/ActorIdentityTests/ActorIdentityTests.csproj
+          --no-build
+          --no-restore
+
+      - name: Test tenancy library
+        run: >-
+          dotnet test
+          --project tests/TenantTests/TenantTests.csproj
           --no-build
           --no-restore
 

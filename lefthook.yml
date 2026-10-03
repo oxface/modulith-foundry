@@ -15,9 +15,12 @@ pre-commit:
     - name: active-dotnet-analyzers
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
-    - name: context-tests
+    - name: actor-identity-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet test --project tests/ContextTests/ContextTests.csproj --no-restore
+      run: dotnet test --project tests/ActorIdentityTests/ActorIdentityTests.csproj --no-restore
+    - name: tenancy-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/TenantTests/TenantTests.csproj --no-restore
     - name: context-composition-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-restore

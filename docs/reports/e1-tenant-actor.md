@@ -1,12 +1,15 @@
 # E1 implementation and proof report
 
-2026-10-03. Implemented against [the approved slice plan](../plans/e1-tenant-actor.md),
-with code awaiting owner review. New agent edits are left unstaged; the owner manages
-reviewed staging. No commit has been created.
+Historical checkpoint report, 2026-10-03. The combined design below is superseded by
+[the independent actor/tenancy split](e1-identity-split.md). Original implementation and
+interfaces remain available at commit `a8e45c9`; the active [slice plan](../plans/e1-tenant-actor.md)
+now describes the split. This report records the original work,
+owner-reviewed and checkpointed as `a8e45c9`. Review revisions were left unstaged for the
+owner's staging; the checkpoint followed explicit exact-change-set approval.
 
 ## Outcome
 
-[ModulithFoundry.ExecutionIdentity](../../src/ModulithFoundry.ExecutionIdentity/README.md) supplies opaque tenant
+`ModulithFoundry.ExecutionIdentity` supplies opaque tenant
 and actor identities, explicit anonymous/tenantless context, optional initiator attribution,
 read/initialization interfaces, a disposable single-assignment holder, and typed requirement
 checks. It has no package or project dependencies.
@@ -55,7 +58,10 @@ semantic style/analyzers, dependency verification, 13 active documentation link 
 archive verification passed. No active source/reference retains the old library name.
 This revalidates E1 after the rename; it adds no HTTP or persistence guarantee. Existing
 owner staging was preserved, including entries under the previous library path; the working
-tree contains the unstaged rename and revised references for re-review.
+tree contained the unstaged rename and revised references for re-review. The owner then
+reviewed/staged the complete change set and authorized the checkpoint. Commit hooks passed
+all 40 active cases and 21 archived architecture cases; the architecture results check the
+historical baseline, not physical module isolation in the new sample.
 
 Test package `xunit.v3.mtp-v2` 4.0.1 and consumer DI 10.0.12 match the retained repository
 SDK/package baseline and restored successfully with NuGet auditing enabled. The library
@@ -111,16 +117,9 @@ direction for the later adapter/template increment; its interfaces and behavior 
 implemented in E1. No new reusable mechanism was proven by this documentation adjustment;
 HTTP policy and ingress proofs remain pending.
 
-1. [Identity/context construction](../../src/ModulithFoundry.ExecutionIdentity/OperationContext.cs),
-   actor representation and key equality in the same library directory.
-2. [Accessor protocol](../../src/ModulithFoundry.ExecutionIdentity/OperationContextAccessor.cs), its
-   two interfaces, disposal semantics and typed requirement failures.
-3. [Consumer registration](../../samples/Wholesale/ContextDemo/DemoComposition.cs), scope
-   establishment in Program, and the Inventory/Sales capability policies.
-4. [Public-interface tests](../../tests/ContextTests/AccessorTests.cs),
-   [composition proofs](../../samples/Wholesale/ContextDemo.Tests/CompositionTests.cs),
-   [dependency verification](../../tools/repository/verify-context-dependencies.py), CI/hooks
-   and documentation. The dependency check requires current restored assets.
+Original review paths at checkpoint `a8e45c9`: `src/ModulithFoundry.ExecutionIdentity/`,
+`tests/ContextTests/`, the console sample and its composition tests. These are historical
+review pointers; current source and proof locations are in the split report.
 
 The reader/initializer split expresses composition roles; hostile code in the same process
 can still resolve or construct identities. Identity presence is not authentication or

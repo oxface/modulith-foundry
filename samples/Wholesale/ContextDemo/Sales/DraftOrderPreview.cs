@@ -1,17 +1,22 @@
-using ModulithFoundry.ExecutionIdentity;
+using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Sales.Contracts;
+using ModulithFoundry.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.ContextDemo.Sales;
 
-internal sealed class DraftOrderPreview(IOperationContextAccessor context, IStockAvailability stock)
-    : IDraftOrderPreview
+internal sealed class DraftOrderPreview(
+    IActorContextAccessor actors,
+    ITenantContextAccessor tenancy,
+    IStockAvailability stock
+) : IDraftOrderPreview
 {
     public DraftPreview Preview(string sku, int quantity)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-        OperationContext current = context.Current;
-        Actor actor = current.RequireTenantAndIdentifiedActor().Actor;
+        tenancy.Current.RequireTenant();
+        ActorContext current = actors.Current;
+        Actor actor = current.RequireIdentifiedActor();
         int available = stock.GetAvailableQuantity(sku);
         return new DraftPreview(
             sku,

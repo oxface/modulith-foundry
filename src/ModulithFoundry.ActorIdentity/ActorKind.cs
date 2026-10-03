@@ -1,4 +1,4 @@
-namespace ModulithFoundry.ExecutionIdentity;
+namespace ModulithFoundry.ActorIdentity;
 
 public enum ActorKind
 {

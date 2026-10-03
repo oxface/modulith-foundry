@@ -1,4 +1,4 @@
-namespace ModulithFoundry.ExecutionIdentity;
+namespace ModulithFoundry.ActorIdentity;
 
 /// <summary>A consumer-supplied actor key, preserved and compared exactly.</summary>
 public sealed record ActorId

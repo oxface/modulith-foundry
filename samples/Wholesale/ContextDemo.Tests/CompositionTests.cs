@@ -1,28 +1,39 @@
 using Microsoft.Extensions.DependencyInjection;
-using ModulithFoundry.ExecutionIdentity;
+using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Sales.Contracts;
+using ModulithFoundry.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.ContextDemo.Tests;
 
 public sealed class CompositionTests
 {
     [Fact]
-    public async Task ActualRegistrationSharesOneHolderAndDisposesAllAliasesSafely()
+    public async Task ActualRegistrationSharesEachHolderAndDisposesAllAliasesSafely()
     {
         await using ServiceProvider provider = CreateProvider();
-        IOperationContextAccessor reader;
-        IOperationContextInitializer initializer;
-        OperationContext captured;
+        IActorContextAccessor actors;
+        IActorContextInitializer actorInitializer;
+        ITenantContextAccessor tenants;
+        ITenantContextInitializer tenantInitializer;
+        var actorContext = new ActorContext(Actor.Anonymous);
+        TenantContext tenantContext = TenantContext.ForTenant(new TenantId("wholesale-alpha"));
         await using (AsyncServiceScope scope = provider.CreateAsyncScope())
         {
-            reader = scope.ServiceProvider.GetRequiredService<IOperationContextAccessor>();
-            initializer = scope.ServiceProvider.GetRequiredService<IOperationContextInitializer>();
-            Assert.Same(reader, initializer);
-            initializer.Initialize(
-                OperationContext.ForTenant(new TenantId("wholesale-alpha"), Actor.Anonymous)
-            );
-            captured = reader.Current;
+            actors = scope.ServiceProvider.GetRequiredService<IActorContextAccessor>();
+            actorInitializer = scope.ServiceProvider.GetRequiredService<IActorContextInitializer>();
+            tenants = scope.ServiceProvider.GetRequiredService<ITenantContextAccessor>();
+            tenantInitializer =
+                scope.ServiceProvider.GetRequiredService<ITenantContextInitializer>();
+            Assert.Same(actors, actorInitializer);
+            Assert.Same(actors, scope.ServiceProvider.GetRequiredService<ActorContextAccessor>());
+            Assert.Same(tenants, tenantInitializer);
+            Assert.Same(tenants, scope.ServiceProvider.GetRequiredService<TenantContextAccessor>());
+            Assert.NotSame(actors, tenants);
+            actorInitializer.Initialize(actorContext);
+            tenantInitializer.Initialize(tenantContext);
+            Assert.Same(actorContext, actors.Current);
+            Assert.Same(tenantContext, tenants.Current);
             Assert.Equal(
                 42,
                 scope
@@ -31,9 +42,30 @@ public sealed class CompositionTests
             );
         }
 
-        Assert.Throws<ObjectDisposedException>(() => reader.Current);
-        Assert.Throws<ObjectDisposedException>(() => initializer.Initialize(captured));
-        Assert.Equal("wholesale-alpha", captured.RequireTenant().Value);
+        Assert.Throws<ObjectDisposedException>(() => actors.Current);
+        Assert.Throws<ObjectDisposedException>(() => actorInitializer.Initialize(actorContext));
+        Assert.Throws<ObjectDisposedException>(() => tenants.Current);
+        Assert.Throws<ObjectDisposedException>(() => tenantInitializer.Initialize(tenantContext));
+        Assert.Equal("wholesale-alpha", tenantContext.RequireTenant().Value);
+        Assert.Same(Actor.Anonymous, actorContext.Actor);
+    }
+
+    [Fact]
+    public async Task ActorOnlyCompositionNeedsNoTenancyRegistration()
+    {
+        await using ServiceProvider provider = Build(DemoComposition.CreateActorServices());
+        await using AsyncServiceScope scope = provider.CreateAsyncScope();
+        Assert.Null(scope.ServiceProvider.GetService<ITenantContextAccessor>());
+        Assert.Null(scope.ServiceProvider.GetService<ITenantContextInitializer>());
+        var human = Actor.Human(new ActorId("global-user-42"));
+        scope
+            .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+            .Initialize(new ActorContext(Actor.System(new ActorId("maintenance")), human));
+        ActorContext current = scope
+            .ServiceProvider.GetRequiredService<IActorContextAccessor>()
+            .Current;
+        Assert.Equal("maintenance", current.RequireIdentifiedActor().Id!.Value);
+        Assert.Same(human, current.Initiator);
     }
 
     [Theory]
@@ -41,14 +73,15 @@ public sealed class CompositionTests
     [InlineData("wholesale-beta", 7)]
     [InlineData("unknown-tenant", 0)]
     [InlineData("WHOLESALE-ALPHA", 0)]
-    public async Task AnonymousAvailabilityUsesOnlyTheSelectedTenant(string tenant, int expected)
+    public async Task InventoryNeedsOnlyTenancyRegistration(string tenant, int expected)
     {
-        await using ServiceProvider provider = CreateProvider();
+        await using ServiceProvider provider = Build(DemoComposition.CreateTenantServices());
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
+        Assert.Null(scope.ServiceProvider.GetService<IActorContextAccessor>());
+        Assert.Null(scope.ServiceProvider.GetService<IActorContextInitializer>());
         scope
-            .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(OperationContext.ForTenant(new TenantId(tenant), Actor.Anonymous));
-
+            .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+            .Initialize(TenantContext.ForTenant(new TenantId(tenant)));
         Assert.Equal(
             expected,
             scope
@@ -60,7 +93,7 @@ public sealed class CompositionTests
     [Theory]
     [InlineData("wholesale-alpha", 42, true)]
     [InlineData("wholesale-beta", 7, false)]
-    public async Task SalesCallsInventoryThroughItsContractWithTheSameTenant(
+    public async Task SameActorCanUseDifferentTenantsThroughSalesAndInventory(
         string tenant,
         int expected,
         bool canFulfil
@@ -69,14 +102,10 @@ public sealed class CompositionTests
         await using ServiceProvider provider = CreateProvider();
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
         Actor human = Actor.Human(new ActorId("global-user-42"));
-        scope
-            .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(OperationContext.ForTenant(new TenantId(tenant), human));
-
+        Establish(scope, TenantContext.ForTenant(new TenantId(tenant)), human);
         DraftPreview preview = scope
             .ServiceProvider.GetRequiredService<IDraftOrderPreview>()
             .Preview("WIDGET", 10);
-
         Assert.Equal("WIDGET", preview.Sku);
         Assert.Equal(10, preview.RequestedQuantity);
         Assert.Equal(expected, preview.AvailableQuantity);
@@ -92,12 +121,12 @@ public sealed class CompositionTests
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
         Actor workflow = Actor.System(new ActorId("sales.order-fulfilment"));
         Actor initiator = Actor.Human(new ActorId("global-user-42"));
-        scope
-            .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(
-                OperationContext.ForTenant(new TenantId("wholesale-beta"), workflow, initiator)
-            );
-
+        Establish(
+            scope,
+            TenantContext.ForTenant(new TenantId("wholesale-beta")),
+            workflow,
+            initiator
+        );
         DraftPreview preview = scope
             .ServiceProvider.GetRequiredService<IDraftOrderPreview>()
             .Preview("WIDGET", 10);
@@ -114,14 +143,10 @@ public sealed class CompositionTests
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
         IStockAvailability stock = scope.ServiceProvider.GetRequiredService<IStockAvailability>();
         Assert.Throws<InvalidOperationException>(() => stock.GetAvailableQuantity("WIDGET"));
-
         scope
-            .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(OperationContext.Tenantless(Actor.System(new ActorId("maintenance"))));
-        var failure = Assert.Throws<ContextRequirementException>(() =>
-            stock.GetAvailableQuantity("WIDGET")
-        );
-        Assert.Equal(ContextRequirement.TenantRequired, failure.Requirement);
+            .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+            .Initialize(TenantContext.Tenantless());
+        Assert.Throws<TenantRequiredException>(() => stock.GetAvailableQuantity("WIDGET"));
     }
 
     [Fact]
@@ -129,59 +154,116 @@ public sealed class CompositionTests
     {
         await using ServiceProvider provider = CreateProvider();
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
-        scope
-            .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(
-                OperationContext.ForTenant(
-                    new TenantId("wholesale-alpha"),
-                    Actor.Anonymous,
-                    Actor.Human(new ActorId("global-user-42"))
-                )
-            );
-
-        var failure = Assert.Throws<ContextRequirementException>(() =>
+        Establish(
+            scope,
+            TenantContext.ForTenant(new TenantId("wholesale-alpha")),
+            Actor.Anonymous,
+            Actor.Human(new ActorId("global-user-42"))
+        );
+        Assert.Throws<IdentifiedActorRequiredException>(() =>
             scope.ServiceProvider.GetRequiredService<IDraftOrderPreview>().Preview("WIDGET", 10)
         );
-        Assert.Equal(ContextRequirement.IdentifiedActorRequired, failure.Requirement);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SalesRejectsAnUnestablishedRequiredSegment(bool establishActor)
+    {
+        await using ServiceProvider provider = CreateProvider();
+        await using AsyncServiceScope scope = provider.CreateAsyncScope();
+        if (establishActor)
+        {
+            scope
+                .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+                .Initialize(new ActorContext(Actor.Human(new ActorId("user"))));
+        }
+        else
+        {
+            scope
+                .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+                .Initialize(TenantContext.ForTenant(new TenantId("wholesale-alpha")));
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            scope.ServiceProvider.GetRequiredService<IDraftOrderPreview>().Preview("WIDGET", 10)
+        );
+    }
+
+    [Theory]
+    [InlineData(false, ActorKind.Anonymous)]
+    [InlineData(false, ActorKind.Human)]
+    [InlineData(false, ActorKind.System)]
+    [InlineData(true, ActorKind.Anonymous)]
+    [InlineData(true, ActorKind.Human)]
+    [InlineData(true, ActorKind.System)]
+    public async Task TenantSelectionAndActorKindAreIndependentConsumerRequirements(
+        bool selectTenant,
+        ActorKind kind
+    )
+    {
+        await using ServiceProvider provider = CreateProvider();
+        await using AsyncServiceScope scope = provider.CreateAsyncScope();
+        Actor actor = kind switch
+        {
+            ActorKind.Anonymous => Actor.Anonymous,
+            ActorKind.Human => Actor.Human(new ActorId("user")),
+            ActorKind.System => Actor.System(new ActorId("workflow")),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+        Establish(
+            scope,
+            selectTenant
+                ? TenantContext.ForTenant(new TenantId("wholesale-alpha"))
+                : TenantContext.Tenantless(),
+            actor
+        );
+        IDraftOrderPreview sales = scope.ServiceProvider.GetRequiredService<IDraftOrderPreview>();
+        if (!selectTenant)
+        {
+            Assert.Throws<TenantRequiredException>(() => sales.Preview("WIDGET", 10));
+        }
+        else if (kind == ActorKind.Anonymous)
+        {
+            Assert.Throws<IdentifiedActorRequiredException>(() => sales.Preview("WIDGET", 10));
+            Assert.Equal(
+                42,
+                scope
+                    .ServiceProvider.GetRequiredService<IStockAvailability>()
+                    .GetAvailableQuantity("WIDGET")
+            );
+        }
+        else
+        {
+            Assert.Same(actor, sales.Preview("WIDGET", 10).RequestedBy);
+        }
     }
 
     [Fact]
-    public async Task ConcurrentOperationsRemainIsolatedAcrossAwaitAndBusinessCalls()
+    public async Task ConcurrentOperationsKeepTheSameActorAndDifferentTenantsIsolated()
     {
         await using ServiceProvider provider = CreateProvider();
         var bothEstablished = new TaskCompletionSource(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
+        Actor human = Actor.Human(new ActorId("global-user-42"));
         int established = 0;
-        Task<DraftPreview> alpha = PreviewAsync("wholesale-alpha", "alpha-user");
-        Task<DraftPreview> beta = PreviewAsync("wholesale-beta", "beta-user");
-
+        Task<DraftPreview> alpha = PreviewAsync("wholesale-alpha");
+        Task<DraftPreview> beta = PreviewAsync("wholesale-beta");
         DraftPreview[] results = await Task.WhenAll(alpha, beta)
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-
         Assert.Equal(42, results[0].AvailableQuantity);
         Assert.True(results[0].CanFulfil);
-        Assert.Equal("alpha-user", results[0].RequestedBy.Id!.Value);
         Assert.Equal(7, results[1].AvailableQuantity);
         Assert.False(results[1].CanFulfil);
-        Assert.Equal("beta-user", results[1].RequestedBy.Id!.Value);
+        Assert.All(results, preview => Assert.Same(human, preview.RequestedBy));
 
-        async Task<DraftPreview> PreviewAsync(string tenant, string actor)
+        async Task<DraftPreview> PreviewAsync(string tenant)
         {
             await using AsyncServiceScope scope = provider.CreateAsyncScope();
-            scope
-                .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-                .Initialize(
-                    OperationContext.ForTenant(
-                        new TenantId(tenant),
-                        Actor.Human(new ActorId(actor))
-                    )
-                );
+            Establish(scope, TenantContext.ForTenant(new TenantId(tenant)), human);
             if (Interlocked.Increment(ref established) == 2)
-            {
                 bothEstablished.SetResult();
-            }
-
             await bothEstablished.Task.WaitAsync(
                 TimeSpan.FromSeconds(10),
                 TestContext.Current.CancellationToken
@@ -194,25 +276,28 @@ public sealed class CompositionTests
     }
 
     [Fact]
-    public async Task IndependentChildScopeNeedsEstablishmentAndCannotRebindItsParent()
+    public async Task IndependentChildScopeCannotInheritOrRebindEitherParentContext()
     {
         await using ServiceProvider provider = CreateProvider();
         await using AsyncServiceScope parent = provider.CreateAsyncScope();
-        parent
-            .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(
-                OperationContext.ForTenant(new TenantId("wholesale-alpha"), Actor.Anonymous)
-            );
+        Establish(
+            parent,
+            TenantContext.ForTenant(new TenantId("wholesale-alpha")),
+            Actor.Anonymous
+        );
         await using (AsyncServiceScope child = parent.ServiceProvider.CreateAsyncScope())
         {
-            IOperationContextAccessor childReader =
-                child.ServiceProvider.GetRequiredService<IOperationContextAccessor>();
-            Assert.Throws<InvalidOperationException>(() => childReader.Current);
-            child
-                .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-                .Initialize(
-                    OperationContext.ForTenant(new TenantId("wholesale-beta"), Actor.Anonymous)
-                );
+            Assert.Throws<InvalidOperationException>(() =>
+                child.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                child.ServiceProvider.GetRequiredService<ITenantContextAccessor>().Current
+            );
+            Establish(
+                child,
+                TenantContext.ForTenant(new TenantId("wholesale-beta")),
+                Actor.System(new ActorId("child"))
+            );
             Assert.Equal(
                 7,
                 child
@@ -221,12 +306,19 @@ public sealed class CompositionTests
             );
         }
 
-        IOperationContextInitializer parentInitializer =
-            parent.ServiceProvider.GetRequiredService<IOperationContextInitializer>();
         Assert.Throws<InvalidOperationException>(() =>
-            parentInitializer.Initialize(
-                OperationContext.ForTenant(new TenantId("wholesale-beta"), Actor.Anonymous)
-            )
+            parent
+                .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+                .Initialize(new ActorContext(Actor.System(new ActorId("replacement"))))
+        );
+        Assert.Throws<InvalidOperationException>(() =>
+            parent
+                .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+                .Initialize(TenantContext.ForTenant(new TenantId("wholesale-beta")))
+        );
+        Assert.Same(
+            Actor.Anonymous,
+            parent.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current.Actor
         );
         Assert.Equal(
             42,
@@ -239,32 +331,32 @@ public sealed class CompositionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ExceptionOrCancellationDisposesScopeAndNextOperationStartsFresh(bool cancel)
+    public async Task ExceptionOrCancellationDisposesBothAndNextOperationStartsFresh(bool cancel)
     {
         await using ServiceProvider provider = CreateProvider();
-        IOperationContextAccessor? previous = null;
+        IActorContextAccessor? previousActor = null;
+        ITenantContextAccessor? previousTenant = null;
         using var cancellation = new CancellationTokenSource();
         Task failedOperation = RunFailureAsync();
         if (cancel)
-        {
             await Assert.ThrowsAsync<OperationCanceledException>(() => failedOperation);
-        }
         else
-        {
             await Assert.ThrowsAsync<InvalidOperationException>(() => failedOperation);
-        }
-
-        Assert.NotNull(previous);
-        Assert.Throws<ObjectDisposedException>(() => previous.Current);
+        Assert.NotNull(previousActor);
+        Assert.NotNull(previousTenant);
+        Assert.Throws<ObjectDisposedException>(() => previousActor.Current);
+        Assert.Throws<ObjectDisposedException>(() => previousTenant.Current);
         await using AsyncServiceScope next = provider.CreateAsyncScope();
-        IOperationContextAccessor reader =
-            next.ServiceProvider.GetRequiredService<IOperationContextAccessor>();
-        Assert.Throws<InvalidOperationException>(() => reader.Current);
-        next.ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-            .Initialize(
-                OperationContext.ForTenant(new TenantId("wholesale-beta"), Actor.Anonymous)
-            );
-        Assert.Null(reader.Current.Initiator);
+        Assert.Throws<InvalidOperationException>(() =>
+            next.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current
+        );
+        Assert.Throws<InvalidOperationException>(() =>
+            next.ServiceProvider.GetRequiredService<ITenantContextAccessor>().Current
+        );
+        Establish(next, TenantContext.ForTenant(new TenantId("wholesale-beta")), Actor.Anonymous);
+        Assert.Null(
+            next.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current.Initiator
+        );
         Assert.Equal(
             7,
             next.ServiceProvider.GetRequiredService<IStockAvailability>()
@@ -274,16 +366,14 @@ public sealed class CompositionTests
         async Task RunFailureAsync()
         {
             await using AsyncServiceScope scope = provider.CreateAsyncScope();
-            scope
-                .ServiceProvider.GetRequiredService<IOperationContextInitializer>()
-                .Initialize(
-                    OperationContext.ForTenant(
-                        new TenantId("wholesale-alpha"),
-                        Actor.System(new ActorId("workflow")),
-                        Actor.Human(new ActorId("initiator"))
-                    )
-                );
-            previous = scope.ServiceProvider.GetRequiredService<IOperationContextAccessor>();
+            Establish(
+                scope,
+                TenantContext.ForTenant(new TenantId("wholesale-alpha")),
+                Actor.System(new ActorId("workflow")),
+                Actor.Human(new ActorId("initiator"))
+            );
+            previousActor = scope.ServiceProvider.GetRequiredService<IActorContextAccessor>();
+            previousTenant = scope.ServiceProvider.GetRequiredService<ITenantContextAccessor>();
             Assert.Equal(
                 42,
                 scope
@@ -296,15 +386,28 @@ public sealed class CompositionTests
                 cancellation.Cancel();
                 cancellation.Token.ThrowIfCancellationRequested();
             }
-
             throw new InvalidOperationException("Consumer operation failed.");
         }
     }
 
-    private static ServiceProvider CreateProvider() =>
-        DemoComposition
-            .CreateServices()
-            .BuildServiceProvider(
-                new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }
-            );
+    // Consumer-owned composition, not a combined library context or registration protocol.
+    private static void Establish(
+        AsyncServiceScope scope,
+        TenantContext tenant,
+        Actor actor,
+        Actor? initiator = null
+    )
+    {
+        scope
+            .ServiceProvider.GetRequiredService<IActorContextInitializer>()
+            .Initialize(new ActorContext(actor, initiator));
+        scope.ServiceProvider.GetRequiredService<ITenantContextInitializer>().Initialize(tenant);
+    }
+
+    private static ServiceProvider CreateProvider() => Build(DemoComposition.CreateServices());
+
+    private static ServiceProvider Build(ServiceCollection services) =>
+        services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }
+        );
 }

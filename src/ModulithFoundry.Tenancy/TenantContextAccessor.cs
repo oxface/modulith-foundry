@@ -1,19 +1,19 @@
-namespace ModulithFoundry.ExecutionIdentity;
+namespace ModulithFoundry.Tenancy;
 
 /// <summary>
 /// A scope-owned context holder. Consumers establish it before starting business work
 /// and dispose it after all operation branches finish. Reads are safe to perform concurrently.
 /// </summary>
-public sealed class OperationContextAccessor
-    : IOperationContextAccessor,
-        IOperationContextInitializer,
+public sealed class TenantContextAccessor
+    : ITenantContextAccessor,
+        ITenantContextInitializer,
         IDisposable
 {
     private readonly object _gate = new();
-    private OperationContext? _context;
+    private TenantContext? _context;
     private bool _disposed;
 
-    public OperationContext Current
+    public TenantContext Current
     {
         get
         {
@@ -22,13 +22,13 @@ public sealed class OperationContextAccessor
                 ObjectDisposedException.ThrowIf(_disposed, this);
                 return _context
                     ?? throw new InvalidOperationException(
-                        "Operation context has not been initialized."
+                        "Tenant context has not been initialized."
                     );
             }
         }
     }
 
-    public void Initialize(OperationContext context)
+    public void Initialize(TenantContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         lock (_gate)
@@ -36,9 +36,7 @@ public sealed class OperationContextAccessor
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_context is not null)
             {
-                throw new InvalidOperationException(
-                    "Operation context has already been initialized."
-                );
+                throw new InvalidOperationException("Tenant context has already been initialized.");
             }
 
             _context = context;

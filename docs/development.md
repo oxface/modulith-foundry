@@ -1,7 +1,7 @@
 # Development and verification
 
-`ModulithFoundry.slnx` contains the active `ModulithFoundry.ExecutionIdentity` library, console
-sample and their tests.
+`ModulithFoundry.slnx` contains the independent `ModulithFoundry.ActorIdentity` and
+`ModulithFoundry.Tenancy` libraries, console sample and their tests.
 The archived solution is independent. Root build defaults target .NET 10; central package
 management pins only the test framework and standard DI package needed by E1.
 
@@ -35,19 +35,21 @@ dotnet csharpier check . --include-generated
 dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet build ModulithFoundry.slnx --no-restore
-dotnet test --project tests/ContextTests/ContextTests.csproj --no-build --no-restore
+dotnet test --project tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
+dotnet test --project tests/TenantTests/TenantTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
 ```
 
 These checks require no containers, identity provider or personal credentials. The
-dependency verifier reads restored assets: the context library has no package/project
-dependencies, and the sample references that library plus standard DI. Run restore again
+dependency verifier reads restored assets: both libraries have no package/project or extra
+framework dependencies, separate executable test consumers reference only their selected
+segment, and the sample references both libraries plus standard DI. Run restore again
 after dependency changes so those graphs are current.
 
-CI's Active context lane runs dependency verification, style, analyzers, build, both test
+CI's Active context lane runs dependency verification, style, analyzers, build, all three test
 projects and the console. Root formatter verification remains in the repository-check lane.
-See [the E1 report](reports/e1-tenant-actor.md) for verified behavior and limits.
+See [the E1 split report](reports/e1-identity-split.md) for verified behavior and limits.
 
 ## Archived backend
 
