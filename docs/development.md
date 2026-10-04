@@ -52,8 +52,9 @@ whitelist is maintained. These checks inspect direct declarations, not evaluated
 imports or transitive dependencies.
 
 Two container-free sample policies also inspect actual Inventory/Sales models and native
-migration operations for module-owned schemas, explicit ownership/global classification
-and snapshot/model consistency. They build design-time contexts without connecting to a database.
+migration operations for module-owned schemas, explicit ownership/global classification,
+Sales's tenant-bearing customer/address relationship and snapshot/model consistency.
+They build design-time contexts without connecting to a database.
 
 Standalone adoption is exercised by the real actor-only, tenancy-only and GUID EF consumers;
 ordinary restore/build and their behavior tests remain part of CI. Sample project/package
@@ -90,7 +91,8 @@ finite child process from the source checkout and passes the disposable connecti
 its environment. The sample executable must have been built in the same configuration.
 CI's separate Active PostgreSQL ownership lane runs both suites. See
 [the E2.1 report](reports/e2-1-tenant-ownership.md),
-[the E2.2 report](reports/e2-2-module-migrations.md) and
+[the E2.2 report](reports/e2-2-module-migrations.md),
+[the E2.3 relationship report](reports/e2-3-tenant-relationships.md) and
 [sample run instructions](../samples/Wholesale/PersistenceDemo/README.md).
 
 ## Archived backend

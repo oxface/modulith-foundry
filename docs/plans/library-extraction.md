@@ -7,8 +7,9 @@ package boundaries, or authorize a commit. E1 was reviewed and checkpointed as `
 The independent split was reviewed and checkpointed as `c8cbf64`;
 [its current report](../reports/e1-identity-split.md) records fresh proofs.
 E2.1 was [reviewed and checkpointed as `50e7933`](../reports/e2-1-tenant-ownership.md).
-[E2.2 module-owned migrations](e2-2-module-migrations.md) are implemented for review;
-relationships, version conflicts and [the remaining E2 scope](e2-persistence.md) are still planned. Read
+[E2.2 module-owned migrations](e2-2-module-migrations.md) were checkpointed as `f2dcf2b`.
+[E2.3 tenant relationships](e2-3-tenant-relationships.md) are implemented for review;
+version conflicts and [the remaining E2 scope](e2-persistence.md) are still planned. Read
 [the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model

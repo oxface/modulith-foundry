@@ -74,6 +74,17 @@ reject the exercised unsupported configurations. Named-filter replacement, disab
 wrong key types, generated ownership and ignored insert ownership are rejected before
 accepting protected writes.
 
+The Sales consumer additionally proves an independently mapped child with explicit ownership
+registration and a native tenant-bearing foreign key to its parent's alternate key. A
+relationship does not automatically protect or register the child. Consumers configure
+principal/foreign keys and deletion policy themselves; row validation alone does not prove
+that a referenced parent has the same owner.
+
+When ownership participates in a native EF key, key immutability can reject a change during
+change detection before a typed ownership failure is produced. The utility does not translate
+native key/relationship failures. Same-owner detached customer edits are proven with the
+Sales alternate key; no general tenant-transfer operation is supplied.
+
 Consumers keep the supported model intact. Validation is a save-time check, not a query
 interceptor; an altered/bypassed filter cannot be assumed to protect reads. Changing/removing
 ownership annotations deliberately is outside supported wiring. Unregistered entities are
@@ -86,6 +97,7 @@ and storage strategies need their own proofs of consistent identity semantics. T
 neither opens transactions, saves, commits, retries nor registers services. Native saves/transactions remain
 visible; no ambient scope, base DbContext or automatic stamping is introduced.
 
-See [the executable Inventory consumer](../../samples/Wholesale/PersistenceDemo/README.md),
+See [the executable Inventory/Sales consumer](../../samples/Wholesale/PersistenceDemo/README.md),
 [the first-slice plan](../../docs/plans/e2-1-tenant-ownership.md) and
-[the proof report](../../docs/reports/e2-1-tenant-ownership.md).
+[the first proof report](../../docs/reports/e2-1-tenant-ownership.md) and
+[the relationship proof report](../../docs/reports/e2-3-tenant-relationships.md).

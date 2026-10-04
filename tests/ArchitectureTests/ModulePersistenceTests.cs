@@ -18,11 +18,14 @@ public sealed class ModulePersistenceTests
             module == "inventory"
                 ? new InventoryDesignTimeFactory().CreateDbContext([])
                 : new SalesDesignTimeFactory().CreateDbContext([]);
-        Type ownedType = module == "inventory" ? typeof(StockReference) : typeof(CustomerReference);
+        Type[] ownedTypes =
+            module == "inventory"
+                ? [typeof(StockReference)]
+                : [typeof(CustomerAddressReference), typeof(CustomerReference)];
         Type[] expectedTypes =
             module == "inventory"
                 ? [typeof(ReferenceCategory), typeof(StockReference)]
-                : [typeof(CustomerReference)];
+                : [typeof(CustomerAddressReference), typeof(CustomerReference)];
         Assert.Equal(
             expectedTypes,
             context
@@ -34,16 +37,35 @@ public sealed class ModulePersistenceTests
             context.Model.GetEntityTypes(),
             entity => Assert.Equal(module, entity.GetSchema())
         );
-        var owned = context.Model.FindEntityType(ownedType)!;
-        Assert.True(owned.FindProperty("OrganizationKey")!.IsConcurrencyToken);
-        Assert.Contains(
-            owned.GetDeclaredQueryFilters(),
-            filter => filter.Key == "OrganizationScope"
-        );
+        foreach (Type ownedType in ownedTypes)
+        {
+            var owned = context.Model.FindEntityType(ownedType)!;
+            Assert.True(owned.FindProperty("OrganizationKey")!.IsConcurrencyToken);
+            Assert.Contains(
+                owned.GetDeclaredQueryFilters(),
+                filter => filter.Key == "OrganizationScope"
+            );
+        }
         if (module == "inventory")
             Assert.Empty(
                 context.Model.FindEntityType(typeof(ReferenceCategory))!.GetDeclaredQueryFilters()
             );
+        else
+        {
+            var address = context.Model.FindEntityType(typeof(CustomerAddressReference))!;
+            var relation = Assert.Single(address.GetForeignKeys());
+            Assert.Equal(typeof(CustomerReference), relation.PrincipalEntityType.ClrType);
+            Assert.Equal(
+                ["OrganizationKey", "CustomerId"],
+                relation.Properties.Select(property => property.Name)
+            );
+            Assert.Equal(
+                ["OrganizationKey", "Id"],
+                relation.PrincipalKey.Properties.Select(property => property.Name)
+            );
+            Assert.True(relation.IsRequired);
+            Assert.Equal(DeleteBehavior.Restrict, relation.DeleteBehavior);
+        }
 
         var assembly = context.GetService<IMigrationsAssembly>();
         Assert.NotEmpty(assembly.Migrations);
@@ -68,13 +90,25 @@ public sealed class ModulePersistenceTests
                         break;
                     case CreateTableOperation table:
                         Assert.Equal(module, table.Schema);
-                        Assert.Empty(table.ForeignKeys);
+                        Assert.All(
+                            table.ForeignKeys,
+                            foreign => CustomerAddressConstraint(foreign, module)
+                        );
                         break;
                     case CreateIndexOperation index:
                         Assert.Equal(module, index.Schema);
                         break;
                     case DropTableOperation table:
                         Assert.Equal(module, table.Schema);
+                        break;
+                    case AddUniqueConstraintOperation key:
+                        Assert.Equal(module, key.Schema);
+                        Assert.Equal("customer_reference", key.Table);
+                        Assert.Equal(["OrganizationKey", "Id"], key.Columns);
+                        break;
+                    case DropUniqueConstraintOperation key:
+                        Assert.Equal(module, key.Schema);
+                        Assert.Equal("customer_reference", key.Table);
                         break;
                     default:
                         Assert.Fail(
@@ -85,5 +119,18 @@ public sealed class ModulePersistenceTests
             }
         }
         Assert.False(context.Database.HasPendingModelChanges());
+    }
+
+    private static void CustomerAddressConstraint(AddForeignKeyOperation foreign, string module)
+    {
+        Assert.Equal("sales", module);
+        Assert.Equal(module, foreign.Schema);
+        Assert.Equal(module, foreign.PrincipalSchema);
+        Assert.Equal("customer_address_reference", foreign.Table);
+        Assert.Equal("customer_reference", foreign.PrincipalTable);
+        Assert.Equal(["OrganizationKey", "CustomerId"], foreign.Columns);
+        Assert.NotNull(foreign.PrincipalColumns);
+        Assert.Equal(["OrganizationKey", "Id"], foreign.PrincipalColumns);
+        Assert.Equal(ReferentialAction.Restrict, foreign.OnDelete);
     }
 }

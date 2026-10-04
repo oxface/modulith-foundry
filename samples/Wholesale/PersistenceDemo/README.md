@@ -26,8 +26,10 @@ Expected output on first and repeat invocation:
 ```text
 wholesale-alpha: WIDGET availability=42
 wholesale-alpha: BUYER customer=Alpha Retail
+wholesale-alpha: BUYER address=42 Market Street
 wholesale-beta: WIDGET availability=7
 wholesale-beta: BUYER customer=Beta Retail
+wholesale-beta: BUYER address=7 Dock Road
 ```
 
 ## Ownership and language
@@ -42,26 +44,39 @@ Reference categories are explicitly global sample data. Their saves/queries need
 that fixture policy does not grant access to Organization-owned rows. The sample has no
 membership or permission mechanism; those enter in E3.
 
-Sales owns the `sales` schema and `CustomerReference` table. Customer codes are unique within
+Sales owns the `sales` schema and the customer/address reference tables. Customer codes are unique within
 an Organization; the same `BUYER` code can identify different reference customers in Alpha
 and Beta. Names are fixture data, not an application-user, membership or complete customer
 aggregate model. Both modules set row ownership explicitly before saving.
 
+An address is a separately mapped, tenant-owned child with a customer ID and address line.
+The customer's alternate key `(OrganizationKey, Id)` is referenced by the address's required
+foreign key `(OrganizationKey, CustomerId)`. An Alpha address cannot point to a Beta customer,
+even when supplied only its ID. Both rows explicitly register ownership; protection is not
+inferred from the relationship. The consumer selects native restricted deletion: addresses
+must be explicitly removed before deleting their customer. No cascading deletion is configured.
+
+The Organization is now an alternate-key component on customers. Native EF key immutability
+can reject changing it during change detection before the utility returns a typed ownership
+failure. Ordinary detached edits to non-key fields remain supported. There is no automatic
+exception translation or tenant transfer; these references remain persistence fixtures.
+
 - **Stock reference**: consumer-owned fixture availability for a SKU in an Organization.
 - **Reference category**: global fixture classification, independent of an Organization.
 - **Customer reference**: Sales-owned customer code/display name in an Organization.
+- **Customer address reference**: Sales-owned address line belonging to a customer in the same Organization.
 - **Organization** and **Tenant** follow [the project glossary](../../../CONTEXT.md).
 
 ## Template recipe and proofs
 
-[DemoComposition](DemoComposition.cs) visibly registers tenancy aliases and a native
+[DemoComposition](DemoComposition.cs) visibly registers tenancy aliases and native
 DbContexts. [InventoryDbContext](Inventory/InventoryDbContext.cs) maps schema, entities,
 keys/indexes, soft deletion, ownership and both save overrides. [Program](Program.cs)
 selects the tenant before scoped reads and deliberately populates new rows before saving.
 This is the exercised setup to copy/edit; no library registration facade or template generator.
 
 [SalesDbContext](Sales/SalesDbContext.cs) reuses ownership registration/validation with its
-own customer mapping. Module-local [Inventory options](Inventory/InventoryDatabase.cs) and
+own customer/address mappings and native relationship. Module-local [Inventory options](Inventory/InventoryDatabase.cs) and
 [Sales options](Sales/SalesDatabase.cs) configure Npgsql and a separate `__EFMigrationsHistory`
 table within each schema. Runtime DI and native design-time factories call the same options
 method. Schemas express module ownership; they do not restrict the database credentials.
@@ -94,9 +109,12 @@ generated code remains editable consumer code. Native context attributes select 
 migrations/snapshot within the shared sample assembly. No separate migration projects or
 runtime code generation are needed here.
 
-Initial migrations create only the owning module's tables and indexes. The schema policy
-tests intentionally require review before admitting new operation kinds, foreign keys or
-raw SQL. They do not parse SQL or promise a universal migration-isolation checker.
+Initial migrations create only the owning module's tables and indexes. Sales's incremental
+`CustomerAddresses` migration adds the customer alternate key and address table/foreign key,
+preserving existing E2.2 customers. Initial migrations are unchanged. The schema policy
+admits this actual tenant-bearing relationship and key operations; further operation kinds,
+relationships and raw SQL require review. It does not parse SQL or promise a universal
+migration-isolation checker.
 
 ## Proofs and remaining work
 
@@ -110,9 +128,15 @@ model classification and first/repeat console invocation. The separate GUID-key 
 module first, verify its tables/history alone, preserve its rows when the other module is
 initialized, verify independent histories and exercise Sales tenant filtering/save guards.
 [Container-free model/artifact policies](../../../tests/ArchitectureTests/ModulePersistenceTests.cs)
-check both schemas, explicit entity classification and snapshot/model consistency.
+check both schemas, explicit entity classification, tenant-bearing relationship and snapshot/model consistency.
 
-Relationships, separate version conflicts and shared
+[Relationship proofs](../PersistenceDemo.Tests/CustomerRelationshipTests.cs) cover valid
+child insertion/read and same-tenant reparenting, foreign-parent insert/update rejection
+without loading the parent, child ownership validation, restricted deletion, detached
+customer edits and migration from an existing E2.2 customer.
+
+Separate version conflicts and shared
 cross-module transactions remain subsequent increments, as recorded in
 [the E2 plan](../../../docs/plans/e2-persistence.md). E2.2 proves a consumer-owned migration
-recipe; it introduces no new reusable library mechanism.
+recipe; E2.3 adds consumer-owned relationship constraints. Neither introduces a new reusable
+library mechanism. Transaction failure/rollback through a concrete operation remains later work.

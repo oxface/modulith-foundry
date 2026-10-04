@@ -32,7 +32,12 @@ public sealed class ModuleMigrationTests(PostgreSqlFixture postgres)
                 "inventory.reference_category",
                 "inventory.stock_reference",
             ]
-            : ["sales.__EFMigrationsHistory", "sales.customer_reference"];
+            :
+            [
+                "sales.__EFMigrationsHistory",
+                "sales.customer_address_reference",
+                "sales.customer_reference",
+            ];
         await using (AsyncServiceScope setup = provider.CreateAsyncScope())
             await Context(setup, first).Database.MigrateAsync(Token);
         Assert.Equal(firstTables, await TablesAsync(connection));
@@ -65,6 +70,7 @@ public sealed class ModuleMigrationTests(PostgreSqlFixture postgres)
                 "inventory.reference_category",
                 "inventory.stock_reference",
                 "sales.__EFMigrationsHistory",
+                "sales.customer_address_reference",
                 "sales.customer_reference",
             ],
             await TablesAsync(connection)

@@ -64,4 +64,21 @@ foreach (var (organization, quantity) in new[] { ("wholesale-alpha", 42), ("whol
         await sales.SaveChangesAsync();
     }
     Console.WriteLine($"{organization}: BUYER customer={customer.DisplayName}");
+
+    CustomerAddressReference? address = await sales.CustomerAddresses.SingleOrDefaultAsync(row =>
+        row.CustomerId == customer.Id
+    );
+    if (address is null)
+    {
+        address = new CustomerAddressReference
+        {
+            Id = Guid.NewGuid(),
+            OrganizationKey = organization,
+            CustomerId = customer.Id,
+            AddressLine = organization == "wholesale-alpha" ? "42 Market Street" : "7 Dock Road",
+        };
+        sales.CustomerAddresses.Add(address);
+        await sales.SaveChangesAsync();
+    }
+    Console.WriteLine($"{organization}: BUYER address={address.AddressLine}");
 }

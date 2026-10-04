@@ -110,3 +110,11 @@ of that audited state. [E2.2](e2-2-module-migrations.md) now passes 119 active c
 30 PostgreSQL cases. It adds focused two-module migration/history/save-wiring proofs and
 two fast schema/artifact policies, replacing the earlier slow Inventory classification case.
 No generic architecture helper or synthetic framework/assertion tests were reintroduced.
+
+## Subsequent E2.3 evidence
+
+[E2.3](e2-3-tenant-relationships.md) passes 126 active cases, including 37 PostgreSQL cases.
+Its seven new cases protect actual Sales relationship/deletion wiring, detached-edit
+compatibility and existing-customer migration. The fast model/artifact policy is extended
+without new cases or a generic checker. These are consumer configuration proofs, not tests
+of native foreign-key machinery in isolation; E2.2's counts above remain historical.

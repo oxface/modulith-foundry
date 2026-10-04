@@ -1,5 +1,9 @@
 # E2.2 module-owned schemas and migrations
 
+Checkpoint update, 2026-10-04: the owner reviewed and committed this 33-file slice as
+`f2dcf2b`. The earlier review handoff below is historical; its unstaged status is not current.
+[E2.3](e2-3-tenant-relationships.md) adds consumer-owned tenant-bearing relationships for review.
+
 2026-10-04. Implemented after the owner's instruction to proceed from E2.1 checkpoint
 `50e7933`. This slice is ready for owner review. Changes remain unstaged and uncommitted.
 Scope and limits are in [the slice plan](../plans/e2-2-module-migrations.md).

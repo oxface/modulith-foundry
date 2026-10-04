@@ -246,8 +246,10 @@ public sealed class OwnershipTests(PostgreSqlFixture postgres) : IClassFixture<P
         [
             "wholesale-alpha: WIDGET availability=42",
             "wholesale-alpha: BUYER customer=Alpha Retail",
+            "wholesale-alpha: BUYER address=42 Market Street",
             "wholesale-beta: WIDGET availability=7",
             "wholesale-beta: BUYER customer=Beta Retail",
+            "wholesale-beta: BUYER address=7 Dock Road",
         ];
         Assert.Equal(expected, await RunAsync());
         Assert.Equal(expected, await RunAsync());

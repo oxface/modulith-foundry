@@ -57,3 +57,14 @@ within the module. Foreign keys and new operation kinds require a deliberate ext
 this sample policy. Raw SQL is rejected rather than interpreted. This is a small repository
 policy, not an arbitrary migration parser or reusable checker. No synthetic assertion-failure
 tests were added. Current suite size is 15; fresh results are in [the E2.2 report](e2-2-module-migrations.md).
+
+## E2.3 relationship extension
+
+The same two sample-policy cases now classify Sales's separately mapped address child and
+inspect its required tenant-bearing foreign/principal keys and restricted deletion policy.
+Migration inspection admits the new native unique-key operations and checks the actual
+address foreign key inside table creation, including both schemas, principal table, column
+pairing and deletion action. This small policy is specific to the exercised sample; unknown
+operations and raw SQL still require review. No generic helper library or synthetic
+assertion-failure cases were added. Suite size remains 15; [E2.3](e2-3-tenant-relationships.md)
+records the fresh executions.

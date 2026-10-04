@@ -1,8 +1,8 @@
 # E2.2 module-owned schemas and migrations
 
-Status: implemented for owner review on 2026-10-04, after E2.1 checkpoint `50e7933`.
+Status: owner-reviewed and checkpointed as `f2dcf2b` on 2026-10-04, after E2.1 checkpoint `50e7933`.
 The owner approved proceeding with the proposed two-module migration slice. Generated
-migrations and consumer setup remain subject to ordinary code review; no commit is authorized.
+migrations and consumer setup were approved in the complete 33-file E2.2 checkpoint.
 [The report](../reports/e2-2-module-migrations.md) records fresh verification and limits.
 
 ## Outcome

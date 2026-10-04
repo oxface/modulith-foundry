@@ -208,8 +208,10 @@ any transfer is explicit consumer code. [E2.1](reports/e2-1-tenant-ownership.md)
 explicit model registration and write validation with native ownership concurrency predicates,
 proven for ordinary single-table string/GUID consumers on PostgreSQL and checkpointed as
 `50e7933`. [E2.2](reports/e2-2-module-migrations.md) exercises consumer-owned native migrations
-and history configuration for two module schemas without a new library mechanism.
-Relationships, competing versions and the rest of [the E2 plan](plans/e2-persistence.md)
+and history configuration for two module schemas without a new library mechanism,
+checkpointed as `f2dcf2b`. [E2.3](reports/e2-3-tenant-relationships.md) adds an explicit native
+same-tenant customer/address constraint as consumer-owned sample/template policy.
+Competing versions, operation-level transaction failures and the rest of [the E2 plan](plans/e2-persistence.md)
 remain proposed.
 
 Consumers register their DbContexts, entity mappings, migrations, handlers, transports,

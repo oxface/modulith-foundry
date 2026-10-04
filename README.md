@@ -12,7 +12,8 @@ and [tenancy](src/ModulithFoundry.Tenancy/README.md), exercised by [the finite w
 The first [EF ownership utility](src/ModulithFoundry.Persistence.EntityFrameworkCore/README.md)
 was checkpointed with an executable Inventory consumer. The
 [two-module persistence sample](samples/Wholesale/PersistenceDemo/README.md) now owns native
-Inventory/Sales migrations and separate histories for review. Relationships, concurrency,
+Inventory/Sales migrations and separate histories checkpointed as `f2dcf2b`.
+Same-tenant customer/address relationships are implemented for review. Concurrency,
 trusted HTTP ingress and messaging follow later increments.
 
 - [Current design decisions](docs/design.md)
@@ -25,6 +26,8 @@ trusted HTTP ingress and messaging follow later increments.
 - [E2.1 implementation and proof report](docs/reports/e2-1-tenant-ownership.md)
 - [E2.2 module migrations plan](docs/plans/e2-2-module-migrations.md)
 - [E2.2 implementation and proof report](docs/reports/e2-2-module-migrations.md)
+- [E2.3 tenant relationships plan](docs/plans/e2-3-tenant-relationships.md)
+- [E2.3 implementation and proof report](docs/reports/e2-3-tenant-relationships.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)

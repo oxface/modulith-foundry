@@ -4,9 +4,10 @@ Status: overall E2 scope inventory, 2026-10-03. The owner confirmed the initial 
 approach and immutable tenant ownership, then approved the first interface for implementation.
 [E2.1](e2-1-tenant-ownership.md) was owner-reviewed and checkpointed as `50e7933`;
 [its report](../reports/e2-1-tenant-ownership.md) records the limited first proofs.
-[E2.2](e2-2-module-migrations.md) adds two-module schemas/migrations for review;
+[E2.2](e2-2-module-migrations.md) was owner-reviewed and checkpointed as `f2dcf2b`;
 [its report](../reports/e2-2-module-migrations.md) records the consumer setup and new evidence.
-Relationships and separate version conflicts below remain planned.
+[E2.3](e2-3-tenant-relationships.md) adds same-tenant relationships for review.
+Separate version conflicts and operation-level failure/rollback below remain planned.
 Read [the design](../design.md), [extraction plan](library-extraction.md) and
 [design findings](../reports/e2-persistence-design.md).
 
