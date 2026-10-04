@@ -53,7 +53,8 @@ imports or transitive dependencies.
 
 Two container-free sample policies also inspect actual Inventory/Sales models and native
 migration operations for module-owned schemas, explicit ownership/global classification,
-Sales's tenant-bearing customer/address relationship and snapshot/model consistency.
+Sales's tenant-bearing customer/address relationship, explicit customer version token and
+snapshot/model consistency.
 They build design-time contexts without connecting to a database.
 
 Standalone adoption is exercised by the real actor-only, tenancy-only and GUID EF consumers;
@@ -92,7 +93,8 @@ its environment. The sample executable must have been built in the same configur
 CI's separate Active PostgreSQL ownership lane runs both suites. See
 [the E2.1 report](reports/e2-1-tenant-ownership.md),
 [the E2.2 report](reports/e2-2-module-migrations.md),
-[the E2.3 relationship report](reports/e2-3-tenant-relationships.md) and
+[the E2.3 relationship report](reports/e2-3-tenant-relationships.md),
+[the E2.4 profile-change report](reports/e2-4-versioned-profile-changes.md) and
 [sample run instructions](../samples/Wholesale/PersistenceDemo/README.md).
 
 ## Archived backend

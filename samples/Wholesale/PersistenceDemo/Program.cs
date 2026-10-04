@@ -58,12 +58,12 @@ foreach (var (organization, quantity) in new[] { ("wholesale-alpha", 42), ("whol
             Id = Guid.NewGuid(),
             OrganizationKey = organization,
             Code = "BUYER",
-            DisplayName = organization == "wholesale-alpha" ? "Alpha Retail" : "Beta Retail",
+            DisplayName = organization == "wholesale-alpha" ? "Alpha Draft" : "Beta Draft",
+            Version = 1,
         };
         sales.Customers.Add(customer);
         await sales.SaveChangesAsync();
     }
-    Console.WriteLine($"{organization}: BUYER customer={customer.DisplayName}");
 
     CustomerAddressReference? address = await sales.CustomerAddresses.SingleOrDefaultAsync(row =>
         row.CustomerId == customer.Id
@@ -75,10 +75,37 @@ foreach (var (organization, quantity) in new[] { ("wholesale-alpha", 42), ("whol
             Id = Guid.NewGuid(),
             OrganizationKey = organization,
             CustomerId = customer.Id,
-            AddressLine = organization == "wholesale-alpha" ? "42 Market Street" : "7 Dock Road",
+            AddressLine = "Draft address",
         };
         sales.CustomerAddresses.Add(address);
         await sales.SaveChangesAsync();
     }
+    string desiredName = organization == "wholesale-alpha" ? "Alpha Retail" : "Beta Retail";
+    string desiredAddress = organization == "wholesale-alpha" ? "42 Market Street" : "7 Dock Road";
+    if (customer.DisplayName != desiredName || address.AddressLine != desiredAddress)
+    {
+        await using var transaction = await sales.Database.BeginTransactionAsync();
+        try
+        {
+            await CustomerProfileChanges.ApplyAsync(
+                sales,
+                new CustomerProfileChange(
+                    customer.Id,
+                    address.Id,
+                    customer.Version,
+                    desiredName,
+                    desiredAddress
+                )
+            );
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+    Console.WriteLine($"{organization}: BUYER customer={customer.DisplayName}");
     Console.WriteLine($"{organization}: BUYER address={address.AddressLine}");
+    Console.WriteLine($"{organization}: BUYER profile-version={customer.Version}");
 }

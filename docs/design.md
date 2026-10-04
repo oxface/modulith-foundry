@@ -210,9 +210,12 @@ proven for ordinary single-table string/GUID consumers on PostgreSQL and checkpo
 `50e7933`. [E2.2](reports/e2-2-module-migrations.md) exercises consumer-owned native migrations
 and history configuration for two module schemas without a new library mechanism,
 checkpointed as `f2dcf2b`. [E2.3](reports/e2-3-tenant-relationships.md) adds an explicit native
-same-tenant customer/address constraint as consumer-owned sample/template policy.
-Competing versions, operation-level transaction failures and the rest of [the E2 plan](plans/e2-persistence.md)
-remain proposed.
+same-tenant customer/address constraint as consumer-owned sample/template policy,
+checkpointed as `d67c7fc`. [E2.4](reports/e2-4-versioned-profile-changes.md) adds an explicitly
+advanced customer version and a two-save profile operation inside a caller-owned native
+transaction, including stale-request, fault and cancellation proofs. It is implemented for
+review and introduces no new reusable mechanism. Shared cross-module transactions and the
+remaining limits in [the E2 plan](plans/e2-persistence.md) require separate evidence.
 
 Consumers register their DbContexts, entity mappings, migrations, handlers, transports,
 queues, topics, subscriptions, and routes. Libraries may provide explicit registration

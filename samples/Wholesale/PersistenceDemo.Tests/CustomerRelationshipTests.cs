@@ -170,8 +170,15 @@ public sealed class CustomerRelationshipTests(PostgreSqlFixture postgres)
             await Sales(setup).GetService<IMigrator>().MigrateAsync("InitialSales", Token);
         await using (AsyncServiceScope alpha = Scope(provider, Alpha))
         {
-            Sales(alpha).Customers.Add(Customer(AlphaCustomer, Alpha, "BUYER"));
-            await Sales(alpha).SaveChangesAsync(Token);
+            // The retained initial schema has no Version column; seed its original shape.
+            await Sales(alpha)
+                .Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                    INSERT INTO sales.customer_reference ("Id", "OrganizationKey", "Code", "DisplayName")
+                    VALUES ({AlphaCustomer}, {Alpha}, {"BUYER"}, {"BUYER customer"})
+                    """,
+                    Token
+                );
         }
         await using (AsyncServiceScope setup = provider.CreateAsyncScope())
             await Sales(setup).Database.MigrateAsync(Token);
@@ -187,10 +194,7 @@ public sealed class CustomerRelationshipTests(PostgreSqlFixture postgres)
             );
             await sales.SaveChangesAsync(Token);
             Assert.Equal(
-                [
-                    "20261004154254_InitialSales",
-                    sales.GetService<IMigrationsAssembly>().Migrations.Keys.Last(),
-                ],
+                sales.GetService<IMigrationsAssembly>().Migrations.Keys,
                 await sales.Database.GetAppliedMigrationsAsync(Token)
             );
         }
@@ -262,6 +266,7 @@ public sealed class CustomerRelationshipTests(PostgreSqlFixture postgres)
             OrganizationKey = organization,
             Code = code,
             DisplayName = code + " customer",
+            Version = 1,
         };
 
     private static CustomerAddressReference Address(

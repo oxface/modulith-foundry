@@ -189,6 +189,7 @@ public sealed class ModuleMigrationTests(PostgreSqlFixture postgres)
             OrganizationKey = organization,
             Code = "BUYER",
             DisplayName = name,
+            Version = 1,
         };
 
     private static async Task<string[]> TablesAsync(string connectionString)

@@ -27,9 +27,11 @@ Expected output on first and repeat invocation:
 wholesale-alpha: WIDGET availability=42
 wholesale-alpha: BUYER customer=Alpha Retail
 wholesale-alpha: BUYER address=42 Market Street
+wholesale-alpha: BUYER profile-version=2
 wholesale-beta: WIDGET availability=7
 wholesale-beta: BUYER customer=Beta Retail
 wholesale-beta: BUYER address=7 Dock Road
+wholesale-beta: BUYER profile-version=2
 ```
 
 ## Ownership and language
@@ -66,6 +68,32 @@ exception translation or tenant transfer; these references remain persistence fi
 - **Customer reference**: Sales-owned customer code/display name in an Organization.
 - **Customer address reference**: Sales-owned address line belonging to a customer in the same Organization.
 - **Organization** and **Tenant** follow [the project glossary](../../../CONTEXT.md).
+
+## Versioned profile changes
+
+[CustomerProfileChanges.ApplyAsync](Sales/CustomerProfileChanges.cs) is consumer-owned
+coordination code. It loads the selected Organization's customer/address pair, uses the
+request's expected customer version in the native concurrency predicate, explicitly advances
+that version, saves the name, then saves the address. It requires a caller-owned Sales
+transaction and returns the staged version; the caller decides whether to commit.
+
+[Program](Program.cs) demonstrates native `BeginTransactionAsync`, the ordinary operation
+call, `CommitAsync` and explicit `RollbackAsync(CancellationToken.None)` on failure. Use a
+dedicated context without unrelated pending changes. After failure, roll back and discard
+the context: native rollback does not restore the accepted change tracker. No library
+scope, retry, exception translation or runtime interceptor participates.
+
+New customers explicitly start at Version 1. A native database default backfills existing
+customers during migration, while EF's `ValueGenerated.Never` preserves consumer-supplied
+values. The console creates drafts and performs one profile change to reach Version 2 on a
+fresh database; repeat invocation leaves matching fixture values unchanged. An upgraded
+database with already-matching values can remain at Version 1. This setup is not a general
+idempotency protocol.
+
+The version protocol covers coordinated profile changes only when all relevant writers
+check and advance the customer version. Direct child writes do not advance it automatically;
+fixture save examples are not a universally enforced aggregate protocol. Admission and
+profile-input validation remain consumer policy.
 
 ## Template recipe and proofs
 
@@ -112,7 +140,9 @@ runtime code generation are needed here.
 Initial migrations create only the owning module's tables and indexes. Sales's incremental
 `CustomerAddresses` migration adds the customer alternate key and address table/foreign key,
 preserving existing E2.2 customers. Initial migrations are unchanged. The schema policy
-admits this actual tenant-bearing relationship and key operations; further operation kinds,
+also admits the incremental `CustomerVersions` column, which backfills Version 1 while
+preserving E2.3 customer/address rows. It checks these actual relationship, key and column
+operations; further operation kinds,
 relationships and raw SQL require review. It does not parse SQL or promise a universal
 migration-isolation checker.
 
@@ -135,8 +165,12 @@ child insertion/read and same-tenant reparenting, foreign-parent insert/update r
 without loading the parent, child ownership validation, restricted deletion, detached
 customer edits and migration from an existing E2.2 customer.
 
-Separate version conflicts and shared
-cross-module transactions remain subsequent increments, as recorded in
-[the E2 plan](../../../docs/plans/e2-persistence.md). E2.2 proves a consumer-owned migration
-recipe; E2.3 adds consumer-owned relationship constraints. Neither introduces a new reusable
-library mechanism. Transaction failure/rollback through a concrete operation remains later work.
+[Profile-change proofs](../PersistenceDemo.Tests/CustomerProfileTests.cs) cover caller-selected
+commit visibility, stale request versions even with a fresh server context, a real second-save
+constraint fault, cancellation after the first SQL write, explicit rollback/fresh recovery,
+and an E2.3 database upgraded to execute the new operation.
+
+Shared cross-module transactions require a separate named workflow and proof, as recorded in
+[the E2 plan](../../../docs/plans/e2-persistence.md). E2.2 through E2.4 establish consumer-owned
+migration, relationship and transaction/version recipes. No new reusable library mechanism
+was proven by those slices. PostgreSQL is the only exercised database provider.

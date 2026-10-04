@@ -118,3 +118,14 @@ Its seven new cases protect actual Sales relationship/deletion wiring, detached-
 compatibility and existing-customer migration. The fast model/artifact policy is extended
 without new cases or a generic checker. These are consumer configuration proofs, not tests
 of native foreign-key machinery in isolation; E2.2's counts above remain historical.
+
+## Subsequent E2.4 evidence
+
+[E2.4](e2-4-versioned-profile-changes.md) passes 131 active cases, including 42 PostgreSQL
+cases. Five new cases exercise the actual consumer operation: caller-controlled commit,
+stale request versions with a fresh server context, a real second-save constraint fault and
+fresh recovery, cancellation after the first write, and existing-data upgrade. Assertions
+observe SQL state and fresh-scope results instead of merely testing native transaction APIs.
+The existing fast model/artifact policies now inspect the version mapping and migration;
+no extra framework-only cases or generic infrastructure were added. Earlier counts remain
+historical.

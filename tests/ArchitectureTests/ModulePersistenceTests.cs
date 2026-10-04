@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Inventory;
@@ -52,6 +53,12 @@ public sealed class ModulePersistenceTests
             );
         else
         {
+            var version = context
+                .Model.FindEntityType(typeof(CustomerReference))!
+                .FindProperty(nameof(CustomerReference.Version))!;
+            Assert.True(version.IsConcurrencyToken);
+            Assert.Equal(ValueGenerated.Never, version.ValueGenerated);
+            Assert.Equal(1L, version.GetDefaultValue());
             var address = context.Model.FindEntityType(typeof(CustomerAddressReference))!;
             var relation = Assert.Single(address.GetForeignKeys());
             Assert.Equal(typeof(CustomerReference), relation.PrincipalEntityType.ClrType);
@@ -109,6 +116,19 @@ public sealed class ModulePersistenceTests
                     case DropUniqueConstraintOperation key:
                         Assert.Equal(module, key.Schema);
                         Assert.Equal("customer_reference", key.Table);
+                        break;
+                    case AddColumnOperation column:
+                        Assert.Equal(module, column.Schema);
+                        Assert.Equal("customer_reference", column.Table);
+                        Assert.Equal("Version", column.Name);
+                        Assert.Equal(typeof(long), column.ClrType);
+                        Assert.False(column.IsNullable);
+                        Assert.Equal(1L, column.DefaultValue);
+                        break;
+                    case DropColumnOperation column:
+                        Assert.Equal(module, column.Schema);
+                        Assert.Equal("customer_reference", column.Table);
+                        Assert.Equal("Version", column.Name);
                         break;
                     default:
                         Assert.Fail(

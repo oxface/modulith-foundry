@@ -68,3 +68,12 @@ pairing and deletion action. This small policy is specific to the exercised samp
 operations and raw SQL still require review. No generic helper library or synthetic
 assertion-failure cases were added. Suite size remains 15; [E2.3](e2-3-tenant-relationships.md)
 records the fresh executions.
+
+## E2.4 version extension
+
+The existing Sales policy checks a separate native customer version token, explicit
+`ValueGenerated.Never` and the migration default of 1. Artifact inspection admits the actual
+module-local Version add/drop-column operations while retaining ownership, relationship and
+snapshot consistency checks. This stays a sample-specific policy; unknown operations and
+raw SQL require review. Suite size remains 15; [E2.4](e2-4-versioned-profile-changes.md)
+records the new executions. No new reusable mechanism or custom test infrastructure was added.

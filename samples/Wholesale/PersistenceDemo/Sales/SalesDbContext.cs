@@ -23,6 +23,11 @@ public sealed class SalesDbContext(
         customer.Property(row => row.Id).ValueGeneratedNever();
         customer.Property(row => row.Code).IsRequired();
         customer.Property(row => row.DisplayName).IsRequired();
+        customer
+            .Property(row => row.Version)
+            .HasDefaultValue(1L)
+            .IsConcurrencyToken()
+            .ValueGeneratedNever();
         customer.HasIndex(row => new { row.OrganizationKey, row.Code }).IsUnique();
         customer.HasTenantOwnership(
             row => row.OrganizationKey,
