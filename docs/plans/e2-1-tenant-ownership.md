@@ -1,6 +1,7 @@
 # E2.1 explicit EF tenant ownership
 
-Status: implemented for owner code review, 2026-10-03. The owner approved this interface
+Status: owner-reviewed and checkpointed as `50e7933` on 2026-10-04, including the test audit.
+The owner approved this interface
 and scope after checkpoint `c8cbf64`, allowing revisions consistent with prior decisions,
 and allowed native development-time EF migration scaffolding. [The complete E2 plan](e2-persistence.md) remains the scope inventory; this
 increment makes the first supported mechanism small enough for line-by-line review.

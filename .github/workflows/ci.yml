@@ -49,7 +49,7 @@ jobs:
       - name: Build active projects
         run: dotnet build ModulithFoundry.slnx --no-restore
 
-      - name: Test active architecture and independent adoption
+      - name: Test active architecture, module schemas and independent adoption
         run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
 
       - name: Test actor identity library
@@ -107,7 +107,7 @@ jobs:
         run: dotnet restore ModulithFoundry.slnx
       - name: Test independent GUID ownership consumer
         run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
-      - name: Test Inventory persistence composition
+      - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
 
   fast:

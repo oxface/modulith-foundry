@@ -239,38 +239,15 @@ public sealed class OwnershipTests(PostgreSqlFixture postgres) : IClassFixture<P
     }
 
     [Fact]
-    public async Task EverySampleEntityHasExplicitGlobalOrOwnershipClassification()
-    {
-        await using ServiceProvider provider = await SeededProviderAsync();
-        await using AsyncServiceScope scope = provider.CreateAsyncScope();
-        var model = Inventory(scope).Model;
-        Assert.Equal(
-            [typeof(ReferenceCategory), typeof(StockReference)],
-            model
-                .GetEntityTypes()
-                .Select(entity => entity.ClrType)
-                .OrderBy(type => type.Name)
-                .ToArray()
-        );
-        var stock = model.FindEntityType(typeof(StockReference))!;
-        Assert.Equal("inventory", stock.GetSchema());
-        Assert.True(stock.FindProperty(nameof(StockReference.OrganizationKey))!.IsConcurrencyToken);
-        Assert.Contains(
-            stock.GetDeclaredQueryFilters(),
-            filter => filter.Key == "OrganizationScope"
-        );
-        var global = model.FindEntityType(typeof(ReferenceCategory))!;
-        Assert.Empty(global.GetDeclaredQueryFilters());
-    }
-
-    [Fact]
     public async Task FiniteConsoleRunsAgainstAFreshDatabaseAndCanBeRepeated()
     {
         string connection = await postgres.CreateDatabaseAsync(Token);
         string[] expected =
         [
             "wholesale-alpha: WIDGET availability=42",
+            "wholesale-alpha: BUYER customer=Alpha Retail",
             "wholesale-beta: WIDGET availability=7",
+            "wholesale-beta: BUYER customer=Beta Retail",
         ];
         Assert.Equal(expected, await RunAsync());
         Assert.Equal(expected, await RunAsync());
@@ -327,7 +304,7 @@ public sealed class OwnershipTests(PostgreSqlFixture postgres) : IClassFixture<P
         try
         {
             await using (AsyncServiceScope setup = provider.CreateAsyncScope())
-                await Inventory(setup).Database.EnsureCreatedAsync(Token);
+                await Inventory(setup).Database.MigrateAsync(Token);
             await using (AsyncServiceScope alpha = Scope(provider, Alpha))
             {
                 Inventory(alpha)

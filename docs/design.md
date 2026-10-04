@@ -206,8 +206,11 @@ For the initial EF proof, the owner confirmed one shared database, module-owned 
 tenant-discriminated tables. Ordinary tenant-scoped persistence rejects ownership changes;
 any transfer is explicit consumer code. [E2.1](reports/e2-1-tenant-ownership.md) implements
 explicit model registration and write validation with native ownership concurrency predicates,
-proven for ordinary single-table string/GUID consumers on PostgreSQL. The rest of
-[the E2 plan](plans/e2-persistence.md) remains proposed.
+proven for ordinary single-table string/GUID consumers on PostgreSQL and checkpointed as
+`50e7933`. [E2.2](reports/e2-2-module-migrations.md) exercises consumer-owned native migrations
+and history configuration for two module schemas without a new library mechanism.
+Relationships, competing versions and the rest of [the E2 plan](plans/e2-persistence.md)
+remain proposed.
 
 Consumers register their DbContexts, entity mappings, migrations, handlers, transports,
 queues, topics, subscriptions, and routes. Libraries may provide explicit registration

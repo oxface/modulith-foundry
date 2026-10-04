@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Inventory;
+using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Sales;
 using ModulithFoundry.Tenancy;
 
 string connection =
@@ -15,12 +16,11 @@ await using var provider = DemoComposition
         new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }
     );
 
-// Explicit first-increment fixture setup; module migrations belong to the following increment.
+// Consumer-controlled module order and initialization; no transaction spans both modules.
 await using (var setup = provider.CreateAsyncScope())
 {
-    await setup
-        .ServiceProvider.GetRequiredService<InventoryDbContext>()
-        .Database.EnsureCreatedAsync();
+    await setup.ServiceProvider.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();
+    await setup.ServiceProvider.GetRequiredService<SalesDbContext>().Database.MigrateAsync();
 }
 
 foreach (var (organization, quantity) in new[] { ("wholesale-alpha", 42), ("wholesale-beta", 7) })
@@ -46,4 +46,22 @@ foreach (var (organization, quantity) in new[] { ("wholesale-alpha", 42), ("whol
         await inventory.SaveChangesAsync();
     }
     Console.WriteLine($"{organization}: WIDGET availability={reference.Quantity}");
+
+    var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+    CustomerReference? customer = await sales.Customers.SingleOrDefaultAsync(row =>
+        row.Code == "BUYER"
+    );
+    if (customer is null)
+    {
+        customer = new CustomerReference
+        {
+            Id = Guid.NewGuid(),
+            OrganizationKey = organization,
+            Code = "BUYER",
+            DisplayName = organization == "wholesale-alpha" ? "Alpha Retail" : "Beta Retail",
+        };
+        sales.Customers.Add(customer);
+        await sales.SaveChangesAsync();
+    }
+    Console.WriteLine($"{organization}: BUYER customer={customer.DisplayName}");
 }

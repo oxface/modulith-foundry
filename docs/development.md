@@ -3,7 +3,8 @@
 `ModulithFoundry.slnx` contains 12 active projects: independent ActorIdentity and Tenancy
 libraries, the EF ownership utility, two finite console samples and their proof suites.
 The archived solution is independent. Root build defaults target .NET 10; central package
-management pins test/DI packages, EF Core Relational, native Npgsql, Testcontainers and test-only ArchUnitNET.
+management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers and
+test-only ArchUnitNET. The local tool manifest also pins native `dotnet-ef` 10.0.12.
 
 ## Repository tooling
 
@@ -50,6 +51,10 @@ EF Core Relational package reference. No restored-graph parser or exact transiti
 whitelist is maintained. These checks inspect direct declarations, not evaluated MSBuild
 imports or transitive dependencies.
 
+Two container-free sample policies also inspect actual Inventory/Sales models and native
+migration operations for module-owned schemas, explicit ownership/global classification
+and snapshot/model consistency. They build design-time contexts without connecting to a database.
+
 Standalone adoption is exercised by the real actor-only, tenancy-only and GUID EF consumers;
 ordinary restore/build and their behavior tests remain part of CI. Sample project/package
 graphs are editable composition rather than exact test snapshots. Architecture policies are
@@ -84,7 +89,8 @@ Use your actual user socket path when it differs. The console smoke proof starts
 finite child process from the source checkout and passes the disposable connection through
 its environment. The sample executable must have been built in the same configuration.
 CI's separate Active PostgreSQL ownership lane runs both suites. See
-[the E2.1 report](reports/e2-1-tenant-ownership.md) and
+[the E2.1 report](reports/e2-1-tenant-ownership.md),
+[the E2.2 report](reports/e2-2-module-migrations.md) and
 [sample run instructions](../samples/Wholesale/PersistenceDemo/README.md).
 
 ## Archived backend

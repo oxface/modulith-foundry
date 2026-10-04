@@ -37,9 +37,23 @@ The two original Python dependency scripts remain removed. CI and hooks run the 
 
 ## Ownership and verification
 
-These 13 tests are repository/template policy, editable by consumers. ArchUnitNET adds no
+The audit's 13 tests are repository/template policy, editable by consumers. ArchUnitNET adds no
 runtime dependency to the libraries or samples. No new reusable product mechanism was
 proven, and library interfaces/implementations were not changed by the audit.
 
 The earlier 22-test execution remains a historical tooling result. Current test counts,
 verification, gaps and owner-review files are recorded in [the audit report](test-audit.md).
+
+## E2.2 sample schema policies
+
+[Two additional cases](../../tests/ArchitectureTests/ModulePersistenceTests.cs) inspect real
+Inventory/Sales models and native migration artifacts without a database. They prevent
+consumer-owned entities/migration operations from drifting into another schema and detect
+unclassified sample entities or a stale model snapshot. The existing Inventory classification
+case moved here from the PostgreSQL suite; Sales is now classified too.
+
+Initial migrations allow schema creation, table creation, index creation and table removal
+within the module. Foreign keys and new operation kinds require a deliberate extension of
+this sample policy. Raw SQL is rejected rather than interpreted. This is a small repository
+policy, not an arbitrary migration parser or reusable checker. No synthetic assertion-failure
+tests were added. Current suite size is 15; fresh results are in [the E2.2 report](e2-2-module-migrations.md).

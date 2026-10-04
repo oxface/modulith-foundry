@@ -1,5 +1,10 @@
 # E2.1 explicit EF tenant ownership
 
+Checkpoint update, 2026-10-04: the owner reviewed and committed E2.1 plus the test audit as
+`50e7933`. The implementation narrative below records its earlier review handoff, not the
+current staging state. [E2.2](e2-2-module-migrations.md) now adds two-module migrations for
+review without changing this library's implementation.
+
 2026-10-03. Implemented for owner code review after the approved E1 split checkpoint
 `c8cbf64`. The owner approved the first interface and scope, with discretion to revise it
 consistently with prior decisions. All E2.1 changes are unstaged and uncommitted.

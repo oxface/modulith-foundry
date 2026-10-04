@@ -10,8 +10,10 @@ limits for deliberate reimplementation, rather than prescribing the new library 
 The first active segments are independent [actor identity](src/ModulithFoundry.ActorIdentity/README.md)
 and [tenancy](src/ModulithFoundry.Tenancy/README.md), exercised by [the finite wholesale context sample](samples/Wholesale/ContextDemo/README.md).
 The first [EF ownership utility](src/ModulithFoundry.Persistence.EntityFrameworkCore/README.md)
-is implemented for review with [an executable Inventory consumer](samples/Wholesale/PersistenceDemo/README.md).
-Further persistence, trusted HTTP ingress and messaging follow later increments.
+was checkpointed with an executable Inventory consumer. The
+[two-module persistence sample](samples/Wholesale/PersistenceDemo/README.md) now owns native
+Inventory/Sales migrations and separate histories for review. Relationships, concurrency,
+trusted HTTP ingress and messaging follow later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -21,6 +23,8 @@ Further persistence, trusted HTTP ingress and messaging follow later increments.
 - [Original E1 checkpoint report](docs/reports/e1-tenant-actor.md)
 - [E2 first-increment plan](docs/plans/e2-1-tenant-ownership.md)
 - [E2.1 implementation and proof report](docs/reports/e2-1-tenant-ownership.md)
+- [E2.2 module migrations plan](docs/plans/e2-2-module-migrations.md)
+- [E2.2 implementation and proof report](docs/reports/e2-2-module-migrations.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)

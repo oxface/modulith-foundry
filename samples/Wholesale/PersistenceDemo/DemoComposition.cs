@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Inventory;
+using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Sales;
 using ModulithFoundry.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.PersistenceDemo;
@@ -19,10 +19,10 @@ public static class DemoComposition
             provider.GetRequiredService<TenantContextAccessor>()
         );
         services.AddDbContext<InventoryDbContext>(options =>
-            options.UseNpgsql(
-                connectionString,
-                postgres => postgres.MigrationsHistoryTable("__EFMigrationsHistory", "inventory")
-            )
+            InventoryDatabase.Configure(options, connectionString)
+        );
+        services.AddDbContext<SalesDbContext>(options =>
+            SalesDatabase.Configure(options, connectionString)
         );
         return services;
     }

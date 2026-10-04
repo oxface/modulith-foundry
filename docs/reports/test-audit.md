@@ -102,3 +102,11 @@ failure/cancellation orchestration need tests when such consumer/library code ex
 Two-module persistence, relationships, migrations and version conflicts remain subsequent
 E2 work. Historical 63-context, 61-E2.1 and 22-architecture results stay in their original
 reports with links to this current audit, rather than being rewritten as fresh executions.
+
+## Subsequent E2.2 evidence
+
+The audit was checkpointed with E2.1 as `50e7933`. Its 114-case results above remain evidence
+of that audited state. [E2.2](e2-2-module-migrations.md) now passes 119 active cases, including
+30 PostgreSQL cases. It adds focused two-module migration/history/save-wiring proofs and
+two fast schema/artifact policies, replacing the earlier slow Inventory classification case.
+No generic architecture helper or synthetic framework/assertion tests were reintroduced.
