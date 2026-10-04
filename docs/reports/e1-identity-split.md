@@ -1,7 +1,8 @@
 # E1 actor identity and tenancy split report
 
-2026-10-03. Implemented under owner authorization; uncommitted and unstaged for line-by-line
-re-review. This revises checkpoint `a8e45c9`, whose combined interface and 40-test result
+2026-10-03. Implemented under owner authorization, owner-reviewed and checkpointed as
+`c8cbf64` after explicit approval of the complete 55-file staged change set. This revises
+checkpoint `a8e45c9`, whose combined interface and 40-test result
 remain [historical E1 evidence](e1-tenant-actor.md). See [the revised interfaces](../plans/e1-tenant-actor.md).
 
 ## Outcome
@@ -99,12 +100,23 @@ strategies remain E3 proposals, alongside a separate Access membership/admission
 4. [Actor lifecycle proofs](../../tests/ActorIdentityTests/AccessorTests.cs),
    [tenant lifecycle proofs](../../tests/TenantTests/AccessorTests.cs),
    [composition proofs](../../samples/Wholesale/ContextDemo.Tests/CompositionTests.cs),
-   [dependency verification](../../tools/repository/verify-context-dependencies.py),
+   [current dependency architecture tests](../../tests/ArchitectureTests/AdoptionDependencyTests.cs),
    solution, CI/hooks and revised documents.
 
 EF isolation/write validation remains E2 design work. Membership, native HTTP authentication/
 authorization, tenant selection middleware and production trusted ingress remain E3 work.
 No route/hostname strategy is implemented here. Durable attribution, messaging, physical
-module isolation and template bootstrap retain later proof gates. The pre-existing uncommitted
-E2 proposal/report remain proposals; this revision only updates their sample accessor naming.
-No commit or staging was performed.
+module isolation and template bootstrap retain later proof gates. At the split handoff, the
+existing E2 proposal/report remained planning documents; the split only updated their sample
+accessor naming. Subsequent persistence results are recorded in [the E2.1 report](e2-1-tenant-ownership.md).
+The initial handoff was unstaged. The owner subsequently staged and approved the exact
+55-file set; checkpoint `c8cbf64` includes the split and the existing E2 planning documents.
+Commit hooks passed 63 active tests, 21 archived architecture tests, formatting, active and
+archived style/analyzers, dependency verification and commitlint. The archived test results
+remain historical-baseline checks, not new library guarantees.
+
+The checkpoint used the original Python dependency verifier. It was subsequently replaced
+by [active .NET architecture tests](architecture-tests.md); checkpoint results above remain historical.
+
+[The subsequent active test audit](test-audit.md) records the current 51 context tests.
+The original 63-case checkpoint result above remains historical evidence.

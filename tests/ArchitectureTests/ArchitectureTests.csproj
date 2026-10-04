@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+    <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../samples/Wholesale/ContextDemo/ContextDemo.csproj" />
+    <ProjectReference Include="../../samples/Wholesale/PersistenceDemo/PersistenceDemo.csproj" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <None
+      Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj"
+      Link="ProjectDeclarations/ModulithFoundry.ActorIdentity.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj"
+      Link="ProjectDeclarations/ModulithFoundry.Tenancy.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj"
+      Link="ProjectDeclarations/ModulithFoundry.Persistence.EntityFrameworkCore.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+  </ItemGroup>
+</Project>

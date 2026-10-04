@@ -4,9 +4,10 @@ Status: review proposal, 2026-10-03. The owner approved the archive-and-plan dir
 This document proposes implementation increments; it does not freeze public interfaces,
 package boundaries, or authorize a commit. E1 was reviewed and checkpointed as `a8e45c9`;
 [the checkpoint report](../reports/e1-tenant-actor.md) records that original combined design.
-The authorized independent split is implemented, uncommitted and awaiting re-review;
+The independent split was reviewed and checkpointed as `c8cbf64`;
 [its current report](../reports/e1-identity-split.md) records fresh proofs.
-E2 has a [concrete interface proposal](e2-persistence.md) awaiting review. Read
+E2.1 is [implemented for code review](../reports/e2-1-tenant-ownership.md);
+[the remaining E2 scope](e2-persistence.md) is still planned. Read
 [the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model
@@ -22,11 +23,12 @@ Add a template recipe or file only when a new consumer setup pattern is exercise
 can supply the concrete source for the final template; it is not a third implementation.
 Sample-only capability proofs and adapter increments may introduce no new library.
 
-### Current review: independent actor identity and tenancy
+### Checkpointed actor identity and tenancy
 
 Before implementing E2, the owner authorized revising E1 into independently adoptable
 `ModulithFoundry.ActorIdentity` and `ModulithFoundry.Tenancy` libraries, with no dependency
-between them. The split is implemented for re-review in [the E1 plan](e1-tenant-actor.md).
+between them. The split was owner-reviewed and checkpointed as `c8cbf64`; see
+[the E1 plan](e1-tenant-actor.md).
 Actor means the identity performing an operation, not an actor-model execution component.
 Executing actor and optional initiator stay together; tenant selection and tenantless
 execution belong to the separate tenancy context. The checkpointed combined implementation
@@ -190,7 +192,7 @@ format/test hosts needed local IPC/container access. No audit or assertion was d
 
 The owner reviewed the original combined E1 implementation and authorized checkpoint
 `a8e45c9`; [its report](../reports/e1-tenant-actor.md) remains historical evidence. The owner
-subsequently authorized the independent split, now implemented for re-review in
+subsequently authorized the independent split, owner-reviewed and checkpointed as `c8cbf64`; see
 [the revised plan](e1-tenant-actor.md) and [current report](../reports/e1-identity-split.md).
 New lifecycle/concurrency and independent-adoption proofs are distinct from archive evidence.
 
@@ -261,11 +263,14 @@ and admission choices belong to a later sample slice, not E1.
 
 ### E2 Explicit EF tenant and module persistence utilities
 
-The owner confirmed shared database/module schemas/tenant discriminator and immutable
-ownership for ordinary persistence. Review [the concrete proposal](e2-persistence.md) and
-[evidence findings](../reports/e2-persistence-design.md) before implementation. They propose
-explicit EF ownership filters plus tracked-write validation/native ownership predicates;
-the proposed mechanism is unproven. Shared cross-module transactions receive a separately
+The owner confirmed shared database/module schemas/tenant discriminator, immutable
+ownership for ordinary persistence and native development-time migration scaffolding.
+Review [the implemented first increment](e2-1-tenant-ownership.md) and
+[its fresh proof report](../reports/e2-1-tenant-ownership.md). Explicit EF ownership filters,
+tracked-write validation and native ownership predicates passed 61 tests with an Inventory
+consumer and an independent GUID consumer. [The complete E2 plan](e2-persistence.md)
+and [earlier design findings](../reports/e2-persistence-design.md) distinguish the remaining
+scope. Shared cross-module transactions receive a separately
 designed workflow/proof rather than being implied by this increment.
 
 Use real sample module DbContexts and two consumer-selected schemas. Review explicit model

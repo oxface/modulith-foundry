@@ -24,9 +24,12 @@ pre-commit:
     - name: context-composition-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-restore
-    - name: context-dependencies
-      glob: "*.{csproj,props,targets,slnx,py}"
-      run: python3 tools/repository/verify-context-dependencies.py
+    - name: ef-model-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-restore
+    - name: active-architecture-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore

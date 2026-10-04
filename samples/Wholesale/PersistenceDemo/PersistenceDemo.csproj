@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ModulithFoundry.Samples.Wholesale.PersistenceDemo</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <ProjectReference Include="../../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+  </ItemGroup>
+</Project>

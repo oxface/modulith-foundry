@@ -2,7 +2,10 @@
 
 2026-10-03. Planning/evidence review only. The owner confirmed shared database, module schemas,
 tenant-discriminated tables and rejection of tenant changes in ordinary persistence.
-See [the concrete proposal](../plans/e2-persistence.md).
+See [the complete E2 proposal](../plans/e2-persistence.md) and
+[the first-increment plan](../plans/e2-1-tenant-ownership.md).
+This report preserves the pre-implementation findings; subsequent implementation results
+are in [the E2.1 proof report](e2-1-tenant-ownership.md).
 
 ## Outcome
 
@@ -46,7 +49,10 @@ and provider choice. Transfer requires a separately designed consumer workflow.
 ## Review and gaps
 
 Review the two signatures, metadata/concurrency effects, save wiring, model constraints,
-supported-operation limits and proof matrix. Migration tooling remains an owner question.
+supported-operation limits and proof matrix. The owner allowed native development-time
+EF migration scaffolding; migrations remain reviewed consumer code. E2.1 proposes an
+explicit EF Core Relational dependency to inspect unsupported relational mappings, without
+requiring either actor identity or tenancy.
 Advanced EF mapping support needs explicit proof rather than inheriting assumed protection.
 
 Deliver each implementation with an executable consumer and relevant PostgreSQL proofs.

@@ -1,8 +1,8 @@
 # E1 independent actor identity and tenancy
 
-Status: split implemented for owner re-review, 2026-10-03; uncommitted. The original combined
+Status: split implemented, owner-reviewed and checkpointed as `c8cbf64`, 2026-10-03. The original combined
 library was owner-reviewed and checkpointed as `a8e45c9`. The owner subsequently authorized
-independent actor and tenancy libraries. This document describes the revised interfaces;
+independent actor and tenancy libraries. The owner approved the complete reviewed change set. This document describes the revised interfaces;
 [the split report](../reports/e1-identity-split.md) records current verification and limits.
 [The original report](../reports/e1-tenant-actor.md) remains checkpoint evidence.
 

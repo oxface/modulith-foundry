@@ -1,16 +1,18 @@
 # E2 explicit EF tenant and module persistence
 
-Status: interface and implementation proposal, 2026-10-03. The owner authorized E2 planning
-and confirmed the initial storage approach and immutable tenant ownership. The concrete
-interface remains for review before implementation. No E2 runtime mechanism has been proven.
+Status: overall E2 scope inventory, 2026-10-03. The owner confirmed the initial storage
+approach and immutable tenant ownership, then approved the first interface for implementation.
+[E2.1](e2-1-tenant-ownership.md) is implemented for code review; [its report](../reports/e2-1-tenant-ownership.md)
+records the limited first proofs. Two-module persistence, relationships, migrations and
+separate version conflicts below remain planned.
 Read [the design](../design.md), [extraction plan](library-extraction.md) and
 [design findings](../reports/e2-persistence-design.md).
 
 ## Outcome and confirmed choices
 
 An ordinary EF consumer explicitly configures tenant ownership, validates tracked writes,
-and continues using native queries, saves and transactions. The sample demonstrates two
-module-owned DbContexts and schemas in one PostgreSQL database, with tenant-discriminated
+and continues using native queries, saves and transactions. The complete E2 sample will
+demonstrate two module-owned DbContexts and schemas in one PostgreSQL database, with tenant-discriminated
 tables. Ordinary tenant-scoped persistence rejects tenant changes; any transfer is a
 separate, consumer-owned workflow.
 
@@ -49,20 +51,20 @@ found in the archive. These are source observations, not new database proof resu
 
 ## Candidate library and dependencies
 
-Proposed project: `src/ModulithFoundry.Persistence.EntityFrameworkCore/`.
+First-increment project: `src/ModulithFoundry.Persistence.EntityFrameworkCore/`.
 
 Use native EF types, without a repository, unit-of-work or base DbContext abstraction. The
-utility needs EF Core; Npgsql, Testcontainers, hosting and DI stay in consumers/tests unless
-implementation earns a dependency. It need not reference Tenancy: consumers
-supply their current storage tenant key. Ordinary EF adoption requires no template or Access.
+first increment uses EF Core Relational for explicit relational mapping validation;
+Npgsql, Testcontainers, hosting and DI stay in consumers/tests. It need not reference Tenancy:
+consumers supply their current storage tenant key. Ordinary EF adoption requires no template or Access.
 
-Use archived EF 10.0.12/Npgsql 10.0.3 as a starting baseline, with restore and auditing before
-accepting pins. No packages are added during planning. PostgreSQL is the first exercised
+E2.1 pins EF 10.0.12/Npgsql 10.0.3 after audited restore. PostgreSQL is the first exercised
 provider; broader compatibility is not claimed.
 
 ## Proposed interface
 
-Names remain review proposals. Start with two utilities and structured validation failures:
+The two utilities below were approved for E2.1 implementation and now await line-by-line
+code review. Later capabilities in this document remain proposals:
 
 ```csharp
 EntityTypeBuilder<TEntity> HasTenantOwnership<TEntity, TTenant>(
@@ -212,9 +214,9 @@ Split the work into coherent runnable increments if needed:
 3. A separately designed shared-transaction workflow/proof later, with native connection/
    transaction enlistment. Owning-module atomicity implies no cross-module atomicity.
 
-Migration tooling is a pending owner question: whether standard development-time `dotnet ef`
-scaffolding is permitted under the no-code-generation rule. Do not scaffold until answered.
-Either way, migrations are consumer-owned and reviewed. There is no runtime generation.
+The owner approved standard development-time `dotnet ef migrations add` scaffolding.
+Generated migrations remain consumer-owned, ordinary C# reviewed with their owning module;
+no runtime code generation is introduced.
 
 ## Proof matrix
 

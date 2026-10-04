@@ -40,9 +40,6 @@ jobs:
       - name: Restore active projects
         run: dotnet restore ModulithFoundry.slnx
 
-      - name: Verify independent adoption dependencies
-        run: python3 tools/repository/verify-context-dependencies.py
-
       - name: Verify active code style
         run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
 
@@ -51,6 +48,9 @@ jobs:
 
       - name: Build active projects
         run: dotnet build ModulithFoundry.slnx --no-restore
+
+      - name: Test active architecture and independent adoption
+        run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
 
       - name: Test actor identity library
         run: >-
@@ -73,12 +73,42 @@ jobs:
           --no-build
           --no-restore
 
+      - name: Test EF models and write validation without containers
+        run: >-
+          dotnet test
+          --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
+          --no-build
+          --no-restore
+
       - name: Run context sample
         run: >-
           dotnet run
           --project samples/Wholesale/ContextDemo/ContextDemo.csproj
           --no-build
           --no-restore
+
+  persistence:
+    name: Active PostgreSQL ownership lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore active projects
+        run: dotnet restore ModulithFoundry.slnx
+      - name: Test independent GUID ownership consumer
+        run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
+      - name: Test Inventory persistence composition
+        run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
 
   fast:
     name: Archived Fast lane and repository checks

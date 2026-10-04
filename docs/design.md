@@ -99,8 +99,8 @@ or select HTTP responses.
 
 The revised E1 interfaces and lifecycle are in
 [the actor/tenancy slice plan](plans/e1-tenant-actor.md). The original combined interface was
-reviewed and checkpointed as `a8e45c9`; the independent split is implemented and uncommitted
-for owner re-review. See [the split report](reports/e1-identity-split.md) for fresh proofs.
+reviewed and checkpointed as `a8e45c9`; the independent split was owner-reviewed and
+checkpointed as `c8cbf64`. See [the split report](reports/e1-identity-split.md) for fresh proofs.
 
 ## Scope and HTTP integration review
 
@@ -204,8 +204,10 @@ it does not turn authentication policy into a mandatory runtime layer. See
 
 For the initial EF proof, the owner confirmed one shared database, module-owned schemas and
 tenant-discriminated tables. Ordinary tenant-scoped persistence rejects ownership changes;
-any transfer is explicit consumer code. Mapping/validation interfaces remain proposals in
-[the E2 plan](plans/e2-persistence.md), not tested guarantees.
+any transfer is explicit consumer code. [E2.1](reports/e2-1-tenant-ownership.md) implements
+explicit model registration and write validation with native ownership concurrency predicates,
+proven for ordinary single-table string/GUID consumers on PostgreSQL. The rest of
+[the E2 plan](plans/e2-persistence.md) remains proposed.
 
 Consumers register their DbContexts, entity mappings, migrations, handlers, transports,
 queues, topics, subscriptions, and routes. Libraries may provide explicit registration
@@ -225,7 +227,9 @@ their own claim, ordering, concurrency, and recovery evidence; leader election i
 
 Library execution uses ordinary C# calls. Runtime code generation, a mediator, generic
 repositories, and a generic workflow DSL are excluded. Existing archived EF migrations are
-retained as evidence; new migration/scaffolding tooling choices must be stated in their slice.
+retained as evidence; native development-time EF migration scaffolding is allowed, with
+generated migrations remaining consumer-owned and reviewed. Additional scaffolding choices
+are stated in their slice.
 
 ## Dependencies and configuration
 

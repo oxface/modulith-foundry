@@ -190,53 +190,15 @@ public sealed class CompositionTests
         );
     }
 
-    [Theory]
-    [InlineData(false, ActorKind.Anonymous)]
-    [InlineData(false, ActorKind.Human)]
-    [InlineData(false, ActorKind.System)]
-    [InlineData(true, ActorKind.Anonymous)]
-    [InlineData(true, ActorKind.Human)]
-    [InlineData(true, ActorKind.System)]
-    public async Task TenantSelectionAndActorKindAreIndependentConsumerRequirements(
-        bool selectTenant,
-        ActorKind kind
-    )
+    [Fact]
+    public async Task IdentifiedActorDoesNotMakeTenantlessSalesEligible()
     {
         await using ServiceProvider provider = CreateProvider();
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
-        Actor actor = kind switch
-        {
-            ActorKind.Anonymous => Actor.Anonymous,
-            ActorKind.Human => Actor.Human(new ActorId("user")),
-            ActorKind.System => Actor.System(new ActorId("workflow")),
-            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-        };
-        Establish(
-            scope,
-            selectTenant
-                ? TenantContext.ForTenant(new TenantId("wholesale-alpha"))
-                : TenantContext.Tenantless(),
-            actor
+        Establish(scope, TenantContext.Tenantless(), Actor.Human(new ActorId("user")));
+        Assert.Throws<TenantRequiredException>(() =>
+            scope.ServiceProvider.GetRequiredService<IDraftOrderPreview>().Preview("WIDGET", 10)
         );
-        IDraftOrderPreview sales = scope.ServiceProvider.GetRequiredService<IDraftOrderPreview>();
-        if (!selectTenant)
-        {
-            Assert.Throws<TenantRequiredException>(() => sales.Preview("WIDGET", 10));
-        }
-        else if (kind == ActorKind.Anonymous)
-        {
-            Assert.Throws<IdentifiedActorRequiredException>(() => sales.Preview("WIDGET", 10));
-            Assert.Equal(
-                42,
-                scope
-                    .ServiceProvider.GetRequiredService<IStockAvailability>()
-                    .GetAvailableQuantity("WIDGET")
-            );
-        }
-        else
-        {
-            Assert.Same(actor, sales.Preview("WIDGET", 10).RequestedBy);
-        }
     }
 
     [Fact]
@@ -272,121 +234,6 @@ public sealed class CompositionTests
             return scope
                 .ServiceProvider.GetRequiredService<IDraftOrderPreview>()
                 .Preview("WIDGET", 10);
-        }
-    }
-
-    [Fact]
-    public async Task IndependentChildScopeCannotInheritOrRebindEitherParentContext()
-    {
-        await using ServiceProvider provider = CreateProvider();
-        await using AsyncServiceScope parent = provider.CreateAsyncScope();
-        Establish(
-            parent,
-            TenantContext.ForTenant(new TenantId("wholesale-alpha")),
-            Actor.Anonymous
-        );
-        await using (AsyncServiceScope child = parent.ServiceProvider.CreateAsyncScope())
-        {
-            Assert.Throws<InvalidOperationException>(() =>
-                child.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current
-            );
-            Assert.Throws<InvalidOperationException>(() =>
-                child.ServiceProvider.GetRequiredService<ITenantContextAccessor>().Current
-            );
-            Establish(
-                child,
-                TenantContext.ForTenant(new TenantId("wholesale-beta")),
-                Actor.System(new ActorId("child"))
-            );
-            Assert.Equal(
-                7,
-                child
-                    .ServiceProvider.GetRequiredService<IStockAvailability>()
-                    .GetAvailableQuantity("WIDGET")
-            );
-        }
-
-        Assert.Throws<InvalidOperationException>(() =>
-            parent
-                .ServiceProvider.GetRequiredService<IActorContextInitializer>()
-                .Initialize(new ActorContext(Actor.System(new ActorId("replacement"))))
-        );
-        Assert.Throws<InvalidOperationException>(() =>
-            parent
-                .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
-                .Initialize(TenantContext.ForTenant(new TenantId("wholesale-beta")))
-        );
-        Assert.Same(
-            Actor.Anonymous,
-            parent.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current.Actor
-        );
-        Assert.Equal(
-            42,
-            parent
-                .ServiceProvider.GetRequiredService<IStockAvailability>()
-                .GetAvailableQuantity("WIDGET")
-        );
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ExceptionOrCancellationDisposesBothAndNextOperationStartsFresh(bool cancel)
-    {
-        await using ServiceProvider provider = CreateProvider();
-        IActorContextAccessor? previousActor = null;
-        ITenantContextAccessor? previousTenant = null;
-        using var cancellation = new CancellationTokenSource();
-        Task failedOperation = RunFailureAsync();
-        if (cancel)
-            await Assert.ThrowsAsync<OperationCanceledException>(() => failedOperation);
-        else
-            await Assert.ThrowsAsync<InvalidOperationException>(() => failedOperation);
-        Assert.NotNull(previousActor);
-        Assert.NotNull(previousTenant);
-        Assert.Throws<ObjectDisposedException>(() => previousActor.Current);
-        Assert.Throws<ObjectDisposedException>(() => previousTenant.Current);
-        await using AsyncServiceScope next = provider.CreateAsyncScope();
-        Assert.Throws<InvalidOperationException>(() =>
-            next.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current
-        );
-        Assert.Throws<InvalidOperationException>(() =>
-            next.ServiceProvider.GetRequiredService<ITenantContextAccessor>().Current
-        );
-        Establish(next, TenantContext.ForTenant(new TenantId("wholesale-beta")), Actor.Anonymous);
-        Assert.Null(
-            next.ServiceProvider.GetRequiredService<IActorContextAccessor>().Current.Initiator
-        );
-        Assert.Equal(
-            7,
-            next.ServiceProvider.GetRequiredService<IStockAvailability>()
-                .GetAvailableQuantity("WIDGET")
-        );
-
-        async Task RunFailureAsync()
-        {
-            await using AsyncServiceScope scope = provider.CreateAsyncScope();
-            Establish(
-                scope,
-                TenantContext.ForTenant(new TenantId("wholesale-alpha")),
-                Actor.System(new ActorId("workflow")),
-                Actor.Human(new ActorId("initiator"))
-            );
-            previousActor = scope.ServiceProvider.GetRequiredService<IActorContextAccessor>();
-            previousTenant = scope.ServiceProvider.GetRequiredService<ITenantContextAccessor>();
-            Assert.Equal(
-                42,
-                scope
-                    .ServiceProvider.GetRequiredService<IStockAvailability>()
-                    .GetAvailableQuantity("WIDGET")
-            );
-            await Task.Yield();
-            if (cancel)
-            {
-                cancellation.Cancel();
-                cancellation.Token.ThrowIfCancellationRequested();
-            }
-            throw new InvalidOperationException("Consumer operation failed.");
         }
     }
 

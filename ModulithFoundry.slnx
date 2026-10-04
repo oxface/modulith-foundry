@@ -2,13 +2,19 @@
   <Folder Name="/Libraries/">
     <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
     <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/Wholesale/ContextDemo/ContextDemo.csproj" />
     <Project Path="samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj" />
+    <Project Path="samples/Wholesale/PersistenceDemo/PersistenceDemo.csproj" />
+    <Project Path="samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
     <Project Path="tests/ActorIdentityTests/ActorIdentityTests.csproj" />
     <Project Path="tests/TenantTests/TenantTests.csproj" />
+    <Project Path="tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj" />
+    <Project Path="tests/PersistenceTests/PersistenceTests.csproj" />
   </Folder>
 </Solution>

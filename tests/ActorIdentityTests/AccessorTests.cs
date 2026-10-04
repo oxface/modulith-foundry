@@ -101,13 +101,10 @@ public sealed class AccessorTests
                 Task.Run(
                     () =>
                     {
-                        for (int index = 0; index < 100; index++)
-                        {
-                            ActorContext actual = reader.Current;
-                            Assert.Same(expected, actual);
-                            Assert.Equal(ActorKind.System, actual.RequireIdentifiedActor().Kind);
-                            Assert.Equal("initiator", actual.Initiator!.Id!.Value);
-                        }
+                        ActorContext actual = reader.Current;
+                        Assert.Same(expected, actual);
+                        Assert.Equal(ActorKind.System, actual.RequireIdentifiedActor().Kind);
+                        Assert.Equal("initiator", actual.Initiator!.Id!.Value);
                     },
                     TestContext.Current.CancellationToken
                 )

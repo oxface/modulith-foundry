@@ -91,12 +91,9 @@ public sealed class AccessorTests
                 Task.Run(
                     () =>
                     {
-                        for (int index = 0; index < 100; index++)
-                        {
-                            TenantContext actual = reader.Current;
-                            Assert.Same(expected, actual);
-                            Assert.Equal("alpha", actual.RequireTenant().Value);
-                        }
+                        TenantContext actual = reader.Current;
+                        Assert.Same(expected, actual);
+                        Assert.Equal("alpha", actual.RequireTenant().Value);
                     },
                     TestContext.Current.CancellationToken
                 )

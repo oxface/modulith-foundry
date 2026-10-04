@@ -9,7 +9,9 @@ The original wholesale sample and its documentation are preserved under
 limits for deliberate reimplementation, rather than prescribing the new library design.
 The first active segments are independent [actor identity](src/ModulithFoundry.ActorIdentity/README.md)
 and [tenancy](src/ModulithFoundry.Tenancy/README.md), exercised by [the finite wholesale context sample](samples/Wholesale/ContextDemo/README.md).
-Persistence, trusted HTTP ingress and messaging follow later extraction increments.
+The first [EF ownership utility](src/ModulithFoundry.Persistence.EntityFrameworkCore/README.md)
+is implemented for review with [an executable Inventory consumer](samples/Wholesale/PersistenceDemo/README.md).
+Further persistence, trusted HTTP ingress and messaging follow later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -17,8 +19,12 @@ Persistence, trusted HTTP ingress and messaging follow later extraction incremen
 - [E1 tenant/actor slice proposal](docs/plans/e1-tenant-actor.md)
 - [E1 split implementation and proof report](docs/reports/e1-identity-split.md)
 - [Original E1 checkpoint report](docs/reports/e1-tenant-actor.md)
+- [E2 first-increment plan](docs/plans/e2-1-tenant-ownership.md)
+- [E2.1 implementation and proof report](docs/reports/e2-1-tenant-ownership.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
+- [Active .NET architecture checks](docs/reports/architecture-tests.md)
+- [Active test value audit](docs/reports/test-audit.md)
 - [Development and verification](docs/development.md)
 - [Repository workflow](docs/conventions/repository.md)
 - [Archive provenance and commands](archive/README.md)
@@ -40,5 +46,5 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-CI checks the active actor/tenancy libraries and sample separately from archived Fast, PostgreSQL,
-RabbitMQ and Aspire Topology proofs.
+CI checks active architecture, context and EF model tests, with a separate active PostgreSQL ownership
+lane. Archived Fast, PostgreSQL, RabbitMQ and Aspire Topology proofs remain independent.
