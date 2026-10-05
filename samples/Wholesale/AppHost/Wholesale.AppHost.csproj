@@ -1,0 +1,12 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ModulithFoundry.Samples.Wholesale.AppHost</RootNamespace>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>modulith-foundry-wholesale-runtime-1e2cd4af</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+</Project>

@@ -5,6 +5,10 @@ and [tenancy](../../../src/ModulithFoundry.Tenancy.AspNetCore/README.md) adapter
 cookie/OIDC authentication and separate PostgreSQL-backed Access/Inventory/Sales modules.
 Business reads and profile edits use module Contracts and tenant-owned rows.
 
+For local orchestration, use the [active Aspire runtime guide](../AppHost/README.md).
+The standalone commands below remain supported. [ServiceDefaults](../ServiceDefaults/README.md)
+is explicitly registered by the HTTP branch; finite setup starts no host or exporters.
+
 ## Configure and initialize
 
 Use normal .NET configuration, with user secrets or your usual secret provider for credentials.
@@ -91,6 +95,8 @@ explicit consumer configuration.
 | Endpoint | Behavior |
 | --- | --- |
 | `/health` | Anonymous, tenantless allowed; liveness string, not database readiness. |
+| `/health/live` | Anonymous, tenantless; native self check, independent of database availability. |
+| `/health/ready` | Anonymous, tenantless; native self check plus connectivity/required module tables. Never migrates or repairs. |
 | `/identity` | Native authentication required; tenantless allowed; persisted application actor. |
 | `/public-identity` | Anonymous, tenantless allowed; mapped authenticated actors remain identified. |
 | `GET /antiforgery` | Native authentication, tenantless allowed; issue a non-cacheable native token/cookie pair bound to the application actor. |
@@ -198,6 +204,10 @@ PostgreSQL 18.6 Testcontainers with the resource reaper enabled. They use native
 and protected cookies without contacting an OIDC provider. They exercise real migrations,
 current-membership revocation, public non-member access, route/subdomain parity, constraints,
 tenant-owned business reads, real query cancellation/faults and finite setup child processes.
+Two [native telemetry cases](../HttpIdentityDemo.Tests/TelemetryTests.cs) exercise the actual
+ServiceDefaults with in-memory exporters, correlated request/database Activities and failure
+logs, plus native request metrics. The separate [runtime suite](../RuntimeComposition.Tests/RuntimeTests.cs)
+proves Kestrel graph startup/manual setup and readiness during a database outage.
 The compatibility proof starts from retained checkpoint SQL and preserves existing Access
 rows/history through module relocation and Inventory migration.
 

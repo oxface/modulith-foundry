@@ -1,9 +1,9 @@
 # Development and verification
 
-`ModulithFoundry.slnx` contains 24 active projects: independent ActorIdentity and Tenancy
+`ModulithFoundry.slnx` contains 27 active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, two finite console
 samples, an HTTP identity/Organization host, six populated Access/Inventory/Sales module projects and
-their proof suites.
+their proof suites, an Aspire AppHost, sample ServiceDefaults and a runtime composition suite.
 The archived solution is independent. Root build defaults target .NET 10; central package
 management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers,
 sample-only OpenIdConnect, test-only TestHost and ArchUnitNET. The local tool manifest also
@@ -127,6 +127,32 @@ implementations; both independently adoptable HTTP library suites remain contain
 [sample run instructions](../samples/Wholesale/PersistenceDemo/README.md), plus
 [the E3.3 Access report](reports/e3-3-persisted-access.md) and
 [HTTP/database setup](../samples/Wholesale/HttpIdentityDemo/README.md).
+
+## Active Aspire runtime composition lane
+
+The [runtime guide](../samples/Wholesale/AppHost/README.md) documents required parameters,
+native start/wait/setup/stop commands, dynamic endpoints and retained local data. The graph
+starts PostgreSQL and the API; migrations/seeding happen only when you explicitly start
+`demo-setup`. A fresh graph is live but unready until that command succeeds. ServiceDefaults
+provides native request/database traces, logs and metrics, with OTLP export when configured.
+It remains editable host source and is not required by any technical library.
+
+After restoring/building the active solution, run:
+
+```bash
+dotnet tool install --global Aspire.Cli --version 13.5.4
+dotnet dev-certs https
+dotnet test --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj --no-build --no-restore
+```
+
+Use an existing matching CLI instead of reinstalling it. This suite uses native
+Aspire.Hosting.Testing, real Kestrel and PostgreSQL, ephemeral storage and randomized ports.
+It requires a Docker-compatible engine and a native development certificate, but no running
+AppHost, provider or personal credentials. The requests use HTTP and do not prove browser
+TLS/cookie behavior. For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
+`DOCKER_HOST` to your user socket and optionally `DOTNET_PROCESSOR_COUNT=4`.
+Keep this container test outside commit hooks. CI has a separate Active Aspire runtime
+composition lane. Actual remote OIDC/browser session behavior remains E3.7.
 
 ## Archived backend
 

@@ -24,10 +24,13 @@ catalog sample were reviewed and checkpointed as `cfbac9a`, including explicit s
 presets and a native host-filter options utility. Persisted Access lookup and membership
 admission were checkpointed as `20a02be` in [E3.3](docs/plans/e3-3-persisted-access.md), with
 [real PostgreSQL evidence](docs/reports/e3-3-persisted-access.md).
-[E3.4](docs/plans/e3-4-persisted-business-ingress.md) is implemented for review: admitted
+[E3.4](docs/plans/e3-4-persisted-business-ingress.md) was checkpointed with E3.5 as `31c7a8b`: admitted
 requests read tenant-owned Inventory data through separate module/Contracts projects, with
 [actual database and architecture proofs](docs/reports/e3-4-persisted-business-ingress.md).
-Messaging follows later increments.
+[E3.5](docs/plans/e3-5-profile-mutation.md) adds protected, versioned Sales profile edits.
+[E3.6](docs/plans/e3-6-runtime-composition.md) adds an editable
+[Aspire AppHost](samples/Wholesale/AppHost/README.md), explicit setup, readiness and native
+telemetry, implemented for review. Messaging follows later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -52,6 +55,7 @@ Messaging follows later increments.
 - [E3.4 persisted business ingress and module projects plan](docs/plans/e3-4-persisted-business-ingress.md)
 - [E3.4 implementation and proof report](docs/reports/e3-4-persisted-business-ingress.md)
 - [E3.5 Sales profile mutation plan](docs/plans/e3-5-profile-mutation.md) and [proof report](docs/reports/e3-5-profile-mutation.md)
+- [E3.6 runtime composition plan](docs/plans/e3-6-runtime-composition.md) and [proof report](docs/reports/e3-6-runtime-composition.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)
@@ -78,4 +82,5 @@ dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
 CI checks active architecture, context, HTTP identity and EF model tests, with a separate active PostgreSQL ownership
-lane. Archived Fast, PostgreSQL, RabbitMQ and Aspire Topology proofs remain independent.
+lane and an active Aspire runtime composition lane. Archived Fast, PostgreSQL, RabbitMQ and
+Aspire Topology proofs remain independent.

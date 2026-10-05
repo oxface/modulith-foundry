@@ -245,7 +245,8 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
         Action<WebApplication>? beforeContext = null,
         Action<WebApplication>? afterContext = null,
         string? connectionString = null,
-        bool initialize = true
+        bool initialize = true,
+        Action<WebApplicationBuilder>? configureHost = null
     )
     {
         var builder = WebApplication.CreateBuilder(
@@ -266,6 +267,7 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
                 ["ConnectionStrings:Access"] = connectionString,
             }
         );
+        configureHost?.Invoke(builder);
         DemoComposition.AddServices(builder.Services, builder.Configuration);
         if (subdomain)
         {

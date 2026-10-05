@@ -54,6 +54,12 @@ public static class DemoComposition
             options.Cookie.Path = "/";
         });
         services.AddSingleton<IAntiforgeryAdditionalDataProvider, ActorAntiforgeryData>();
+        services
+            .AddHealthChecks()
+            .AddCheck<WholesaleDatabaseHealthCheck>(
+                "wholesale-database",
+                timeout: TimeSpan.FromSeconds(5)
+            );
         services.AddProblemDetails();
         services.AddExceptionHandler<ContextExceptionHandler>();
     }

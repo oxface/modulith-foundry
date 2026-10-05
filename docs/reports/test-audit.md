@@ -210,3 +210,21 @@ connections across the expanded suite; production composition is unchanged.
 
 All ten active suites were rerun: 311 passed (134 PostgreSQL, 177 container-free), none skipped.
 The report distinguishes those fresh results from historical E2/archive evidence.
+
+## E3.6 runtime and telemetry increment
+
+[E3.6](e3-6-runtime-composition.md) adds three cases, bringing all eleven active suites to
+314 freshly passed cases (177 container-free, 137 container/runtime), none skipped.
+Two telemetry cases run the actual ServiceDefaults around successful/failing catalog requests
+and real PostgreSQL queries. Native in-memory exporters expose missing producer registration,
+lost request/database trace relationships, uncorrelated failure logs and absent request
+metrics. No custom OTLP parser, registration snapshot, private reflection or instrumentation
+encoding tests are introduced.
+
+One native Aspire/Kestrel/PostgreSQL case protects the consumer's explicit startup/setup
+protocol: startup leaves schema absent, manual setup enables independently expected catalog
+values, and a database outage makes readiness/business reads fail while liveness succeeds.
+These steps form one capability journey; they do not maintain an exact AppHost annotation
+snapshot. Tests choose ephemeral storage through ordinary configuration and randomize ports.
+Inert OIDC settings are used only for public work and prove no provider/browser behavior.
+Manual dashboard OTLP observations are separately reported and do not inflate test counts.

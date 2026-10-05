@@ -7,6 +7,9 @@
     <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj" />
+    <Project Path="samples/Wholesale/AppHost/Wholesale.AppHost.csproj" />
+    <Project Path="samples/Wholesale/ServiceDefaults/Wholesale.ServiceDefaults.csproj" />
     <Project Path="samples/Wholesale/HttpIdentityDemo/HttpIdentityDemo.csproj" />
     <Project Path="samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/ContextDemo/ContextDemo.csproj" />

@@ -1,5 +1,6 @@
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
+using ModulithFoundry.Samples.Wholesale.ServiceDefaults;
 
 bool initializeAccess = args is ["--initialize-access"];
 bool initializeDemo = args is ["--initialize-demo"];
@@ -19,10 +20,12 @@ if (initializeAccess || initializeDemo)
     );
     return;
 }
+builder.AddServiceDefaults();
 DemoComposition.AddServices(builder.Services, builder.Configuration);
 builder.Services.AddOrganizationTenancyFromRoute("organization");
 var app = builder.Build();
 DemoComposition.ConfigureHttp(app);
+RuntimeHealthEndpoints.Map(app);
 DemoComposition.MapOrganizationEndpoints(
     app,
     "/organizations/{organization}/catalog",

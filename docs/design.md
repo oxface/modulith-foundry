@@ -220,10 +220,12 @@ an explicit public catalog exception for anonymous callers and mapped non-member
 and admission-time revocation direction; [the report](reports/e3-3-persisted-access.md) records
 implementation evidence and remaining limits, checkpointed as `20a02be`.
 [The owner-approved E3.4 slice](plans/e3-4-persisted-business-ingress.md) connects admitted ingress
-to tenant-owned Inventory reads through populated module/Contracts projects, implemented for
-review. [ADR 0004](adr/0004-module-contracts-and-native-composition.md) records the business
+to tenant-owned Inventory reads through populated module/Contracts projects, checkpointed with
+E3.5 as `31c7a8b`. [ADR 0004](adr/0004-module-contracts-and-native-composition.md) records the business
 Contract/native composition boundary; [the report](reports/e3-4-persisted-business-ingress.md)
-records actual proofs. State-changing ingress follows separately.
+records actual proofs. [E3.5](reports/e3-5-profile-mutation.md) adds protected Sales profile
+edits with explicit versioned transactions. Its native antiforgery integration remains
+consumer-owned; an optional human-actor requirement is the remaining extraction candidate.
 
 OIDC/BFF registration starts as a small, editable sample/template helper in E3, composing
 native `AddAuthentication`, `AddCookie` and `AddOpenIdConnect`. Provider settings, claim
@@ -312,6 +314,11 @@ or immediate CLI implementation work.
 Libraries use native `ILogger`, `ActivitySource`, and `Meter`. The host's ServiceDefaults
 configures collection, export, and health. Aspire is local orchestration and topology-test
 infrastructure, not a required library runtime.
+
+[E3.6](plans/e3-6-runtime-composition.md) adds sample-owned AppHost and ServiceDefaults source,
+with native database references, manual finite setup, distinct readiness/liveness and OTLP
+export. Startup never applies migrations or seeds. Its health policy is host-owned and no
+global retry/resilience handler is installed. The real OIDC/browser journey remains E3.7.
 
 Retain `.editorconfig`, CSharpier, Lefthook, and commitlint. Introduce a pinned pnpm workspace
 and shared frontend subpackages with the first exercised frontend setup; existing npm-based

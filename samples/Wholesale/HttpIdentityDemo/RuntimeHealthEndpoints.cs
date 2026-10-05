@@ -1,0 +1,21 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using ModulithFoundry.Tenancy.AspNetCore;
+
+namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
+
+public static class RuntimeHealthEndpoints
+{
+    public static void Map(WebApplication app)
+    {
+        app.MapHealthChecks("/health/ready").AllowAnonymous().AllowTenantless();
+        app.MapHealthChecks(
+                "/health/live",
+                new HealthCheckOptions
+                {
+                    Predicate = registration => registration.Tags.Contains("live"),
+                }
+            )
+            .AllowAnonymous()
+            .AllowTenantless();
+    }
+}

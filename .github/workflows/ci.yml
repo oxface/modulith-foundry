@@ -125,8 +125,39 @@ jobs:
         run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
       - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
-      - name: Test persisted Access admission and isolated Inventory reads through native HTTP
+      - name: Test persisted admission, isolated business operations and native telemetry through HTTP
         run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-restore
+
+  runtime:
+    name: Active Aspire runtime composition lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Install pinned Aspire CLI bundle
+        run: dotnet tool install --global Aspire.Cli --version 13.5.4
+      - name: Ensure native development HTTPS certificate
+        run: dotnet dev-certs https
+      - name: Restore active projects
+        run: dotnet restore ModulithFoundry.slnx
+      - name: Build active projects
+        run: dotnet build ModulithFoundry.slnx --no-restore
+      - name: Test explicit setup, readiness and database outage through Kestrel
+        run: >-
+          dotnet test
+          --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj
+          --no-build
+          --no-restore
 
   fast:
     name: Archived Fast lane and repository checks

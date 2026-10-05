@@ -6,13 +6,10 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="xunit.v3.mtp-v2" />
-    <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
-    <PackageReference Include="Testcontainers.PostgreSql" />
-    <Compile Include="../../../tests/Support/PostgreSqlFixture.cs" Link="PostgreSqlFixture.cs" />
+    <ProjectReference Include="../AppHost/Wholesale.AppHost.csproj" />
     <ProjectReference Include="../HttpIdentityDemo/HttpIdentityDemo.csproj" />
     <Using Include="Xunit" />
-    <None Include="Fixtures/Access-20a02be.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

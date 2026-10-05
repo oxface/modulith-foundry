@@ -22,11 +22,14 @@ Organization/Inventory consumer and independence proofs.
 checkpointed as `20a02be`; [its report](../reports/e3-3-persisted-access.md)
 records actual PostgreSQL/HTTP consumer evidence.
 [E3.4 persisted business ingress and module projects](e3-4-persisted-business-ingress.md)
-has owner-approved scope and is implemented for review;
+was owner-reviewed and checkpointed with E3.5 as `31c7a8b`;
 [its report](../reports/e3-4-persisted-business-ingress.md) records actual integration proofs. Read
 [the approved design posture](../design.md) alongside this plan.
-[E3.5 Sales profile mutation](e3-5-profile-mutation.md) has owner-approved scope/interfaces and is implemented for review;
+[E3.5 Sales profile mutation](e3-5-profile-mutation.md) was owner-reviewed and checkpointed as `31c7a8b`;
 [its report](../reports/e3-5-profile-mutation.md) records native antiforgery, concurrency and rollback proofs.
+[E3.6 runtime composition](e3-6-runtime-composition.md) has owner-approved direction and is
+implemented for review; [its report](../reports/e3-6-runtime-composition.md) distinguishes
+runtime and native exporter proofs from manual dashboard observations.
 
 ## Delivery model
 
@@ -328,13 +331,13 @@ explicit public catalog policy and admission-time revocation semantics on real P
 The owner approved these policies; [the report](../reports/e3-3-persisted-access.md) records
 the implementation proofs. Technical libraries are unchanged and no new reusable mechanism
 was extracted. Editable Access remains sample/template code.
-Inventory remained a fixture in E3.3. Review
+Inventory remained a fixture in E3.3. The checkpointed
 [E3.4 persisted business ingress and module projects](e3-4-persisted-business-ingress.md):
 read-only tenant-owned Inventory data using E2, populated Access/Inventory implementation
 and Contracts projects, host-owned HTTP bridges, separate histories and explicit setup.
 The owner approved this scope; [the report](../reports/e3-4-persisted-business-ingress.md)
 records actual reads, migration compatibility and independent-consumer results.
-Review [E3.5 Sales profile mutation](e3-5-profile-mutation.md): native antiforgery for cookie
+[E3.5 Sales profile mutation](e3-5-profile-mutation.md) is checkpointed: native antiforgery for cookie
 JSON mutations, application-actor token binding, explicit native Sales saves/transaction,
 expected-version conflicts and rollback after a partial write. The owner selected this
 business capability and approved its interface and token/authority policies.
@@ -343,11 +346,18 @@ These are consumer increments; no new library mechanism is assumed.
 
 Reassess focused native authentication/antiforgery utilities when real ingress exposes a
 repeated mechanism. Actor/principal mapping and tenant admission remain editable consumer
-adapters. The exercised actor-aware native antiforgery hook is a concrete candidate for
-later reuse review, not an extracted utility or an additional dependency of the cores.
+adapters. The owner narrowed the antiforgery candidate to an optional human-actor requirement;
+the current native token binding/filter/HTTP setup stays editable template code. No utility
+was extracted and neither core gains a dependency.
 Membership administration, invitation acceptance, explicit account linking and permissions
 may also earn an optional Access feature module. Revisit that extraction gate when their
 actual workflows and alternative policies exist; it need not wait until E9.
+
+The remaining bounded E3 sequence is E3.6 runtime composition/telemetry review, then E3.7
+disposable OIDC provider and real browser login/callback, mapped actor, admission and protected
+profile mutation. After that proof, return to E4 durable event identity and payload codec
+extraction. Materialized template output and bootstrap CLI remain E10; sample source is
+the exercised template recipe now.
 
 Build the smallest real Access-to-business-module journey using the new context seam and
 persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endpoints and
