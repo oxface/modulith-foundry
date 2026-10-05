@@ -14,8 +14,11 @@ was checkpointed with an executable Inventory consumer. The
 [two-module persistence sample](samples/Wholesale/PersistenceDemo/README.md) now owns native
 Inventory/Sales migrations and separate histories checkpointed as `f2dcf2b`.
 Same-tenant customer/address relationships were checkpointed as `d67c7fc`.
-Versioned profile changes with caller-owned transactions are implemented for review.
-Trusted HTTP ingress and messaging follow later increments.
+Versioned profile changes with caller-owned transactions were checkpointed as `6069c05`,
+completing the initial E2 persistence scope. The optional
+[actor HTTP adapter](src/ModulithFoundry.ActorIdentity.AspNetCore/README.md) and
+[HTTP identity sample](samples/Wholesale/HttpIdentityDemo/README.md) are implemented for E3.1
+review. Tenancy admission and messaging follow later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -31,6 +34,8 @@ Trusted HTTP ingress and messaging follow later increments.
 - [E2.3 implementation and proof report](docs/reports/e2-3-tenant-relationships.md)
 - [E2.4 versioned profile changes plan](docs/plans/e2-4-versioned-profile-changes.md)
 - [E2.4 implementation and proof report](docs/reports/e2-4-versioned-profile-changes.md)
+- [E3.1 actor HTTP integration proposal](docs/plans/e3-1-http-actor-identity.md)
+- [E3.1 implementation and proof report](docs/reports/e3-1-http-actor-identity.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)
@@ -56,5 +61,5 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-CI checks active architecture, context and EF model tests, with a separate active PostgreSQL ownership
+CI checks active architecture, context, HTTP identity and EF model tests, with a separate active PostgreSQL ownership
 lane. Archived Fast, PostgreSQL, RabbitMQ and Aspire Topology proofs remain independent.

@@ -8,7 +8,9 @@ approach and immutable tenant ownership, then approved the first interface for i
 [its report](../reports/e2-2-module-migrations.md) records the consumer setup and new evidence.
 [E2.3](e2-3-tenant-relationships.md) was owner-reviewed and checkpointed as `d67c7fc`.
 [E2.4](e2-4-versioned-profile-changes.md) adds separate version conflicts and an explicit
-two-save profile operation with caller-owned commit/rollback, implemented for review.
+two-save profile operation with caller-owned commit/rollback, owner-reviewed and checkpointed
+as `6069c05`. The initial supported E2 scope is complete; shared cross-module transactions
+remain a separate named-workflow increment, and documented provider/bypass limits still apply.
 [Its report](../reports/e2-4-versioned-profile-changes.md) records the new evidence and limits.
 Read [the design](../design.md), [extraction plan](library-extraction.md) and
 [design findings](../reports/e2-persistence-design.md).

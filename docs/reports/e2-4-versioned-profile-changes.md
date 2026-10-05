@@ -1,8 +1,8 @@
 # E2.4 versioned profile changes and caller-owned transactions
 
 2026-10-04. E2.3 was owner-reviewed and checkpointed as `d67c7fc`. The owner authorized
-proceeding to this next slice. This implementation and its documentation remain unstaged
-for review; no E2.4 commit is authorized.
+proceeding to this next slice. E2.4 was subsequently owner-reviewed and checkpointed as
+`6069c05`, completing the initial supported E2 scope. The results below describe that checkpoint.
 
 ## Outcome
 

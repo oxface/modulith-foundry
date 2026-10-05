@@ -9,9 +9,12 @@ The independent split was reviewed and checkpointed as `c8cbf64`;
 E2.1 was [reviewed and checkpointed as `50e7933`](../reports/e2-1-tenant-ownership.md).
 [E2.2 module-owned migrations](e2-2-module-migrations.md) were checkpointed as `f2dcf2b`.
 [E2.3 tenant relationships](e2-3-tenant-relationships.md) were checkpointed as `d67c7fc`.
-[E2.4 versioned profile changes](e2-4-versioned-profile-changes.md) are implemented for review;
-shared cross-module transactions and [the remaining E2 limits](e2-persistence.md) require
-separate evidence. Read
+[E2.4 versioned profile changes](e2-4-versioned-profile-changes.md) were checkpointed as
+`6069c05`, completing the initial supported E2 scope. Shared cross-module transactions and
+[the remaining E2 limits](e2-persistence.md) require separate evidence.
+[E3.1 actor HTTP integration](e3-1-http-actor-identity.md) has owner-approved scope and is
+implemented for line-by-line review; [its report](../reports/e3-1-http-actor-identity.md)
+records new cookie/policy/claim-action proofs. Read
 [the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model
@@ -292,6 +295,11 @@ Template output: ordinary DbContext/model/migration registration. Add the Postgr
 for active code in this increment; archived lane remains distinct.
 
 ### E3 Trusted ingress and state-stored sample path
+
+Start with [E3.1's approved actor-only HTTP adapter scope](e3-1-http-actor-identity.md): effective
+native principal mapping, explicit evaluator/middleware composition and focused request
+proofs. It is implemented for review with a native cookie/OIDC sample recipe; remote provider
+topology is unproven. It does not add tenancy or durable Access behavior. Those remain separate increments.
 
 Build the smallest real Access-to-business-module journey using the new context seam and
 persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endpoints and

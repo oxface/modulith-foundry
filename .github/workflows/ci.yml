@@ -80,6 +80,22 @@ jobs:
           --no-build
           --no-restore
 
+      - name: Test actor HTTP integration
+        # HTTP identity proofs use native protected cookies and require no external provider.
+        # The runnable HTTP sample has no test authentication shortcut.
+        run: >-
+          dotnet test
+          --project tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
+          --no-build
+          --no-restore
+
+      - name: Test HTTP identity sample composition
+        run: >-
+          dotnet test
+          --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj
+          --no-build
+          --no-restore
+
       - name: Run context sample
         run: >-
           dotnet run

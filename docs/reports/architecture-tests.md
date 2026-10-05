@@ -77,3 +77,13 @@ module-local Version add/drop-column operations while retaining ownership, relat
 snapshot consistency checks. This stays a sample-specific policy; unknown operations and
 raw SQL require review. Suite size remains 15; [E2.4](e2-4-versioned-profile-changes.md)
 records the new executions. No new reusable mechanism or custom test infrastructure was added.
+
+## E3.1 independent actor HTTP adapter
+
+The native XML declaration policy now admits the adapter's one ActorIdentity reference and
+native `Microsoft.AspNetCore.App` framework reference, with no packages. Eight additional
+ArchUnitNET prohibitions cover the adapter's tenancy/persistence/consumer independence and
+keep the three existing libraries independent of the new HTTP sample. They protect library
+adoption without imposing an exact sample project graph. No restored-project parser or
+transitive package snapshot was added. Suite size is now 24;
+[E3.1](e3-1-http-actor-identity.md) records fresh results.

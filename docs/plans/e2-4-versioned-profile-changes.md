@@ -1,8 +1,8 @@
 # E2.4 versioned profile changes and caller-owned transactions
 
-Status: implementation authorized on 2026-10-04 after E2.3 checkpoint `d67c7fc`.
-The owner approved checkpointing E2.3 and proceeding to this next slice. All new changes
-remain unstaged for owner review; no E2.4 commit is authorized.
+Status: owner-reviewed and checkpointed as `6069c05` on 2026-10-04 after E2.3 checkpoint
+`d67c7fc`. [The report](../reports/e2-4-versioned-profile-changes.md) records the implemented
+consumer behavior, new proof executions and remaining limits.
 
 ## Outcome
 

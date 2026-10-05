@@ -1,16 +1,20 @@
 <Solution>
   <Folder Name="/Libraries/">
+    <Project Path="src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
     <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
     <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/Wholesale/HttpIdentityDemo/HttpIdentityDemo.csproj" />
+    <Project Path="samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/ContextDemo/ContextDemo.csproj" />
     <Project Path="samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/PersistenceDemo/PersistenceDemo.csproj" />
     <Project Path="samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj" />
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
     <Project Path="tests/ActorIdentityTests/ActorIdentityTests.csproj" />
     <Project Path="tests/TenantTests/TenantTests.csproj" />

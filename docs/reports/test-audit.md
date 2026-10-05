@@ -129,3 +129,18 @@ observe SQL state and fresh-scope results instead of merely testing native trans
 The existing fast model/artifact policies now inspect the version mapping and migration;
 no extra framework-only cases or generic infrastructure were added. Earlier counts remain
 historical.
+
+## Subsequent E3.1 evidence
+
+[E3.1](e3-1-http-actor-identity.md) passes 161 active cases, including the unchanged 42
+PostgreSQL cases. Fifteen HTTP adapter cases exercise actor publication in the actual native
+pipeline, including policy-selected schemes, anonymous/public behavior, mapping failure,
+permissions, overlap and cancellation. Six sample cases exercise the real directory/error
+composition and configured OIDC claim actions through protected cookies. Applying those
+actions caught native issuer deletion that would otherwise break the sample's actor mapping.
+
+These are adapter/consumer behavior proofs, not isolated tests that cookies or authorization
+work. No null-argument matrix, reflection over private features, generic HTTP test framework
+or restored graph infrastructure was introduced. Architecture grows from 15 to 24 through
+new segment/consumer dependency rules and one direct native-XML adapter declaration case.
+Remote provider login/callback/session topology remains outside these counts.

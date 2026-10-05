@@ -186,6 +186,14 @@ on anonymous endpoints, and native policies that deliberately permit anonymous a
 Both cores remain package-free; worker/message consumers initialize their own operation scopes
 directly. E1 currently includes no HTTP middleware.
 
+[The approved E3.1 scope](plans/e3-1-http-actor-identity.md) specifies the first actor-only adapter
+and consumer recipe, now implemented for line-by-line review. It wraps the native evaluator after policy authentication,
+with downstream completion for requests without a policy, so establishment precedes consumer
+authorization handlers without capturing a different default-scheme identity. These public
+types and implementation remain subject to review. [The report](reports/e3-1-http-actor-identity.md)
+records actual cookie/policy/claim-action proofs and provider limitations; the architecture
+direction is recorded in [ADR 0002](adr/0002-explicit-http-actor-establishment.md).
+
 Membership/admission receives a separate consumer-owned Access increment in E3. One application
 user may belong to multiple Organizations; admission concerns the Organization selected for
 the current operation. Organization is the sample domain/UI term and Tenant the technical
@@ -213,8 +221,9 @@ checkpointed as `f2dcf2b`. [E2.3](reports/e2-3-tenant-relationships.md) adds an 
 same-tenant customer/address constraint as consumer-owned sample/template policy,
 checkpointed as `d67c7fc`. [E2.4](reports/e2-4-versioned-profile-changes.md) adds an explicitly
 advanced customer version and a two-save profile operation inside a caller-owned native
-transaction, including stale-request, fault and cancellation proofs. It is implemented for
-review and introduces no new reusable mechanism. Shared cross-module transactions and the
+transaction, including stale-request, fault and cancellation proofs, checkpointed as
+`6069c05`. The initial E2 scope is complete; E2.2 through E2.4 introduced no new reusable
+mechanism. Shared cross-module transactions and the
 remaining limits in [the E2 plan](plans/e2-persistence.md) require separate evidence.
 
 Consumers register their DbContexts, entity mappings, migrations, handlers, transports,

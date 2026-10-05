@@ -49,5 +49,7 @@ application user in consumer-owned Access code. The core performs no provider lo
 
 See [actor-only and combined sample composition](../../samples/Wholesale/ContextDemo/README.md),
 [the split interfaces for review](../../docs/plans/e1-tenant-actor.md) and
-[the split report](../../docs/reports/e1-identity-split.md). HTTP integration and native
-policy proofs remain E3 work. No stable wire or persistence format is established here.
+[the split report](../../docs/reports/e1-identity-split.md). Optional
+[ASP.NET Core integration](../ModulithFoundry.ActorIdentity.AspNetCore/README.md) and its native
+request proofs are implemented for review in E3.1. The core acquires no new dependencies.
+No stable wire or persistence format is established here.

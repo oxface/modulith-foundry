@@ -1,10 +1,12 @@
 # Development and verification
 
-`ModulithFoundry.slnx` contains 12 active projects: independent ActorIdentity and Tenancy
-libraries, the EF ownership utility, two finite console samples and their proof suites.
+`ModulithFoundry.slnx` contains 16 active projects: independent ActorIdentity and Tenancy
+cores, the optional actor ASP.NET Core adapter, the EF ownership utility, two finite console
+samples, an HTTP identity host and their proof suites.
 The archived solution is independent. Root build defaults target .NET 10; central package
-management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers and
-test-only ArchUnitNET. The local tool manifest also pins native `dotnet-ef` 10.0.12.
+management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers,
+sample-only OpenIdConnect, test-only TestHost and ArchUnitNET. The local tool manifest also
+pins native `dotnet-ef` 10.0.12.
 
 ## Repository tooling
 
@@ -37,6 +39,8 @@ dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet build ModulithFoundry.slnx --no-restore
 dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
 dotnet test --project tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
+dotnet test --project tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-build --no-restore
+dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 dotnet test --project tests/TenantTests/TenantTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
 dotnet test --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
@@ -44,10 +48,11 @@ dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build
 ```
 
 These checks require no containers, identity provider or personal credentials. The active
-architecture suite uses ArchUnitNET for compiled type dependencies. Three short declaration
+architecture suite uses ArchUnitNET for compiled type dependencies. Four short declaration
 tests read the runtime libraries' copied project files with native XML APIs: both cores
 allow no package/project/extra-framework references, and persistence allows only an explicit
-EF Core Relational package reference. No restored-graph parser or exact transitive-package
+EF Core Relational package reference; the HTTP adapter permits only ActorIdentity and the
+native ASP.NET Core framework. No restored-graph parser or exact transitive-package
 whitelist is maintained. These checks inspect direct declarations, not evaluated MSBuild
 imports or transitive dependencies.
 
@@ -62,11 +67,19 @@ ordinary restore/build and their behavior tests remain part of CI. Sample projec
 graphs are editable composition rather than exact test snapshots. Architecture policies are
 repository-owned; consumers select their own module structure.
 
-CI's Active context lane runs architecture tests, style, analyzers, build, the other four
+CI's Active context lane runs architecture tests, style, analyzers, build, the other six
 container-free test projects and the context console. Root formatter verification remains
 in the repository-check lane. See [the test audit](reports/test-audit.md),
 [architecture checks](reports/architecture-tests.md), [the E1 split report](reports/e1-identity-split.md)
 and [the E2.1 report](reports/e2-1-tenant-ownership.md).
+
+The two new HTTP suites run native protected cookie requests and configured OIDC claim
+actions without a remote identity provider, database or personal credentials. The standalone
+suite uses a test-only secondary scheme to prove effective scheme selection; the executable
+sample has no header authentication. Actual OIDC login/callback/session topology remains
+unproven here. Run the host with your provider configuration using
+[the sample guide](../samples/Wholesale/HttpIdentityDemo/README.md); fresh results and limits
+are in [the E3.1 report](reports/e3-1-http-actor-identity.md).
 
 ## Active PostgreSQL ownership lane
 

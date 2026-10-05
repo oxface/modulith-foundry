@@ -4,6 +4,33 @@ namespace ModulithFoundry.ArchitectureTests;
 
 public sealed class AdoptionDependencyTests
 {
+    [Fact]
+    public void ActorHttpAdapterDeclaresOnlyTheCoreAndNativeFramework()
+    {
+        XDocument declaration = XDocument.Load(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "ProjectDeclarations",
+                "ModulithFoundry.ActorIdentity.AspNetCore.csproj"
+            )
+        );
+        Assert.Empty(declaration.Descendants("PackageReference"));
+        Assert.Equal(
+            ["Microsoft.AspNetCore.App"],
+            declaration
+                .Descendants("FrameworkReference")
+                .Select(reference => (string)reference.Attribute("Include")!)
+        );
+        Assert.Equal(
+            ["ModulithFoundry.ActorIdentity"],
+            declaration
+                .Descendants("ProjectReference")
+                .Select(reference =>
+                    Path.GetFileNameWithoutExtension((string)reference.Attribute("Include")!)
+                )
+        );
+    }
+
     [Theory]
     [InlineData("ModulithFoundry.ActorIdentity", null)]
     [InlineData("ModulithFoundry.Tenancy", null)]
