@@ -1,0 +1,16 @@
+# 0004: Separate module business Contracts from native host composition
+
+Status: accepted boundary in the owner-approved E3.4 plan; implementation remains under review.
+
+Access and Inventory own separate implementation/Contracts projects, internal business rows
+and module-local native persistence. Business endpoints and HTTP identity/admission bridges
+call Contracts; the host's composition, native migration tooling and finite setup may use
+public DbContexts/configuration to keep registration, saves and transactions explicit.
+This limited composition exception avoids a custom persistence facade while preserving
+reviewable business-call boundaries. Module implementations do not reference each other or
+the host; Inventory stores the admitted Organization key without an Access database FK.
+
+The boundary is consumer-owned template policy. It neither changes independently adoptable
+technical libraries nor prevents privileged native EF/raw SQL bypasses. See
+[the approved plan](../plans/e3-4-persisted-business-ingress.md) and
+[executable module ownership](../../samples/Wholesale/modules/README.md).

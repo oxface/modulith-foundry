@@ -172,13 +172,13 @@ Review public interface/outcomes and policy first:
   and [explicit registration/metadata helpers](../../src/ModulithFoundry.Tenancy.AspNetCore/HttpTenantContextExtensions.cs),
   plus [native host-options utility](../../src/ModulithFoundry.Tenancy.AspNetCore/HttpTenantHostFilteringExtensions.cs).
 - [Consumer composition](../../samples/Wholesale/HttpIdentityDemo/DemoComposition.cs),
-  [Organization resolver](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationTenantResolver.cs),
+  [Organization resolver](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/OrganizationTenantResolver.cs),
   Organization directory fixture (retained at `cfbac9a`, since replaced by
-  [persisted Access](../../samples/Wholesale/HttpIdentityDemo/Access/ApplicationAccess.cs) in E3.3),
-  [Access registration](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationTenancyExtensions.cs),
+  [persisted Access](../../samples/Wholesale/modules/Access/Access/ApplicationAccess.cs) in E3.3),
+  [Access registration](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/OrganizationTenancyExtensions.cs),
   [explicit startup](../../samples/Wholesale/HttpIdentityDemo/Program.cs),
   [global exception mapping](../../samples/Wholesale/HttpIdentityDemo/ContextExceptionHandler.cs)
-  and [Inventory capability](../../samples/Wholesale/HttpIdentityDemo/Inventory/FixtureStockCatalog.cs).
+  and [Inventory capability](../../samples/Wholesale/modules/Inventory/Inventory/StockCatalog.cs).
 - [HTTP proofs](../../tests/TenancyAspNetCoreTests/HttpTenantTests.cs),
   [failure/lifecycle proofs](../../tests/TenancyAspNetCoreTests/EstablishmentTests.cs),
   [native pipeline proofs](../../tests/TenancyAspNetCoreTests/NativePipelineTests.cs),

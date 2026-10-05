@@ -18,10 +18,15 @@ claim-action proofs and the registration refinement.
 [E3.2 tenancy HTTP integration](e3-2-http-tenancy.md) was owner-reviewed and checkpointed as
 `cfbac9a`; [its report](../reports/e3-2-http-tenancy.md) records fresh adapter,
 Organization/Inventory consumer and independence proofs.
-[E3.3 persisted Access lookup/admission](e3-3-persisted-access.md) has owner-approved scope
-and policies, implemented for review; [its report](../reports/e3-3-persisted-access.md)
-records actual PostgreSQL/HTTP consumer evidence. Read
+[E3.3 persisted Access lookup/admission](e3-3-persisted-access.md) was owner-reviewed and
+checkpointed as `20a02be`; [its report](../reports/e3-3-persisted-access.md)
+records actual PostgreSQL/HTTP consumer evidence.
+[E3.4 persisted business ingress and module projects](e3-4-persisted-business-ingress.md)
+has owner-approved scope and is implemented for review;
+[its report](../reports/e3-4-persisted-business-ingress.md) records actual integration proofs. Read
 [the approved design posture](../design.md) alongside this plan.
+[E3.5 Sales profile mutation](e3-5-profile-mutation.md) has owner-approved scope/interfaces and is implemented for review;
+[its report](../reports/e3-5-profile-mutation.md) records native antiforgery, concurrency and rollback proofs.
 
 ## Delivery model
 
@@ -316,15 +321,33 @@ Optional route/subdomain candidate helpers and independently adoptable tenancy-o
 now accompany the extended actor/tenant HTTP sample.
 [The report](../reports/e3-2-http-tenancy.md) records actual results. Durable Access is not part of E3.2.
 
-Review [E3.3 persisted Access lookup/admission](e3-3-persisted-access.md): global user and
+[E3.3 persisted Access lookup/admission](e3-3-persisted-access.md) was checkpointed as
+`20a02be`: global user and
 external-identity lookup, canonical Organization lookup, current membership admission,
 explicit public catalog policy and admission-time revocation semantics on real PostgreSQL.
 The owner approved these policies; [the report](../reports/e3-3-persisted-access.md) records
 the implementation proofs. Technical libraries are unchanged and no new reusable mechanism
 was extracted. Editable Access remains sample/template code.
-Inventory remains a fixture in that increment. E3.4 should connect admitted ingress to a
-state-stored business capability using E2 persistence and review the module project structure
-it requires. These are consumer increments; no new library mechanism is assumed.
+Inventory remained a fixture in E3.3. Review
+[E3.4 persisted business ingress and module projects](e3-4-persisted-business-ingress.md):
+read-only tenant-owned Inventory data using E2, populated Access/Inventory implementation
+and Contracts projects, host-owned HTTP bridges, separate histories and explicit setup.
+The owner approved this scope; [the report](../reports/e3-4-persisted-business-ingress.md)
+records actual reads, migration compatibility and independent-consumer results.
+Review [E3.5 Sales profile mutation](e3-5-profile-mutation.md): native antiforgery for cookie
+JSON mutations, application-actor token binding, explicit native Sales saves/transaction,
+expected-version conflicts and rollback after a partial write. The owner selected this
+business capability and approved its interface and token/authority policies.
+[Its report](../reports/e3-5-profile-mutation.md) records the new HTTP/PostgreSQL path, including controlled precommit cancellation.
+These are consumer increments; no new library mechanism is assumed.
+
+Reassess focused native authentication/antiforgery utilities when real ingress exposes a
+repeated mechanism. Actor/principal mapping and tenant admission remain editable consumer
+adapters. The exercised actor-aware native antiforgery hook is a concrete candidate for
+later reuse review, not an extracted utility or an additional dependency of the cores.
+Membership administration, invitation acceptance, explicit account linking and permissions
+may also earn an optional Access feature module. Revisit that extraction gate when their
+actual workflows and alternative policies exist; it need not wait until E9.
 
 Build the smallest real Access-to-business-module journey using the new context seam and
 persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endpoints and

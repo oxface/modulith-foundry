@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Contracts;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Access.Contracts;
+using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Tests;
@@ -339,7 +339,9 @@ public sealed partial class CompositionTests
             .Initialize(TenantContext.ForTenant(new TenantId(organization!.Value)));
         Assert.Equal(
             new StockAvailability("DEMO-NOTEBOOK", 42),
-            scope.ServiceProvider.GetRequiredService<IStockCatalog>().Read()
+            await scope
+                .ServiceProvider.GetRequiredService<IStockCatalog>()
+                .ReadAsync("DEMO-NOTEBOOK", Token)
         );
     }
 

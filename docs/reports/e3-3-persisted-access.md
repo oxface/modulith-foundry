@@ -1,9 +1,8 @@
 # E3.3 persisted Access lookup and Organization admission
 
 2026-10-05. The owner approved [the plan and admission policies](../plans/e3-3-persisted-access.md).
-Implementation, consumer usage and proofs are complete for review. Changes remain unstaged;
-no commit is authorized. E3.2 was checkpointed as `cfbac9a`; its checkpoint documentation
-updates accompany this handoff.
+Implementation, consumer usage and proofs were owner-reviewed and checkpointed as `20a02be`.
+E3.2 was checkpointed as `cfbac9a`; its checkpoint documentation updates accompanied E3.3.
 
 ## Outcome and ownership
 
@@ -86,6 +85,11 @@ The existing finite ContextDemo runs successfully with no Access/database depend
 No E2 PostgreSQL, archived behavior, broker, real-provider, Kestrel or Aspire topology suite
 was rerun in this slice. Their historical results do not prove this new ingress.
 
+The checkpoint hooks subsequently passed formatting, style/analyzers and commitlint, plus
+163 active container-free tests and 21 archived architecture tests (184 total, no skips or
+failures). The PostgreSQL suite does not run in hooks; its 49-case result above is the
+implementation verification, not a checkpoint rerun.
+
 ## Library, template and sample findings
 
 **Library:** both cores and both HTTP adapters remain unchanged and independently adoptable.
@@ -106,16 +110,16 @@ catalog and Contract. Folders establish ownership within one host, not assembly 
 
 ## Review-worthy files and remaining gaps
 
-- [Access Contract](../../samples/Wholesale/HttpIdentityDemo/Access/Contracts/IApplicationAccess.cs)
-  and its user/Organization/external-identity value types; [actual reads](../../samples/Wholesale/HttpIdentityDemo/Access/ApplicationAccess.cs).
-- [Actor mapping](../../samples/Wholesale/HttpIdentityDemo/Access/ApplicationActorResolver.cs),
-  [tenant admission](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationTenantResolver.cs),
-  [public exception](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationAccessExtensions.cs)
+- [Access Contract](../../samples/Wholesale/modules/Access/Access.Contracts/IApplicationAccess.cs)
+  and its user/Organization/external-identity value types; [actual reads](../../samples/Wholesale/modules/Access/Access/ApplicationAccess.cs).
+- [Actor mapping](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/ApplicationActorResolver.cs),
+  [tenant admission](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/OrganizationTenantResolver.cs),
+  [public exception](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/OrganizationAccessExtensions.cs)
   and [consumer composition](../../samples/Wholesale/HttpIdentityDemo/DemoComposition.cs).
-- [DbContext/model](../../samples/Wholesale/HttpIdentityDemo/Access/Persistence/AccessDbContext.cs),
-  [native migration](../../samples/Wholesale/HttpIdentityDemo/Access/Persistence/Migrations/20261005204257_InitialAccess.cs),
+- [DbContext/model](../../samples/Wholesale/modules/Access/Access/Persistence/AccessDbContext.cs),
+  [native migration](../../samples/Wholesale/modules/Access/Access/Persistence/Migrations/20261005204257_InitialAccess.cs),
   [finite setup entry point](../../samples/Wholesale/HttpIdentityDemo/Program.cs) and
-  [staged demonstration rows](../../samples/Wholesale/HttpIdentityDemo/Access/AccessDemoSeed.cs).
+  [staged demonstration rows](../../samples/Wholesale/modules/Access/Access/AccessDemoSeed.cs).
 - [HTTP/admission proofs](../../samples/Wholesale/HttpIdentityDemo.Tests/AdmissionTests.cs),
   [database/setup proofs](../../samples/Wholesale/HttpIdentityDemo.Tests/PersistenceTests.cs)
   and the [updated original composition proofs](../../samples/Wholesale/HttpIdentityDemo.Tests/CompositionTests.cs).
@@ -125,8 +129,13 @@ or account provisioning. The public marker is an endpoint-level sample exception
 general membership/permission policy engine. Trusted non-HTTP callers explicitly perform
 admission and tenant initialization; possessing a UserId/OrganizationId alone grants no authority.
 
-Persisted Inventory/business ingress and module project structure remain E3.4. Account
+Persisted Inventory/business ingress and module project structure are proposed in
+[E3.4](../plans/e3-4-persisted-business-ingress.md). Account
 creation/linking, profiles, invitations, membership administration, roles/permissions,
 user/Organization disabling, session invalidation, real OIDC/proxy topology, antiforgery
 mutations, tenant-aware native authorization handlers and shared transactions remain separate
 increments. E3 is not complete.
+
+Source links now follow the E3.4 module/host relocation. Ownership, counts and fixture-catalog
+limits above describe checkpoint `20a02be`; [E3.4](e3-4-persisted-business-ingress.md) records
+the subsequent persisted business integration rather than rewriting E3.3 evidence.

@@ -1,7 +1,7 @@
 # E3.3 persisted Access lookup and Organization admission
 
-Status: owner-approved scope and admission policies, 2026-10-05. E3.2 was reviewed and
-checkpointed as `cfbac9a`. Implementation is under review; no commit is authorized.
+Status: owner-approved scope and admission policies, 2026-10-05. Implementation was
+owner-reviewed and checkpointed as `20a02be`. E3.2 was checkpointed as `cfbac9a`.
 [The execution report](../reports/e3-3-persisted-access.md) records fresh results separately
 from the planned obligations below. No new library interface is introduced.
 
@@ -16,7 +16,8 @@ use an explicit public-access policy, independently of the caller's authenticati
 Deliver one lookup/admission capability, with native migrations, explicit disposable-demo
 setup, executable HTTP usage and real PostgreSQL proofs. Keep the existing Inventory catalog
 fixture for this increment. Persisted business data and mutations using E2 ownership utilities
-follow in E3.4; this increment must not claim database isolation of Inventory data.
+follow in [the proposed E3.4 read slice](e3-4-persisted-business-ingress.md) and subsequent
+mutation work; this increment must not claim database isolation of Inventory data.
 
 No changes to the actor/tenancy cores or HTTP adapters are expected. Access is consumer-owned
 sample/template code. No new reusable mechanism has been proven by preparing this plan.
@@ -229,4 +230,4 @@ business capability and review the module project structure it requires. E3 rema
 
 Leave implementation changes unstaged for owner review. The approved registry and
 operation-admission direction is recorded in [ADR 0003](../adr/0003-access-registry-and-operation-admission.md);
-its implementation still receives line-by-line review.
+its implementation was owner-reviewed in checkpoint `20a02be`.

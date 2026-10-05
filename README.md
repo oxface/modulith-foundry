@@ -22,8 +22,11 @@ checkpointed as `faefc0b`. The independently adoptable
 [tenancy HTTP adapter](src/ModulithFoundry.Tenancy.AspNetCore/README.md) and Organization-scoped
 catalog sample were reviewed and checkpointed as `cfbac9a`, including explicit selection
 presets and a native host-filter options utility. Persisted Access lookup and membership
-admission are implemented for review in [E3.3](docs/plans/e3-3-persisted-access.md), with
+admission were checkpointed as `20a02be` in [E3.3](docs/plans/e3-3-persisted-access.md), with
 [real PostgreSQL evidence](docs/reports/e3-3-persisted-access.md).
+[E3.4](docs/plans/e3-4-persisted-business-ingress.md) is implemented for review: admitted
+requests read tenant-owned Inventory data through separate module/Contracts projects, with
+[actual database and architecture proofs](docs/reports/e3-4-persisted-business-ingress.md).
 Messaging follows later increments.
 
 - [Current design decisions](docs/design.md)
@@ -46,6 +49,9 @@ Messaging follows later increments.
 - [E3.2 implementation and proof report](docs/reports/e3-2-http-tenancy.md)
 - [E3.3 persisted Access and admission proposal](docs/plans/e3-3-persisted-access.md)
 - [E3.3 implementation and proof report](docs/reports/e3-3-persisted-access.md)
+- [E3.4 persisted business ingress and module projects plan](docs/plans/e3-4-persisted-business-ingress.md)
+- [E3.4 implementation and proof report](docs/reports/e3-4-persisted-business-ingress.md)
+- [E3.5 Sales profile mutation plan](docs/plans/e3-5-profile-mutation.md) and [proof report](docs/reports/e3-5-profile-mutation.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)

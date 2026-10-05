@@ -1,8 +1,9 @@
 # Development and verification
 
-`ModulithFoundry.slnx` contains 18 active projects: independent ActorIdentity and Tenancy
+`ModulithFoundry.slnx` contains 24 active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, two finite console
-samples, an HTTP identity/Organization host and their proof suites.
+samples, an HTTP identity/Organization host, six populated Access/Inventory/Sales module projects and
+their proof suites.
 The archived solution is independent. Root build defaults target .NET 10; central package
 management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers,
 sample-only OpenIdConnect, test-only TestHost and ArchUnitNET. The local tool manifest also
@@ -77,7 +78,7 @@ The two standalone HTTP suites run native requests without a remote identity pro
 database or personal credentials. The standalone
 HTTP suites use a test-only secondary scheme to prove effective scheme selection; the executable
 sample has no header authentication. Actual OIDC login/callback/session topology remains
-unproven here. The executable HTTP sample now requires PostgreSQL-backed Access; initialize
+unproven here. The executable HTTP sample now requires PostgreSQL-backed Access, Inventory and Sales; initialize
 its disposable demonstration data explicitly before running it with provider configuration using
 [the sample guide](../samples/Wholesale/HttpIdentityDemo/README.md); fresh results and limits
 are in [the E3.1 report](reports/e3-1-http-actor-identity.md) and
@@ -85,7 +86,12 @@ are in [the E3.1 report](reports/e3-1-http-actor-identity.md) and
 admission failures, cancellation, route/subdomain/custom selection and scoped publication.
 The sample composes both adapters through guarded Inventory reads, while actor-only adoption
 continues through its independent suite. Those E3.2 fixture results remain historical;
-[E3.3](reports/e3-3-persisted-access.md) records fresh persisted Access admission proofs.
+[E3.3](reports/e3-3-persisted-access.md) records persisted Access admission proofs.
+[E3.4](reports/e3-4-persisted-business-ingress.md) connects admitted requests to tenant-owned
+catalog rows and separate module/Contracts projects. Focused ArchUnitNET rules enforce
+module/host business-call boundaries without a restored-project graph.
+[E3.5](reports/e3-5-profile-mutation.md) adds cookie JSON protection, actor-bound native
+antiforgery, tenant-owned Sales profile changes and explicit versioned transactions.
 
 ## Active PostgreSQL ownership lane
 

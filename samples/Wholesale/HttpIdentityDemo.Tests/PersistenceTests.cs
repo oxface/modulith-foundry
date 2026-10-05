@@ -7,8 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Contracts;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Persistence;
+using ModulithFoundry.Samples.Wholesale.Access.Contracts;
+using ModulithFoundry.Samples.Wholesale.Access.Persistence;
+using ModulithFoundry.Samples.Wholesale.Inventory;
+using ModulithFoundry.Samples.Wholesale.Sales;
+using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
 using Npgsql;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Tests;
@@ -187,16 +190,24 @@ public sealed partial class CompositionTests
         await using var scope = app.Services.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
         Assert.Empty(await database.Database.GetAppliedMigrationsAsync(Token));
+        var inventory = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        Assert.Empty(await inventory.Database.GetAppliedMigrationsAsync(Token));
+        var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+        Assert.Empty(await sales.Database.GetAppliedMigrationsAsync(Token));
         using var client = app.GetTestClient();
         using var healthy = await client.GetAsync("/health", Token);
         healthy.EnsureSuccessStatusCode();
         using var unavailable = await client.GetAsync("/organizations/north-supply/catalog", Token);
         Assert.Equal(HttpStatusCode.InternalServerError, unavailable.StatusCode);
         Assert.Empty(await database.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Empty(await inventory.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Empty(await sales.Database.GetAppliedMigrationsAsync(Token));
     }
 
-    [Fact]
-    public async Task FiniteSetupNeedsNoOidcAndItsRowsAreUsedByHttpHost()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FiniteSetupNeedsNoOidcAndItsRowsAreUsedByHttpHost(bool fullDemo)
     {
         string connection = await postgres.CreateDatabaseAsync(Token);
         var start = new ProcessStartInfo("dotnet")
@@ -206,7 +217,7 @@ public sealed partial class CompositionTests
             RedirectStandardError = true,
         };
         start.ArgumentList.Add(typeof(DemoComposition).Assembly.Location);
-        start.ArgumentList.Add("--initialize-access");
+        start.ArgumentList.Add(fullDemo ? "--initialize-demo" : "--initialize-access");
         start.Environment["ConnectionStrings__Access"] = connection;
         start.Environment.Remove("Oidc__Authority");
         start.Environment.Remove("Oidc__ClientId");
@@ -220,7 +231,12 @@ public sealed partial class CompositionTests
         {
             await process.WaitForExitAsync(Token).WaitAsync(TimeSpan.FromSeconds(30), Token);
             Assert.True(process.ExitCode == 0, await errors);
-            Assert.Contains("Access demo initialized; HTTP host was not started.", await output);
+            Assert.Contains(
+                fullDemo
+                    ? "Wholesale demo initialized; HTTP host was not started."
+                    : "Access demo initialized; HTTP host was not started.",
+                await output
+            );
         }
         finally
         {
@@ -245,6 +261,31 @@ public sealed partial class CompositionTests
         Assert.Equal(
             new TenantIdentityResponse(ActorKind.Human, "application-alpha", "wholesale-alpha"),
             await admitted.Content.ReadFromJsonAsync<TenantIdentityResponse>(Token)
+        );
+        var inventory = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+        if (!fullDemo)
+        {
+            Assert.Empty(await sales.Database.GetAppliedMigrationsAsync(Token));
+            Assert.Empty(await inventory.Database.GetAppliedMigrationsAsync(Token));
+            using var unavailable = await client.GetAsync(
+                "/organizations/south-supply/catalog",
+                Token
+            );
+            Assert.Equal(HttpStatusCode.InternalServerError, unavailable.StatusCode);
+            return;
+        }
+        Assert.Single(await inventory.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Single(await sales.Database.GetAppliedMigrationsAsync(Token));
+        using var profileRequest = Request(
+            app,
+            $"/organizations/north-supply/customers/{SalesDemoSeed.AlphaCustomerId}/profile",
+            "https://identity.test"
+        );
+        using var profileResponse = await client.SendAsync(profileRequest, Token);
+        Assert.Equal(
+            "Alpha Customer",
+            (await profileResponse.Content.ReadFromJsonAsync<CustomerProfile>(Token))!.DisplayName
         );
         Assert.Equal(
             7,

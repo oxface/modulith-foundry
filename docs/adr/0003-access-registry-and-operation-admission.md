@@ -1,7 +1,8 @@
 # 0003: Resolve Access identities and admit Organizations before tenant publication
 
 Status: accepted design direction in the owner-approved E3.3 plan, 2026-10-05.
-Implementation remains subject to owner review; this is consumer sample/template policy.
+Implementation was owner-reviewed and checkpointed as `20a02be`; this is consumer
+sample/template policy.
 
 ## Context
 

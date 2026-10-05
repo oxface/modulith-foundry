@@ -15,9 +15,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Persistence;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Access.Persistence;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
+using ModulithFoundry.Samples.Wholesale.Inventory;
+using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Sales;
 using ModulithFoundry.Tenancy;
 using ModulithFoundry.Tenancy.AspNetCore;
 using ModulithFoundry.Tests.Infrastructure;
@@ -215,16 +218,26 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
         healthy.EnsureSuccessStatusCode();
     }
 
-    [Fact]
-    public async Task InventoryContractRequiresTenantForCallsOutsideHttp()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InventoryContractRequiresTenantForCallsOutsideHttp(bool tenantless)
     {
         await using var app = await StartAsync();
         using var scope = app.Services.CreateScope();
-        scope
-            .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
-            .Initialize(TenantContext.Tenantless());
+        if (tenantless)
+            scope
+                .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+                .Initialize(TenantContext.Tenantless());
         var catalog = scope.ServiceProvider.GetRequiredService<IStockCatalog>();
-        Assert.Throws<TenantRequiredException>(() => catalog.Read());
+        if (tenantless)
+            await Assert.ThrowsAsync<TenantRequiredException>(() =>
+                catalog.ReadAsync("DEMO-NOTEBOOK", Token)
+            );
+        else
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                catalog.ReadAsync("DEMO-NOTEBOOK", Token)
+            );
     }
 
     private async Task<WebApplication> StartAsync(
@@ -240,6 +253,11 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
         );
         builder.WebHost.UseTestServer();
         connectionString ??= await postgres.CreateDatabaseAsync(Token);
+        // Each host owns a disposable database; retaining a pool per database exhausts the shared test server.
+        connectionString = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            Pooling = false,
+        }.ConnectionString;
         builder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
@@ -272,9 +290,29 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
                 await setup
                     .ServiceProvider.GetRequiredService<AccessDbContext>()
                     .Database.MigrateAsync(Token);
+                await setup
+                    .ServiceProvider.GetRequiredService<InventoryDbContext>()
+                    .Database.MigrateAsync(Token);
+                await setup
+                    .ServiceProvider.GetRequiredService<SalesDbContext>()
+                    .Database.MigrateAsync(Token);
+                foreach (string organization in new[] { "wholesale-alpha", "wholesale-beta" })
+                {
+                    await using var seedScope = app.Services.CreateAsyncScope();
+                    seedScope
+                        .ServiceProvider.GetRequiredService<ITenantContextInitializer>()
+                        .Initialize(TenantContext.ForTenant(new TenantId(organization)));
+                    var sales = seedScope.ServiceProvider.GetRequiredService<SalesDbContext>();
+                    SalesDemoSeed.Stage(sales);
+                    await sales.SaveChangesAsync(Token);
+                }
                 await ExecuteAsync(
                     app,
                     """
+                    INSERT INTO inventory.stock_availability (id, organization_key, sku, available_quantity) VALUES
+                        (gen_random_uuid(), 'wholesale-alpha', 'DEMO-NOTEBOOK', 42),
+                        (gen_random_uuid(), 'wholesale-beta', 'DEMO-NOTEBOOK', 7),
+                        (gen_random_uuid(), 'wholesale-beta', 'BETA-ONLY', 13);
                     INSERT INTO access.users (id) VALUES ('application-alpha'), ('application-beta');
                     INSERT INTO access.external_identities (issuer, subject, user_id) VALUES
                         ('https://identity.test', 'shared-subject', 'application-alpha'),
@@ -295,7 +333,14 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
             DemoComposition.MapOrganizationEndpoints(
                 app,
                 subdomain ? "/catalog" : "/organizations/{organization}/catalog",
-                subdomain ? "/tenant-identity" : "/organizations/{organization}/identity"
+                subdomain ? "/tenant-identity" : "/organizations/{organization}/identity",
+                subdomain ? "/stock/{sku}" : "/organizations/{organization}/stock/{sku}"
+            );
+            CustomerProfileEndpoints.Map(
+                app,
+                subdomain
+                    ? "/customers/{customerId:guid}/profile"
+                    : "/organizations/{organization}/customers/{customerId:guid}/profile"
             );
             await app.StartAsync(Token);
             return app;

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ModulithFoundry.Samples.Wholesale.Sales.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

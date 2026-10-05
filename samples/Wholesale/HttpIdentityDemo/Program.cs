@@ -1,21 +1,22 @@
-using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Persistence;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 
 bool initializeAccess = args is ["--initialize-access"];
-var builder = WebApplication.CreateBuilder(initializeAccess ? [] : args);
-if (initializeAccess)
+bool initializeDemo = args is ["--initialize-demo"];
+var builder = WebApplication.CreateBuilder(initializeAccess || initializeDemo ? [] : args);
+if (initializeAccess || initializeDemo)
 {
-    var options = new DbContextOptionsBuilder<AccessDbContext>();
-    AccessDatabase.Configure(options, AccessDatabase.ConnectionString(builder.Configuration));
-    await using var database = new AccessDbContext(options.Options);
-    await database.Database.MigrateAsync();
-    await using var transaction = await database.Database.BeginTransactionAsync();
-    AccessDemoSeed.Stage(database);
-    await database.SaveChangesAsync();
-    await transaction.CommitAsync();
-    Console.WriteLine("Access demo initialized; HTTP host was not started.");
+    string connection =
+        builder.Configuration.GetConnectionString("Access")
+        ?? throw new InvalidOperationException(
+            "Configure ConnectionStrings:Access for the HTTP sample."
+        );
+    await DemoSetup.InitializeAsync(connection, initializeDemo, CancellationToken.None);
+    Console.WriteLine(
+        initializeDemo
+            ? "Wholesale demo initialized; HTTP host was not started."
+            : "Access demo initialized; HTTP host was not started."
+    );
     return;
 }
 DemoComposition.AddServices(builder.Services, builder.Configuration);
@@ -25,6 +26,11 @@ DemoComposition.ConfigureHttp(app);
 DemoComposition.MapOrganizationEndpoints(
     app,
     "/organizations/{organization}/catalog",
-    "/organizations/{organization}/identity"
+    "/organizations/{organization}/identity",
+    "/organizations/{organization}/stock/{sku}"
+);
+ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints.CustomerProfileEndpoints.Map(
+    app,
+    "/organizations/{organization}/customers/{customerId:guid}/profile"
 );
 await app.RunAsync();

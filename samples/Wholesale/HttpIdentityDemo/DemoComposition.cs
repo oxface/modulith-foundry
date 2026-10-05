@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Persistence;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory.Contracts;
-using ModulithFoundry.Tenancy;
+using ModulithFoundry.Samples.Wholesale.Access;
+using ModulithFoundry.Samples.Wholesale.Access.Persistence;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
+using ModulithFoundry.Samples.Wholesale.Inventory;
+using ModulithFoundry.Samples.Wholesale.Sales;
 using ModulithFoundry.Tenancy.AspNetCore;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
@@ -23,8 +26,34 @@ public static class DemoComposition
             options.DefaultPolicy = authenticated;
             options.FallbackPolicy = authenticated;
         });
-        services.AddApplicationAccess(AccessDatabase.ConnectionString(configuration));
-        services.AddScoped<IStockCatalog, FixtureStockCatalog>();
+        string connection =
+            configuration.GetConnectionString("Access")
+            ?? throw new InvalidOperationException(
+                "Configure ConnectionStrings:Access for the HTTP sample."
+            );
+        services.AddDbContext<AccessDbContext>(options =>
+            AccessDatabase.Configure(options, connection)
+        );
+        services.AddAccessQueries();
+        services.AddHttpActorContext<ApplicationActorResolver>();
+        services.AddDbContext<InventoryDbContext>(options =>
+            InventoryDatabase.Configure(options, connection)
+        );
+        services.AddInventoryQueries();
+        services.AddDbContext<SalesDbContext>(options =>
+            SalesDatabase.Configure(options, connection)
+        );
+        services.AddCustomerProfiles();
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-CSRF-TOKEN";
+            options.Cookie.Name = "wholesale.csrf";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.Path = "/";
+        });
+        services.AddSingleton<IAntiforgeryAdditionalDataProvider, ActorAntiforgeryData>();
         services.AddProblemDetails();
         services.AddExceptionHandler<ContextExceptionHandler>();
     }
@@ -38,6 +67,20 @@ public static class DemoComposition
         app.UseHttpActorContext();
         app.UseHttpTenantContext();
         app.MapGet("/health", () => TypedResults.Ok("healthy")).AllowAnonymous().AllowTenantless();
+        app.MapGet(
+                "/antiforgery",
+                (HttpContext context, IAntiforgery antiforgery) =>
+                {
+                    context.Response.Headers.CacheControl = "no-store";
+                    return Results.Ok(
+                        new AntiforgeryResponse(
+                            antiforgery.GetAndStoreTokens(context).RequestToken!
+                        )
+                    );
+                }
+            )
+            .RequireAuthorization()
+            .AllowTenantless();
         app.MapGet("/identity", ReadIdentity).RequireAuthorization().AllowTenantless();
         app.MapGet("/public-identity", ReadIdentity).AllowAnonymous().AllowTenantless();
         app.MapGet(
@@ -55,43 +98,15 @@ public static class DemoComposition
     public static void MapOrganizationEndpoints(
         IEndpointRouteBuilder endpoints,
         string catalogPattern,
-        string identityPattern
-    )
-    {
-        endpoints
-            .MapGet(catalogPattern, ReadCatalog)
-            .AllowAnonymous()
-            .AllowPublicOrganizationAccess();
-        endpoints.MapGet(identityPattern, ReadTenantIdentity).RequireAuthorization();
-    }
+        string identityPattern,
+        string stockPattern
+    ) => OrganizationEndpoints.Map(endpoints, catalogPattern, identityPattern, stockPattern);
 
     private static Ok<IdentityResponse> ReadIdentity(IActorContextAccessor accessor)
     {
         Actor actor = accessor.Current.Actor;
         return TypedResults.Ok(new IdentityResponse(actor.Kind, actor.Id?.Value));
     }
-
-    private static Ok<TenantIdentityResponse> ReadTenantIdentity(
-        IActorContextAccessor actor,
-        ITenantContextAccessor tenant
-    ) => TypedResults.Ok(TenantIdentity(actor, tenant));
-
-    private static Ok<CatalogResponse> ReadCatalog(
-        IStockCatalog catalog,
-        IActorContextAccessor actor,
-        ITenantContextAccessor tenant
-    ) => TypedResults.Ok(new CatalogResponse(TenantIdentity(actor, tenant), catalog.Read()));
-
-    private static TenantIdentityResponse TenantIdentity(
-        IActorContextAccessor actorAccessor,
-        ITenantContextAccessor tenantAccessor
-    )
-    {
-        Actor actor = actorAccessor.Current.Actor;
-        return new TenantIdentityResponse(
-            actor.Kind,
-            actor.Id?.Value,
-            tenantAccessor.Current.RequireTenant().Value
-        );
-    }
 }
+
+public sealed record AntiforgeryResponse(string RequestToken);

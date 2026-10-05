@@ -125,7 +125,7 @@ jobs:
         run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
       - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
-      - name: Test persisted Access admission through native HTTP
+      - name: Test persisted Access admission and isolated Inventory reads through native HTTP
         run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-restore
 
   fast:

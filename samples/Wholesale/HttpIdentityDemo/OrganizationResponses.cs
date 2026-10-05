@@ -1,5 +1,5 @@
 using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 

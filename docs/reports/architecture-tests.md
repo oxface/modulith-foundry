@@ -107,3 +107,24 @@ and compiled dependency checks continue protecting independent adoption. Access'
 registry/migration constraints are exercised by its PostgreSQL suite, not added to the
 Inventory/Sales model checker. Folder ownership in this host is not assembly-level module
 isolation. [E3.3](e3-3-persisted-access.md) records fresh results and limits.
+
+## E3.4 populated module boundaries
+
+[Eight new cases](../../tests/ArchitectureTests/SampleModuleBoundaryTests.cs) use the actual
+Access/Inventory implementation/Contracts assemblies and host endpoint namespace. They
+prevent peer-implementation/host dependencies from modules, EF/HTTP/technical-context or
+implementation types leaking into Contracts, business endpoint calls into module
+implementations, and technical libraries acquiring sample-module dependencies. Native host
+composition and setup retain their deliberate persistence exception.
+
+These are editable template/repository policies with nonempty selections, not native C#
+visibility tests, synthetic failures or an exact restored project graph. Suite size is 43;
+[the E3.4 report](e3-4-persisted-business-ingress.md) records fresh execution and limits.
+
+## E3.5 Sales ownership
+
+The same real-assembly ArchUnitNET checks include Sales and Sales.Contracts. Five added
+implementation/peer-or-host pairs and one Contracts case bring architecture to 49 cases.
+The existing technical-library and business-endpoint rules now also inspect Sales, without
+a new custom parser, exact project graph or synthetic failure suite. All 49 passed freshly;
+[the mutation report](e3-5-profile-mutation.md) records the full consumer proof scope.

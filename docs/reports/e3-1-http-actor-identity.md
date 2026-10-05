@@ -149,7 +149,7 @@ principal-reference validation and publication after successful core initializat
 
 Then review [sample registration/pipeline](../../samples/Wholesale/HttpIdentityDemo/DemoComposition.cs),
 [native authentication](../../samples/Wholesale/HttpIdentityDemo/NativeAuthentication.cs),
-[current actor resolver](../../samples/Wholesale/HttpIdentityDemo/Access/ApplicationActorResolver.cs),
+[current actor resolver](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/ApplicationActorResolver.cs),
 [standalone proofs](../../tests/ActorIdentityAspNetCoreTests/HttpActorTests.cs) and
 [sample proofs](../../samples/Wholesale/HttpIdentityDemo.Tests/CompositionTests.cs).
 

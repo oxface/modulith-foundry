@@ -184,3 +184,29 @@ policy, fault/cancellation behavior and explicit setup. The cancellation barrier
 real waiting admission query through autocommit activity reads; no private reflection,
 EF interception framework, production timing hook or custom architecture parser was added.
 E2 storage results remain historical because its unchanged PostgreSQL suites were not rerun.
+
+## E3.4 integration coverage
+
+The HTTP sample replaces its fixture read with real tenant-owned rows while retaining useful
+admission cases. Ten new cases exercise actual persisted values/changes, other-tenant SKU
+absence, overlapping requests, protected admission before business queries, the explicit
+public exception, real faults/cancellation and checkpoint-database compatibility. Two
+existing setup/context cases gain one scenario each. Eight focused ArchUnitNET cases inspect
+real populated module/host boundaries. No custom graph/parser, framework-detection test or
+assertion-failure fixture is added. [E3.4](e3-4-persisted-business-ingress.md) records the
+fresh 61 HTTP and 43 architecture results and remaining limits.
+
+## E3.5 mutation increment
+
+[E3.5](e3-5-profile-mutation.md) adds 31 meaningful HTTP/PostgreSQL cases and six actual-assembly
+architecture cases. The HTTP suite now has 92 cases and architecture 49. Existing finite-setup
+and no-runtime-migration cases gained Sales checks. Native token issuance, unchanged-principal
+application-actor rebinding, tenant/customer/address isolation, input boundaries, admission
+before unavailable Sales, stale and deliberately blocked competing updates, second-save
+constraint failure and cancellation at a blocked address UPDATE exercise consumer obligations.
+There are no tests of token cryptography/serialization or production pool internals.
+The HTTP test host disables pooling because each disposable database otherwise retains idle
+connections across the expanded suite; production composition is unchanged.
+
+All ten active suites were rerun: 311 passed (134 PostgreSQL, 177 container-free), none skipped.
+The report distinguishes those fresh results from historical E2/archive evidence.

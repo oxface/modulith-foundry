@@ -1,0 +1,117 @@
+using ArchUnitNET.Domain;
+using ArchUnitNET.Loader;
+using ArchUnitNET.xUnitV3;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.ActorIdentity;
+using ModulithFoundry.ActorIdentity.AspNetCore;
+using ModulithFoundry.Persistence.EntityFrameworkCore;
+using ModulithFoundry.Samples.Wholesale.Access.Contracts;
+using ModulithFoundry.Samples.Wholesale.Access.Persistence;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
+using ModulithFoundry.Samples.Wholesale.Inventory;
+using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Sales;
+using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
+using ModulithFoundry.Tenancy;
+using ModulithFoundry.Tenancy.AspNetCore;
+using static ArchUnitNET.Fluent.ArchRuleDefinition;
+using ReflectionAssembly = System.Reflection.Assembly;
+
+namespace ModulithFoundry.ArchitectureTests;
+
+public sealed class SampleModuleBoundaryTests
+{
+    private static readonly ReflectionAssembly[] Modules =
+    [
+        typeof(AccessDbContext).Assembly,
+        typeof(InventoryDbContext).Assembly,
+        typeof(SalesDbContext).Assembly,
+    ];
+    private static readonly ReflectionAssembly[] Contracts =
+    [
+        typeof(IApplicationAccess).Assembly,
+        typeof(IStockCatalog).Assembly,
+        typeof(ICustomerProfiles).Assembly,
+    ];
+    private static readonly ReflectionAssembly[] Libraries =
+    [
+        typeof(ActorId).Assembly,
+        typeof(TenantId).Assembly,
+        typeof(ActorContextMiddleware).Assembly,
+        typeof(TenantContextMiddleware).Assembly,
+        typeof(TenantOwnershipExtensions).Assembly,
+    ];
+    private static readonly Architecture Architecture = new ArchLoader()
+        .LoadAssemblies([
+            .. Modules,
+            .. Contracts,
+            .. Libraries,
+            typeof(DemoComposition).Assembly,
+            typeof(DbContext).Assembly,
+            typeof(HttpContext).Assembly,
+        ])
+        .Build();
+
+    [Theory]
+    [InlineData("Access", "Sales")]
+    [InlineData("Sales", "Access")]
+    [InlineData("Inventory", "Sales")]
+    [InlineData("Sales", "Inventory")]
+    [InlineData("Sales", "HttpIdentityDemo")]
+    [InlineData("Access", "Inventory")]
+    [InlineData("Inventory", "Access")]
+    [InlineData("Access", "HttpIdentityDemo")]
+    [InlineData("Inventory", "HttpIdentityDemo")]
+    public void ModuleImplementationsDoNotDependOnPeersOrTheHost(string module, string forbidden) =>
+        NoDependency(ReflectionAssembly.Load(module), ReflectionAssembly.Load(forbidden));
+
+    [Theory]
+    [InlineData("Access.Contracts")]
+    [InlineData("Inventory.Contracts")]
+    [InlineData("Sales.Contracts")]
+    public void ContractsDoNotExposePersistenceHttpOrExecutionContexts(string contract)
+    {
+        foreach (
+            ReflectionAssembly forbidden in new[]
+            {
+                typeof(DbContext).Assembly,
+                typeof(HttpContext).Assembly,
+            }
+                .Concat(Libraries)
+                .Concat(Modules)
+        )
+            NoDependency(ReflectionAssembly.Load(contract), forbidden);
+    }
+
+    [Fact]
+    public void TechnicalLibrariesDoNotDependOnSampleModuleTypes()
+    {
+        foreach (ReflectionAssembly library in Libraries)
+        foreach (ReflectionAssembly forbidden in Modules.Concat(Contracts))
+            NoDependency(library, forbidden);
+    }
+
+    [Fact]
+    public void BusinessEndpointsCallContractsWithoutModuleImplementationDependencies()
+    {
+        var endpoints = Types()
+            .That()
+            .ResideInNamespace("ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints");
+        Assert.NotEmpty(endpoints.GetObjects(Architecture));
+        foreach (ReflectionAssembly forbidden in Modules)
+            endpoints
+                .Should()
+                .NotDependOnAny(Types().That().ResideInAssembly(forbidden))
+                .Check(Architecture);
+    }
+
+    private static void NoDependency(ReflectionAssembly source, ReflectionAssembly forbidden)
+    {
+        var types = Types().That().ResideInAssembly(source);
+        var forbiddenTypes = Types().That().ResideInAssembly(forbidden);
+        Assert.NotEmpty(types.GetObjects(Architecture));
+        Assert.NotEmpty(forbiddenTypes.GetObjects(Architecture));
+        types.Should().NotDependOnAny(forbiddenTypes).Check(Architecture);
+    }
+}

@@ -12,5 +12,6 @@
     <Compile Include="../../../tests/Support/PostgreSqlFixture.cs" Link="PostgreSqlFixture.cs" />
     <ProjectReference Include="../HttpIdentityDemo/HttpIdentityDemo.csproj" />
     <Using Include="Xunit" />
+    <None Include="Fixtures/Access-20a02be.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
