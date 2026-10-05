@@ -21,9 +21,6 @@ pre-commit:
     - name: actor-http-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-restore
-    - name: http-identity-composition-tests
-      glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-restore
     - name: tenancy-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project tests/TenantTests/TenantTests.csproj --no-restore

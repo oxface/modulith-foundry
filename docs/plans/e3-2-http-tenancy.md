@@ -1,11 +1,10 @@
 # E3.2 tenant establishment at HTTP ingress
 
-Status: owner-approved scope implemented for line-by-line review, 2026-10-05,
+Status: owner-reviewed and checkpointed as `cfbac9a`, 2026-10-05,
 after the owner-reviewed E3.1
 checkpoint `faefc0b`. The owner confirmed that this first tenancy adapter runs after native
 authorization and actor establishment, before endpoint work. Tenant-aware native authorization
-handlers are deferred. Public types and implementation still require final owner review;
-no commit is authorized. [The implementation report](../reports/e3-2-http-tenancy.md) records
+handlers are deferred. [The implementation report](../reports/e3-2-http-tenancy.md) records
 executed evidence separately from the approved scope below.
 
 ## Outcome and extraction hypothesis
@@ -313,13 +312,12 @@ Database-backed Organizations and membership still belong to the next Access sli
 this refinement at the already-reviewed HTTP/sample seams; do not add descriptor snapshots
 or isolated native-framework tests.
 
-Review the resolver outcomes, default/override semantics and candidate-helper limits first,
-then service/pipeline composition, consumer obligations and this proof matrix. Keep the
-implementation and its consumer/proofs as one reviewable capability, unstaged for owner
-review. No new reusable mechanism is proven by this plan, and no ADR freezes these proposed
-public types. Record a settled architecture decision after interface review if needed.
+The owner reviewed the resolver outcomes, default/override semantics, candidate-helper
+limits, registration refinement and consumer/proofs before checkpoint `cfbac9a`.
+The plan itself supplies no executable evidence; the report records the proven mechanism.
 
-After this slice, plan durable Access identity/membership/admission, revocation semantics and
+After this slice, [E3.3 proposes durable Access lookup/admission](e3-3-persisted-access.md),
+revocation semantics and a separately bounded increment for
 tenant-bearing state-stored business ingress. Native tenant-aware authorization handlers,
 membership management, invitations/roles, real provider/proxy topology, BFF session/antiforgery,
 and shared cross-module transactions each require separately bounded evidence. Do not bundle

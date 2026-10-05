@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory.Contracts;
 using ModulithFoundry.Tenancy;
@@ -22,8 +23,7 @@ public static class DemoComposition
             options.DefaultPolicy = authenticated;
             options.FallbackPolicy = authenticated;
         });
-        services.AddSingleton(new ExternalIdentityDirectory(configuration));
-        services.AddHttpActorContext<DirectoryActorResolver>();
+        services.AddApplicationAccess(AccessDatabase.ConnectionString(configuration));
         services.AddScoped<IStockCatalog, FixtureStockCatalog>();
         services.AddProblemDetails();
         services.AddExceptionHandler<ContextExceptionHandler>();
@@ -58,7 +58,10 @@ public static class DemoComposition
         string identityPattern
     )
     {
-        endpoints.MapGet(catalogPattern, ReadCatalog).AllowAnonymous();
+        endpoints
+            .MapGet(catalogPattern, ReadCatalog)
+            .AllowAnonymous()
+            .AllowPublicOrganizationAccess();
         endpoints.MapGet(identityPattern, ReadTenantIdentity).RequireAuthorization();
     }
 

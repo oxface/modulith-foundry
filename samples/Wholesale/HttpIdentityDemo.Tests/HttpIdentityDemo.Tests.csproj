@@ -8,6 +8,8 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <Compile Include="../../../tests/Support/PostgreSqlFixture.cs" Link="PostgreSqlFixture.cs" />
     <ProjectReference Include="../HttpIdentityDemo/HttpIdentityDemo.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>

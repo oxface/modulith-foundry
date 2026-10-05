@@ -200,11 +200,11 @@ metadata is independent of native authorization policies. Native challenge/forbi
 short-circuit before tenancy resolution. This bounded composition enforces admission during
 resolution and supplies established tenant context to downstream capabilities, not native authorization
 handlers; handlers needing tenancy require a later integration slice. This does not add
-a second evaluator or a runtime dependency on ActorIdentity. The approved scope is implemented,
-with route/subdomain utilities and an executable Organization/Inventory consumer,
-under line-by-line review. Selection presets are explicit registration-time choices,
+a second evaluator or a runtime dependency on ActorIdentity. The implementation was owner-reviewed
+and checkpointed as `cfbac9a`, with route/subdomain utilities and an executable
+Organization/Inventory consumer. Selection presets are explicit registration-time choices,
 and an opt-in options utility supplies native subdomain host filtering patterns. Consumer
-global exception handling uses native ProblemDetails. Latest refinements remain unstaged.
+global exception handling uses native ProblemDetails.
 [The E3.2 plan](plans/e3-2-http-tenancy.md) specifies its interface;
 [the report](reports/e3-2-http-tenancy.md) records fresh guarantees and remaining limits.
 
@@ -213,6 +213,12 @@ user may belong to multiple Organizations; admission concerns the Organization s
 the current operation. Organization is the sample domain/UI term and Tenant the technical
 isolation boundary. Invitations, membership management and role policy receive their own
 reviewable increments; neither foundation library acquires these domain rules.
+[The approved E3.3 plan](plans/e3-3-persisted-access.md) defines persisted lookup/admission:
+fresh active-membership admission per operation, with immutable already-admitted work and
+an explicit public catalog exception for anonymous callers and mapped non-members.
+[ADR 0003](adr/0003-access-registry-and-operation-admission.md) records the consumer registry
+and admission-time revocation direction; [the report](reports/e3-3-persisted-access.md) records
+implementation evidence and remaining limits.
 
 OIDC/BFF registration starts as a small, editable sample/template helper in E3, composing
 native `AddAuthentication`, `AddCookie` and `AddOpenIdConnect`. Provider settings, claim

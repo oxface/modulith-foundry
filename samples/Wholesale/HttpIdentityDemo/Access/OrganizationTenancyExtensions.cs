@@ -10,7 +10,6 @@ public static class OrganizationTenancyExtensions
         string routeValueName
     )
     {
-        services.AddSingleton<OrganizationDirectory>();
         return services.AddRouteTenancy<OrganizationTenantResolver>(routeValueName);
     }
 
@@ -19,7 +18,6 @@ public static class OrganizationTenancyExtensions
         string baseDomain
     )
     {
-        services.AddSingleton<OrganizationDirectory>();
         return services.AddSubdomainTenancy<OrganizationTenantResolver>(baseDomain);
     }
 }

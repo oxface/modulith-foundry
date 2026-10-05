@@ -20,9 +20,11 @@ completing the initial E2 persistence scope. The optional
 [HTTP identity sample](samples/Wholesale/HttpIdentityDemo/README.md) were reviewed and
 checkpointed as `faefc0b`. The independently adoptable
 [tenancy HTTP adapter](src/ModulithFoundry.Tenancy.AspNetCore/README.md) and Organization-scoped
-catalog sample are implemented for line-by-line E3.2 review, including explicit selection
-presets and a native host-filter options utility. Latest refinements remain unstaged.
-Durable membership/admission and messaging follow later increments.
+catalog sample were reviewed and checkpointed as `cfbac9a`, including explicit selection
+presets and a native host-filter options utility. Persisted Access lookup and membership
+admission are implemented for review in [E3.3](docs/plans/e3-3-persisted-access.md), with
+[real PostgreSQL evidence](docs/reports/e3-3-persisted-access.md).
+Messaging follows later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -42,6 +44,8 @@ Durable membership/admission and messaging follow later increments.
 - [E3.1 implementation and proof report](docs/reports/e3-1-http-actor-identity.md)
 - [E3.2 tenancy HTTP integration proposal](docs/plans/e3-2-http-tenancy.md)
 - [E3.2 implementation and proof report](docs/reports/e3-2-http-tenancy.md)
+- [E3.3 persisted Access and admission proposal](docs/plans/e3-3-persisted-access.md)
+- [E3.3 implementation and proof report](docs/reports/e3-3-persisted-access.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)

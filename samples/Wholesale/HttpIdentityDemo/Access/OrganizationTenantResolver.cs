@@ -1,22 +1,46 @@
+using ModulithFoundry.ActorIdentity;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Contracts;
 using ModulithFoundry.Tenancy;
 using ModulithFoundry.Tenancy.AspNetCore;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access;
 
-internal sealed class OrganizationTenantResolver(OrganizationDirectory directory)
-    : IHttpTenantCandidateResolver
+internal sealed class OrganizationTenantResolver(
+    IApplicationAccess access,
+    IActorContextAccessor actor
+) : IHttpTenantCandidateResolver
 {
-    public ValueTask<TenantContext?> ResolveAsync(
+    public async ValueTask<TenantContext?> ResolveAsync(
         string? candidate,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        TenantContext? context =
-            candidate is null ? TenantContext.Tenantless()
-            : directory.Resolve(candidate) is { } tenant ? TenantContext.ForTenant(tenant)
-            : null;
-        return ValueTask.FromResult(context);
+        if (candidate is null)
+            return TenantContext.Tenantless();
+        OrganizationId? organization;
+        if (
+            httpContext.GetEndpoint()?.Metadata.GetMetadata<PublicOrganizationAccessAttribute>()
+            is not null
+        )
+            organization = await access.ResolvePublicOrganizationAsync(
+                candidate,
+                cancellationToken
+            );
+        else
+        {
+            Actor current = actor.Current.Actor;
+            if (current.Kind != ActorKind.Human)
+                return null;
+            organization = await access.ResolveMemberOrganizationAsync(
+                new UserId(current.Id!.Value),
+                candidate,
+                cancellationToken
+            );
+        }
+        return organization is null
+            ? null
+            : TenantContext.ForTenant(new TenantId(organization.Value));
     }
 }

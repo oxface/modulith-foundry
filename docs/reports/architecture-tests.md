@@ -98,3 +98,12 @@ adoption boundaries without freezing the sample's project graph or parsing resto
 The suite now has 35 cases: 28 compiled dependency rules, five declaration cases and the
 two existing model/migration policies. [E3.2](e3-2-http-tenancy.md) records fresh execution.
 These remain repository/template policy, with no new reusable architecture mechanism.
+
+## E3.3 persisted Access consumer
+
+The 35 existing cases pass unchanged with the data-backed HTTP sample. Consumer-owned EF
+dependencies and Access Contracts remain outside the technical libraries; direct-declaration
+and compiled dependency checks continue protecting independent adoption. Access's actual
+registry/migration constraints are exercised by its PostgreSQL suite, not added to the
+Inventory/Sales model checker. Folder ownership in this host is not assembly-level module
+isolation. [E3.3](e3-3-persisted-access.md) records fresh results and limits.

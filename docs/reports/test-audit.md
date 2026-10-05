@@ -167,3 +167,20 @@ presets and an explicit native host-options utility. Async faults/cancellation n
 the candidate lookup/admission interface, while custom user selection retains the full-request
 resolver. The 17 sample cases use native global exception handling and assert ProblemDetails
 status/title/media type for known mappings. No extra framework-only tests were added.
+
+## Subsequent E3.3 evidence
+
+[E3.3](e3-3-persisted-access.md) freshly passes **212 cases**: 163 container-free cases and
+49 persisted Access/HTTP cases on PostgreSQL. The sample's 17 existing composition cases now
+use actual migrated data; 32 additional cases exercise the new consumer policies/model/setup.
+The sample suite moves to container CI rather than preserving a parallel fixture data adapter.
+Standalone HTTP suites and the 35 architecture cases remain unchanged.
+
+The constraint proofs apply the consumer's actual migration and protect its identity keys,
+current-membership uniqueness, required relationships and persisted statuses, then observe
+correct admitted identity. They are not a general native database constraint matrix. Native
+cookies, HTTP and SQL barriers expose our mapping/admission ordering, revocation/public
+policy, fault/cancellation behavior and explicit setup. The cancellation barrier observes a
+real waiting admission query through autocommit activity reads; no private reflection,
+EF interception framework, production timing hook or custom architecture parser was added.
+E2 storage results remain historical because its unchanged PostgreSQL suites were not rerun.

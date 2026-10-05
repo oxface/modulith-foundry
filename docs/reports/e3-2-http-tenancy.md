@@ -2,10 +2,9 @@
 
 2026-10-05. The owner approved [the scope](../plans/e3-2-http-tenancy.md), including middleware
 after native authorization and actor completion. Implementation, consumer usage and proofs
-are complete for line-by-line review. The owner-managed initial snapshot was already staged
-when registration refinements began; its index is preserved and **refinements remain unstaged**.
-No commit is authorized. The preceding
-actor adapter checkpoint is `faefc0b`; its documentation updates accompany this handoff.
+were owner-reviewed and checkpointed as `cfbac9a`, including the registration refinements.
+The owner approved the complete 50-file change set; no files were added to that approved
+set during checkpointing. The preceding actor adapter checkpoint is `faefc0b`.
 
 ## Outcome and reusable mechanism
 
@@ -62,6 +61,11 @@ not a remote-login proof.
 No PostgreSQL, RabbitMQ, archived behavioral or Aspire topology suites were rerun here.
 E2's 42 PostgreSQL cases and E3.1's earlier broader runs remain historical evidence for
 unchanged persistence, not tests of this fixture catalog.
+
+The checkpoint hooks subsequently passed all **180 active tests** across eight container-free
+suites and **21 archived architecture tests**, plus root formatting, active/archived semantic
+style and analyzers, and commit-message validation. These are fresh hook results, not
+PostgreSQL, remote-provider or archived business behavior results.
 
 ## Behavior proven and approaches rejected
 
@@ -169,7 +173,8 @@ Review public interface/outcomes and policy first:
   plus [native host-options utility](../../src/ModulithFoundry.Tenancy.AspNetCore/HttpTenantHostFilteringExtensions.cs).
 - [Consumer composition](../../samples/Wholesale/HttpIdentityDemo/DemoComposition.cs),
   [Organization resolver](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationTenantResolver.cs),
-  [directory](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationDirectory.cs),
+  Organization directory fixture (retained at `cfbac9a`, since replaced by
+  [persisted Access](../../samples/Wholesale/HttpIdentityDemo/Access/ApplicationAccess.cs) in E3.3),
   [Access registration](../../samples/Wholesale/HttpIdentityDemo/Access/OrganizationTenancyExtensions.cs),
   [explicit startup](../../samples/Wholesale/HttpIdentityDemo/Program.cs),
   [global exception mapping](../../samples/Wholesale/HttpIdentityDemo/ContextExceptionHandler.cs)
@@ -180,8 +185,8 @@ Review public interface/outcomes and policy first:
   [hostname proofs](../../tests/TenancyAspNetCoreTests/HostSelectionTests.cs)
   and [sample composition](../../samples/Wholesale/HttpIdentityDemo.Tests/CompositionTests.cs).
 
-The implementation still requires owner review. No new ADR freezes public types before that
-review. Next, separately plan durable Access identity/membership/admission and a tenant-bearing
-state-stored business journey using E2 persistence. Tenant-aware native authorization handlers,
+The implementation and refinements were owner-reviewed before checkpointing.
+[E3.3 proposes persisted Access lookup/admission](../plans/e3-3-persisted-access.md); a tenant-bearing
+state-stored business journey using E2 persistence follows separately. Tenant-aware native authorization handlers,
 revocation/invitations/roles, provider/proxy infrastructure, BFF/session/antiforgery, mutation
 semantics, full module project structure and shared transactions remain unproven here.

@@ -89,13 +89,6 @@ jobs:
           --no-build
           --no-restore
 
-      - name: Test HTTP identity sample composition
-        run: >-
-          dotnet test
-          --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj
-          --no-build
-          --no-restore
-
       - name: Test independent tenancy HTTP integration
         run: >-
           dotnet test
@@ -132,6 +125,8 @@ jobs:
         run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
       - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
+      - name: Test persisted Access admission through native HTTP
+        run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-restore
 
   fast:
     name: Archived Fast lane and repository checks

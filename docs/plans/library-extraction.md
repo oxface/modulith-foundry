@@ -15,9 +15,12 @@ E2.1 was [reviewed and checkpointed as `50e7933`](../reports/e2-1-tenant-ownersh
 [E3.1 actor HTTP integration](e3-1-http-actor-identity.md) was owner-reviewed and checkpointed
 as `faefc0b`; [its report](../reports/e3-1-http-actor-identity.md) records cookie/policy/
 claim-action proofs and the registration refinement.
-[E3.2 tenancy HTTP integration](e3-2-http-tenancy.md) has owner-approved scope and is implemented,
-under line-by-line review, with latest refinements unstaged; [its report](../reports/e3-2-http-tenancy.md) records fresh
-adapter, Organization/Inventory consumer and independence proofs. Read
+[E3.2 tenancy HTTP integration](e3-2-http-tenancy.md) was owner-reviewed and checkpointed as
+`cfbac9a`; [its report](../reports/e3-2-http-tenancy.md) records fresh adapter,
+Organization/Inventory consumer and independence proofs.
+[E3.3 persisted Access lookup/admission](e3-3-persisted-access.md) has owner-approved scope
+and policies, implemented for review; [its report](../reports/e3-3-persisted-access.md)
+records actual PostgreSQL/HTTP consumer evidence. Read
 [the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model
@@ -304,13 +307,24 @@ native principal mapping, explicit evaluator/middleware composition and focused 
 proofs. It was owner-reviewed and checkpointed as `faefc0b`, including explicit registration
 helpers and a native cookie/OIDC sample recipe. Remote provider topology is unproven.
 
-Review [E3.2's implemented tenancy HTTP interface and scope](e3-2-http-tenancy.md). The owner confirmed
+[E3.2's tenancy HTTP interface and scope](e3-2-http-tenancy.md) were reviewed and checkpointed
+as `cfbac9a`. The owner confirmed
 middleware after native authorization and actor establishment, before endpoint work. This
 first adapter enforces tenant defaults/metadata and consumer resolution/admission without a
 second policy evaluator; tenant-aware native authorization handlers require a later slice.
 Optional route/subdomain candidate helpers and independently adoptable tenancy-only proofs
-now accompany the extended actor/tenant HTTP sample, ready for line-by-line review.
+now accompany the extended actor/tenant HTTP sample.
 [The report](../reports/e3-2-http-tenancy.md) records actual results. Durable Access is not part of E3.2.
+
+Review [E3.3 persisted Access lookup/admission](e3-3-persisted-access.md): global user and
+external-identity lookup, canonical Organization lookup, current membership admission,
+explicit public catalog policy and admission-time revocation semantics on real PostgreSQL.
+The owner approved these policies; [the report](../reports/e3-3-persisted-access.md) records
+the implementation proofs. Technical libraries are unchanged and no new reusable mechanism
+was extracted. Editable Access remains sample/template code.
+Inventory remains a fixture in that increment. E3.4 should connect admitted ingress to a
+state-stored business capability using E2 persistence and review the module project structure
+it requires. These are consumer increments; no new library mechanism is assumed.
 
 Build the smallest real Access-to-business-module journey using the new context seam and
 persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endpoints and

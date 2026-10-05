@@ -41,7 +41,6 @@ dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-buil
 dotnet test --project tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
 dotnet test --project tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-build --no-restore
 dotnet test --project tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-build --no-restore
-dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 dotnet test --project tests/TenantTests/TenantTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
 dotnet test --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
@@ -68,23 +67,25 @@ ordinary restore/build and their behavior tests remain part of CI. Sample projec
 graphs are editable composition rather than exact test snapshots. Architecture policies are
 repository-owned; consumers select their own module structure.
 
-CI's Active context lane runs architecture tests, style, analyzers, build, the other seven
+CI's Active context lane runs architecture tests, style, analyzers, build, the other six
 container-free test projects and the context console. Root formatter verification remains
 in the repository-check lane. See [the test audit](reports/test-audit.md),
 [architecture checks](reports/architecture-tests.md), [the E1 split report](reports/e1-identity-split.md)
 and [the E2.1 report](reports/e2-1-tenant-ownership.md).
 
-The three HTTP suites run native protected cookie requests and configured OIDC claim
-actions without a remote identity provider, database or personal credentials. The standalone
+The two standalone HTTP suites run native requests without a remote identity provider,
+database or personal credentials. The standalone
 HTTP suites use a test-only secondary scheme to prove effective scheme selection; the executable
 sample has no header authentication. Actual OIDC login/callback/session topology remains
-unproven here. Run the host with your provider configuration using
+unproven here. The executable HTTP sample now requires PostgreSQL-backed Access; initialize
+its disposable demonstration data explicitly before running it with provider configuration using
 [the sample guide](../samples/Wholesale/HttpIdentityDemo/README.md); fresh results and limits
 are in [the E3.1 report](reports/e3-1-http-actor-identity.md) and
 [the E3.2 report](reports/e3-2-http-tenancy.md). Tenancy-only proofs add requirements,
 admission failures, cancellation, route/subdomain/custom selection and scoped publication.
 The sample composes both adapters through guarded Inventory reads, while actor-only adoption
-continues through its independent suite. This does not rerun PostgreSQL or prove membership.
+continues through its independent suite. Those E3.2 fixture results remain historical;
+[E3.3](reports/e3-3-persisted-access.md) records fresh persisted Access admission proofs.
 
 ## Active PostgreSQL ownership lane
 
@@ -95,6 +96,7 @@ reaper enabled; no application process or personal database credentials are requ
 ```bash
 dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-build --no-restore
+dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 ```
 
 For this repository's rootless Podman setup, prefix each command with:
@@ -108,12 +110,17 @@ DOTNET_PROCESSOR_COUNT=4
 Use your actual user socket path when it differs. The console smoke proof starts its own
 finite child process from the source checkout and passes the disposable connection through
 its environment. The sample executable must have been built in the same configuration.
-CI's separate Active PostgreSQL ownership lane runs both suites. See
+CI's separate Active PostgreSQL ownership lane runs all three suites. The HTTP sample uses
+native protected cookies and actual Access migrations, without contacting an identity
+provider. Its suite moved out of container-free CI/hooks rather than retaining fake directory
+implementations; both independently adoptable HTTP library suites remain container-free. See
 [the E2.1 report](reports/e2-1-tenant-ownership.md),
 [the E2.2 report](reports/e2-2-module-migrations.md),
 [the E2.3 relationship report](reports/e2-3-tenant-relationships.md),
 [the E2.4 profile-change report](reports/e2-4-versioned-profile-changes.md) and
-[sample run instructions](../samples/Wholesale/PersistenceDemo/README.md).
+[sample run instructions](../samples/Wholesale/PersistenceDemo/README.md), plus
+[the E3.3 Access report](reports/e3-3-persisted-access.md) and
+[HTTP/database setup](../samples/Wholesale/HttpIdentityDemo/README.md).
 
 ## Archived backend
 

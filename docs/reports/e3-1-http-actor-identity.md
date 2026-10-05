@@ -149,9 +149,13 @@ principal-reference validation and publication after successful core initializat
 
 Then review [sample registration/pipeline](../../samples/Wholesale/HttpIdentityDemo/DemoComposition.cs),
 [native authentication](../../samples/Wholesale/HttpIdentityDemo/NativeAuthentication.cs),
-[directory resolver](../../samples/Wholesale/HttpIdentityDemo/DirectoryActorResolver.cs),
+[current actor resolver](../../samples/Wholesale/HttpIdentityDemo/Access/ApplicationActorResolver.cs),
 [standalone proofs](../../tests/ActorIdentityAspNetCoreTests/HttpActorTests.cs) and
 [sample proofs](../../samples/Wholesale/HttpIdentityDemo.Tests/CompositionTests.cs).
+
+E3.3 replaced the original configured directory/resolver with persisted Access. The E3.1
+fixture source remains at `faefc0b`; the current link above points to its
+[documented replacement](e3-3-persisted-access.md), not new E3.1 execution evidence.
 
 Library: reusable request establishment and typed mapping failure. Template: the exercised,
 editable native registration/pipeline and cookie/OIDC recipe in

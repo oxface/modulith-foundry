@@ -10,18 +10,23 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access;
+using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Inventory.Contracts;
 using ModulithFoundry.Tenancy;
 using ModulithFoundry.Tenancy.AspNetCore;
+using ModulithFoundry.Tests.Infrastructure;
+using Npgsql;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Tests;
 
-public sealed class CompositionTests
+public sealed partial class CompositionTests(PostgreSqlFixture postgres)
+    : IClassFixture<PostgreSqlFixture>
 {
     [Theory]
     [InlineData("https://identity.test", "application-alpha")]
@@ -66,6 +71,7 @@ public sealed class CompositionTests
     [InlineData("/identity", false)]
     [InlineData("/public-identity", false)]
     [InlineData("/public-identity", true)]
+    [InlineData("/organizations/north-supply/catalog", false)]
     public async Task UnknownOrAmbiguousExternalIdentityUsesConsumerMappingRejection(
         string path,
         bool duplicateSubject
@@ -141,7 +147,7 @@ public sealed class CompositionTests
     [Theory]
     [InlineData("NORTH-SUPPLY.WHOLESALE.EXAMPLE.TEST.:8443", "wholesale-alpha", 42)]
     [InlineData("south-supply.wholesale.example.test", "wholesale-beta", 7)]
-    public async Task ConfiguredSubdomainAlternativeUsesSameCanonicalDirectory(
+    public async Task ConfiguredSubdomainAlternativeUsesSameCanonicalRegistry(
         string host,
         string tenant,
         int quantity
@@ -221,27 +227,25 @@ public sealed class CompositionTests
         Assert.Throws<TenantRequiredException>(() => catalog.Read());
     }
 
-    private static async Task<WebApplication> StartAsync(bool subdomain = false)
+    private async Task<WebApplication> StartAsync(
+        bool subdomain = false,
+        Action<WebApplication>? beforeContext = null,
+        Action<WebApplication>? afterContext = null,
+        string? connectionString = null,
+        bool initialize = true
+    )
     {
         var builder = WebApplication.CreateBuilder(
             new WebApplicationOptions { EnvironmentName = "Testing" }
         );
         builder.WebHost.UseTestServer();
+        connectionString ??= await postgres.CreateDatabaseAsync(Token);
         builder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
                 ["Oidc:Authority"] = "https://identity.test",
                 ["Oidc:ClientId"] = "configured-demo",
-                ["IdentityDirectory:0:Issuer"] = "https://identity.test",
-                ["IdentityDirectory:0:Subject"] = "shared-subject",
-                ["IdentityDirectory:0:UserId"] = "application-alpha",
-                ["IdentityDirectory:1:Issuer"] = "https://other-identity.test",
-                ["IdentityDirectory:1:Subject"] = "shared-subject",
-                ["IdentityDirectory:1:UserId"] = "application-beta",
-                ["Organizations:0:Slug"] = "north-supply",
-                ["Organizations:0:Id"] = "wholesale-alpha",
-                ["Organizations:1:Slug"] = "south-supply",
-                ["Organizations:1:Id"] = "wholesale-beta",
+                ["ConnectionStrings:Access"] = connectionString,
             }
         );
         DemoComposition.AddServices(builder.Services, builder.Configuration);
@@ -260,14 +264,47 @@ public sealed class CompositionTests
             options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme
         );
         var app = builder.Build();
-        DemoComposition.ConfigureHttp(app);
-        DemoComposition.MapOrganizationEndpoints(
-            app,
-            subdomain ? "/catalog" : "/organizations/{organization}/catalog",
-            subdomain ? "/tenant-identity" : "/organizations/{organization}/identity"
-        );
-        await app.StartAsync(Token);
-        return app;
+        try
+        {
+            if (initialize)
+            {
+                await using var setup = app.Services.CreateAsyncScope();
+                await setup
+                    .ServiceProvider.GetRequiredService<AccessDbContext>()
+                    .Database.MigrateAsync(Token);
+                await ExecuteAsync(
+                    app,
+                    """
+                    INSERT INTO access.users (id) VALUES ('application-alpha'), ('application-beta');
+                    INSERT INTO access.external_identities (issuer, subject, user_id) VALUES
+                        ('https://identity.test', 'shared-subject', 'application-alpha'),
+                        ('https://other-identity.test', 'shared-subject', 'application-beta'),
+                        ('https://linked-identity.test', 'shared-subject', 'application-alpha');
+                    INSERT INTO access.organizations (id, slug) VALUES
+                        ('wholesale-alpha', 'north-supply'), ('wholesale-beta', 'south-supply');
+                    INSERT INTO access.memberships (id, organization_id, user_id, status) VALUES
+                        (gen_random_uuid(), 'wholesale-alpha', 'application-alpha', 1),
+                        (gen_random_uuid(), 'wholesale-beta', 'application-alpha', 1),
+                        (gen_random_uuid(), 'wholesale-beta', 'application-beta', 1);
+                    """
+                );
+            }
+            beforeContext?.Invoke(app);
+            DemoComposition.ConfigureHttp(app);
+            afterContext?.Invoke(app);
+            DemoComposition.MapOrganizationEndpoints(
+                app,
+                subdomain ? "/catalog" : "/organizations/{organization}/catalog",
+                subdomain ? "/tenant-identity" : "/organizations/{organization}/identity"
+            );
+            await app.StartAsync(Token);
+            return app;
+        }
+        catch
+        {
+            await app.DisposeAsync();
+            throw;
+        }
     }
 
     private static HttpRequestMessage Request(
@@ -316,4 +353,19 @@ public sealed class CompositionTests
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    private static async Task ExecuteAsync(
+        WebApplication app,
+        string sql,
+        params NpgsqlParameter[] parameters
+    )
+    {
+        await using var connection = new NpgsqlConnection(
+            app.Configuration.GetConnectionString("Access")
+        );
+        await connection.OpenAsync(Token);
+        await using var command = new NpgsqlCommand(sql, connection);
+        command.Parameters.AddRange(parameters);
+        await command.ExecuteNonQueryAsync(Token);
+    }
 }
