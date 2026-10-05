@@ -1,8 +1,8 @@
 # E3.1 actor identity in native ASP.NET Core requests
 
 2026-10-04. Implemented after the owner approved [the interface and scope](../plans/e3-1-http-actor-identity.md),
-following E2.4 checkpoint `6069c05`. Implementation, proofs and documentation are available
-for owner review. Plan approval does not authorize an E3.1 commit.
+following E2.4 checkpoint `6069c05`. Owner review, including the registration refinement,
+concluded with approved checkpoint `faefc0b` on 2026-10-05.
 
 ## Outcome and reusable mechanism
 
@@ -123,7 +123,18 @@ Library finding: useful explicit wiring utilities, with no new dependencies or r
 protocol. Template finding: the exercised recipe now uses these smaller calls. Sample policy
 stays in its existing authentication, directory and failure code. **No additional reusable
 runtime mechanism was proven by this refinement.** Live provider and tenancy/membership gaps
-remain as listed below. This refinement is unstaged; earlier staged work was left untouched.
+remain as listed below. At the review handoff this refinement was unstaged; it is included
+in the owner-approved checkpoint.
+
+## Checkpoint verification (2026-10-05)
+
+All normal commit hooks passed for the exact approved 43-file change set. They reran
+repository formatting (105 files), active and archived semantic style/analyzers, seven
+active container-free suites (**119 cases**) and the archived architecture suite (**21 cases**),
+plus commit-message validation. These 140 cases passed without failures or skips.
+This checkpoint execution does not rerun the PostgreSQL suites, Kestrel smoke or OIDC provider
+traffic; their evidence and remaining limits stay as recorded above. The worktree was clean
+after the commit.
 
 ## Review order and library/template/sample findings
 
@@ -159,4 +170,5 @@ complete BFF/antiforgery behavior remain unproven. OIDC configuration is consume
 The sample directory is an immutable fixture, not durable Access or a membership model.
 Tenancy selection/admission, Organization membership/revocation, permissions, business module
 HTTP calls and native Aspire topology remain separate E3 increments. The next proposed slice
-is the independently adoptable tenancy HTTP adapter; its interface needs separate review.
+is the independently adoptable tenancy HTTP adapter;
+[its proposed interface](../plans/e3-2-http-tenancy.md) needs separate review.

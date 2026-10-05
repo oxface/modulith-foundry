@@ -1,7 +1,8 @@
 # 0002: Establish HTTP actors after effective native authentication
 
 Status: accepted design direction in the owner-approved E3.1 plan, 2026-10-04.
-Implementation remains subject to line-by-line review.
+Implementation and registration helpers were owner-reviewed and checkpointed as `faefc0b`
+on 2026-10-05.
 
 ## Context
 

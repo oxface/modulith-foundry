@@ -6,6 +6,7 @@ using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Tenancy;
+using ModulithFoundry.Tenancy.AspNetCore;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 using ReflectionAssembly = System.Reflection.Assembly;
 
@@ -16,6 +17,7 @@ public sealed class AssemblyDependencyTests
     private const string Actor = "ModulithFoundry.ActorIdentity";
     private const string ActorHttp = "ModulithFoundry.ActorIdentity.AspNetCore";
     private const string Tenancy = "ModulithFoundry.Tenancy";
+    private const string TenancyHttp = "ModulithFoundry.Tenancy.AspNetCore";
     private const string Persistence = "ModulithFoundry.Persistence.EntityFrameworkCore";
     private const string ContextSample = "ContextDemo";
     private const string PersistenceSample = "PersistenceDemo";
@@ -26,6 +28,7 @@ public sealed class AssemblyDependencyTests
             typeof(ActorId).Assembly,
             typeof(ActorContextMiddleware).Assembly,
             typeof(TenantId).Assembly,
+            typeof(TenantContextMiddleware).Assembly,
             typeof(TenantOwnershipExtensions).Assembly,
             typeof(Samples.Wholesale.ContextDemo.DemoComposition).Assembly,
             typeof(Samples.Wholesale.PersistenceDemo.DemoComposition).Assembly,
@@ -52,6 +55,16 @@ public sealed class AssemblyDependencyTests
     [InlineData(Actor, HttpSample)]
     [InlineData(Tenancy, HttpSample)]
     [InlineData(Persistence, HttpSample)]
+    [InlineData(TenancyHttp, Actor)]
+    [InlineData(TenancyHttp, ActorHttp)]
+    [InlineData(TenancyHttp, Persistence)]
+    [InlineData(TenancyHttp, ContextSample)]
+    [InlineData(TenancyHttp, PersistenceSample)]
+    [InlineData(TenancyHttp, HttpSample)]
+    [InlineData(ActorHttp, TenancyHttp)]
+    [InlineData(Actor, TenancyHttp)]
+    [InlineData(Tenancy, TenancyHttp)]
+    [InlineData(Persistence, TenancyHttp)]
     public void LibrariesDoNotUseForbiddenSegmentsOrConsumerTypes(
         string library,
         string forbidden

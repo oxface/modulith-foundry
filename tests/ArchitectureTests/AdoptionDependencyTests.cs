@@ -4,15 +4,13 @@ namespace ModulithFoundry.ArchitectureTests;
 
 public sealed class AdoptionDependencyTests
 {
-    [Fact]
-    public void ActorHttpAdapterDeclaresOnlyTheCoreAndNativeFramework()
+    [Theory]
+    [InlineData("ModulithFoundry.ActorIdentity.AspNetCore", "ModulithFoundry.ActorIdentity")]
+    [InlineData("ModulithFoundry.Tenancy.AspNetCore", "ModulithFoundry.Tenancy")]
+    public void HttpAdaptersDeclareOnlyTheirCoreAndNativeFramework(string adapter, string core)
     {
         XDocument declaration = XDocument.Load(
-            Path.Combine(
-                AppContext.BaseDirectory,
-                "ProjectDeclarations",
-                "ModulithFoundry.ActorIdentity.AspNetCore.csproj"
-            )
+            Path.Combine(AppContext.BaseDirectory, "ProjectDeclarations", adapter + ".csproj")
         );
         Assert.Empty(declaration.Descendants("PackageReference"));
         Assert.Equal(
@@ -22,7 +20,7 @@ public sealed class AdoptionDependencyTests
                 .Select(reference => (string)reference.Attribute("Include")!)
         );
         Assert.Equal(
-            ["ModulithFoundry.ActorIdentity"],
+            [core],
             declaration
                 .Descendants("ProjectReference")
                 .Select(reference =>

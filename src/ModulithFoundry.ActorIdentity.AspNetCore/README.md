@@ -89,6 +89,8 @@ Worker and message operations continue using their own core initialization direc
 
 [HttpIdentityDemo](../../samples/Wholesale/HttpIdentityDemo/README.md) demonstrates editable
 native cookie/OIDC configuration, explicit directory mapping and a consumer-owned 403 response.
+E3.2 extends that consumer with an optional, independent tenancy adapter and Organization
+catalog reads; actor-only adoption remains exercised by the standalone suite.
 [Standalone HTTP proofs](../../tests/ActorIdentityAspNetCoreTests/HttpActorTests.cs) use native
 protected cookies and a test-only secondary scheme without sample/EF/tenancy dependencies.
 [The E3.1 report](../../docs/reports/e3-1-http-actor-identity.md) records current executions

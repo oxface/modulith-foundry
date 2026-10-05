@@ -10,6 +10,7 @@
     <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
     <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
     <ProjectReference Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj" />
     <ProjectReference Include="../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../samples/Wholesale/ContextDemo/ContextDemo.csproj" />
     <ProjectReference Include="../../samples/Wholesale/HttpIdentityDemo/HttpIdentityDemo.csproj" />
@@ -17,6 +18,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None
+      Include="../../src/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj"
+      Link="ProjectDeclarations/ModulithFoundry.Tenancy.AspNetCore.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
     <None
       Include="../../src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj"
       Link="ProjectDeclarations/ModulithFoundry.ActorIdentity.AspNetCore.csproj"

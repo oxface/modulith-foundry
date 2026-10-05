@@ -1,10 +1,10 @@
 # E3.1 actor identity in native ASP.NET Core requests
 
-Status: owner-approved interface and implementation scope, 2026-10-04, following E2.4
-checkpoint `6069c05`. Implementation and executable proofs are ready for line-by-line review;
-see [the report](../reports/e3-1-http-actor-identity.md). No E3.1 commit is authorized.
-The owner's 2026-10-05 review requested explicit registration helpers; these are implemented
-alongside the direct public types for review. The original hypotheses below explain the scope.
+Status: owner-reviewed and checkpointed as `faefc0b`, 2026-10-05, following E2.4 checkpoint
+`6069c05`. The checkpoint includes the registration helpers requested during owner review;
+see [the report](../reports/e3-1-http-actor-identity.md). The original proposal and hypotheses
+below explain the scope. Subsequent tenancy work has
+[its own interface proposal](e3-2-http-tenancy.md).
 
 ## Outcome and extraction hypothesis
 

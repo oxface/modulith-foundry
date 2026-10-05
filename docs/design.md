@@ -131,7 +131,7 @@ of the core library.
 
 Keep native authentication and authorization: `[Authorize]`, `.RequireAuthorization()`,
 named policies, roles, schemes and `IAuthorizationService` retain their ASP.NET Core meaning.
-The adapter can make established context available to consumer authorization handlers.
+The actor adapter can make established actor context available to consumer authorization handlers.
 Identified actor presence is not a substitute for authentication or permission checks.
 There is no parallel HTTP actor authorization policy or actor-specific endpoint extension.
 Native authorization decides whether a caller may execute the endpoint; the resolver maps
@@ -186,13 +186,27 @@ on anonymous endpoints, and native policies that deliberately permit anonymous a
 Both cores remain package-free; worker/message consumers initialize their own operation scopes
 directly. E1 currently includes no HTTP middleware.
 
-[The approved E3.1 scope](plans/e3-1-http-actor-identity.md) specifies the first actor-only adapter
-and consumer recipe, now implemented for line-by-line review. It wraps the native evaluator after policy authentication,
+[The reviewed E3.1 scope](plans/e3-1-http-actor-identity.md) specifies the actor-only adapter
+and consumer recipe, checkpointed as `faefc0b`. It wraps the native evaluator after policy authentication,
 with downstream completion for requests without a policy, so establishment precedes consumer
-authorization handlers without capturing a different default-scheme identity. These public
-types and implementation remain subject to review. [The report](reports/e3-1-http-actor-identity.md)
+authorization handlers without capturing a different default-scheme identity.
+[The report](reports/e3-1-http-actor-identity.md)
 records actual cookie/policy/claim-action proofs and provider limitations; the architecture
 direction is recorded in [ADR 0002](adr/0002-explicit-http-actor-establishment.md).
+
+For the first tenancy HTTP slice, the owner confirmed on 2026-10-05 that resolution/admission
+runs after native authorization and actor completion, before endpoint work. Its requirement
+metadata is independent of native authorization policies. Native challenge/forbid paths
+short-circuit before tenancy resolution. This bounded composition enforces admission during
+resolution and supplies established tenant context to downstream capabilities, not native authorization
+handlers; handlers needing tenancy require a later integration slice. This does not add
+a second evaluator or a runtime dependency on ActorIdentity. The approved scope is implemented,
+with route/subdomain utilities and an executable Organization/Inventory consumer,
+under line-by-line review. Selection presets are explicit registration-time choices,
+and an opt-in options utility supplies native subdomain host filtering patterns. Consumer
+global exception handling uses native ProblemDetails. Latest refinements remain unstaged.
+[The E3.2 plan](plans/e3-2-http-tenancy.md) specifies its interface;
+[the report](reports/e3-2-http-tenancy.md) records fresh guarantees and remaining limits.
 
 Membership/admission receives a separate consumer-owned Access increment in E3. One application
 user may belong to multiple Organizations; admission concerns the Organization selected for

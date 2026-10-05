@@ -144,3 +144,26 @@ work. No null-argument matrix, reflection over private features, generic HTTP te
 or restored graph infrastructure was introduced. Architecture grows from 15 to 24 through
 new segment/consumer dependency rules and one direct native-XML adapter declaration case.
 Remote provider login/callback/session topology remains outside these counts.
+
+## Subsequent E3.2 evidence
+
+[E3.2](e3-2-http-tenancy.md) passes 106 focused cases: 39 tenancy HTTP, 15 existing actor-only
+HTTP, 17 sample composition and 35 architecture. These counts describe four freshly run
+suites, not an all-project or PostgreSQL execution. The tenant suite references no actor,
+sample or persistence project. Native requests expose publication and policy-ordering errors;
+fault/cancellation assertions check no publication/business work and fresh-request recovery.
+The direct public candidate check protects exact text; invalid base domains fail preset registration.
+
+The sample's new cases protect Organization mapping, same-actor tenant selection, independently
+expected 42/7 Inventory quantities, actual native host-filter composition and the capability
+guard outside HTTP. Native filtering initially rejected the terminal-dot host; the consumer
+allow-list now explicitly includes that supported form. Architecture gains one adapter
+declaration case and ten forbidden dependency relationships. No descriptor snapshots, private
+reflection, native-framework-only tests or custom graph infrastructure were added. Fixture
+reads do not prove durable membership or database isolation.
+
+The review refinement reuses those same 106 cases for registration-time route/subdomain
+presets and an explicit native host-options utility. Async faults/cancellation now exercise
+the candidate lookup/admission interface, while custom user selection retains the full-request
+resolver. The 17 sample cases use native global exception handling and assert ProblemDetails
+status/title/media type for known mappings. No extra framework-only tests were added.

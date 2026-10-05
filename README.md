@@ -17,8 +17,12 @@ Same-tenant customer/address relationships were checkpointed as `d67c7fc`.
 Versioned profile changes with caller-owned transactions were checkpointed as `6069c05`,
 completing the initial E2 persistence scope. The optional
 [actor HTTP adapter](src/ModulithFoundry.ActorIdentity.AspNetCore/README.md) and
-[HTTP identity sample](samples/Wholesale/HttpIdentityDemo/README.md) are implemented for E3.1
-review. Tenancy admission and messaging follow later increments.
+[HTTP identity sample](samples/Wholesale/HttpIdentityDemo/README.md) were reviewed and
+checkpointed as `faefc0b`. The independently adoptable
+[tenancy HTTP adapter](src/ModulithFoundry.Tenancy.AspNetCore/README.md) and Organization-scoped
+catalog sample are implemented for line-by-line E3.2 review, including explicit selection
+presets and a native host-filter options utility. Latest refinements remain unstaged.
+Durable membership/admission and messaging follow later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -36,6 +40,8 @@ review. Tenancy admission and messaging follow later increments.
 - [E2.4 implementation and proof report](docs/reports/e2-4-versioned-profile-changes.md)
 - [E3.1 actor HTTP integration proposal](docs/plans/e3-1-http-actor-identity.md)
 - [E3.1 implementation and proof report](docs/reports/e3-1-http-actor-identity.md)
+- [E3.2 tenancy HTTP integration proposal](docs/plans/e3-2-http-tenancy.md)
+- [E3.2 implementation and proof report](docs/reports/e3-2-http-tenancy.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)

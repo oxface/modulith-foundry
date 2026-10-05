@@ -12,9 +12,12 @@ E2.1 was [reviewed and checkpointed as `50e7933`](../reports/e2-1-tenant-ownersh
 [E2.4 versioned profile changes](e2-4-versioned-profile-changes.md) were checkpointed as
 `6069c05`, completing the initial supported E2 scope. Shared cross-module transactions and
 [the remaining E2 limits](e2-persistence.md) require separate evidence.
-[E3.1 actor HTTP integration](e3-1-http-actor-identity.md) has owner-approved scope and is
-implemented for line-by-line review; [its report](../reports/e3-1-http-actor-identity.md)
-records new cookie/policy/claim-action proofs. Read
+[E3.1 actor HTTP integration](e3-1-http-actor-identity.md) was owner-reviewed and checkpointed
+as `faefc0b`; [its report](../reports/e3-1-http-actor-identity.md) records cookie/policy/
+claim-action proofs and the registration refinement.
+[E3.2 tenancy HTTP integration](e3-2-http-tenancy.md) has owner-approved scope and is implemented,
+under line-by-line review, with latest refinements unstaged; [its report](../reports/e3-2-http-tenancy.md) records fresh
+adapter, Organization/Inventory consumer and independence proofs. Read
 [the approved design posture](../design.md) alongside this plan.
 
 ## Delivery model
@@ -298,8 +301,16 @@ for active code in this increment; archived lane remains distinct.
 
 Start with [E3.1's approved actor-only HTTP adapter scope](e3-1-http-actor-identity.md): effective
 native principal mapping, explicit evaluator/middleware composition and focused request
-proofs. It is implemented for review with a native cookie/OIDC sample recipe; remote provider
-topology is unproven. It does not add tenancy or durable Access behavior. Those remain separate increments.
+proofs. It was owner-reviewed and checkpointed as `faefc0b`, including explicit registration
+helpers and a native cookie/OIDC sample recipe. Remote provider topology is unproven.
+
+Review [E3.2's implemented tenancy HTTP interface and scope](e3-2-http-tenancy.md). The owner confirmed
+middleware after native authorization and actor establishment, before endpoint work. This
+first adapter enforces tenant defaults/metadata and consumer resolution/admission without a
+second policy evaluator; tenant-aware native authorization handlers require a later slice.
+Optional route/subdomain candidate helpers and independently adoptable tenancy-only proofs
+now accompany the extended actor/tenant HTTP sample, ready for line-by-line review.
+[The report](../reports/e3-2-http-tenancy.md) records actual results. Durable Access is not part of E3.2.
 
 Build the smallest real Access-to-business-module journey using the new context seam and
 persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endpoints and

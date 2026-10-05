@@ -96,6 +96,13 @@ jobs:
           --no-build
           --no-restore
 
+      - name: Test independent tenancy HTTP integration
+        run: >-
+          dotnet test
+          --project tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
+          --no-build
+          --no-restore
+
       - name: Run context sample
         run: >-
           dotnet run

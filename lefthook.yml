@@ -27,6 +27,9 @@ pre-commit:
     - name: tenancy-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project tests/TenantTests/TenantTests.csproj --no-restore
+    - name: tenancy-http-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-restore
     - name: context-composition-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-restore

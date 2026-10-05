@@ -3,6 +3,7 @@
     <Project Path="src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
     <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <Project Path="src/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj" />
     <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
@@ -18,6 +19,7 @@
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
     <Project Path="tests/ActorIdentityTests/ActorIdentityTests.csproj" />
     <Project Path="tests/TenantTests/TenantTests.csproj" />
+    <Project Path="tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj" />
     <Project Path="tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj" />
     <Project Path="tests/PersistenceTests/PersistenceTests.csproj" />
   </Folder>

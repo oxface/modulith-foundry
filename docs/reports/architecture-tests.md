@@ -87,3 +87,14 @@ keep the three existing libraries independent of the new HTTP sample. They prote
 adoption without imposing an exact sample project graph. No restored-project parser or
 transitive package snapshot was added. Suite size is now 24;
 [E3.1](e3-1-http-actor-identity.md) records fresh results.
+
+## E3.2 independent tenancy HTTP adapter
+
+The shared native XML HTTP-adapter declaration policy now exercises both optional adapters,
+each with only its own core and the native ASP.NET Core framework. Ten additional compiled
+dependency prohibitions keep Tenancy HTTP independent of ActorIdentity/Actor HTTP,
+persistence and consumer assemblies, and prevent reverse dependencies on it. They enforce
+adoption boundaries without freezing the sample's project graph or parsing restored assets.
+The suite now has 35 cases: 28 compiled dependency rules, five declaration cases and the
+two existing model/migration policies. [E3.2](e3-2-http-tenancy.md) records fresh execution.
+These remain repository/template policy, with no new reusable architecture mechanism.
