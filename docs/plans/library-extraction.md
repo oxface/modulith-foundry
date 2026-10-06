@@ -36,9 +36,11 @@ local Keycloak, explicit account mappings and actual Chromium journeys.
 [E4 event serialization](e4-event-serialization.md) was owner-reviewed and checkpointed as
 `2a49ef3b`; [its report](../reports/e4-event-serialization.md) records fresh two-family codec,
 compatibility and independent-adoption proofs. [E5.1 history/hydration](e5-1-event-history.md)
-is implemented and unstaged for owner review; [its report](../reports/e5-1-event-history.md)
+was owner-reviewed and checkpointed as `4cc12a1`; [its report](../reports/e5-1-event-history.md)
 records selected-range integrity and two-family reconstruction proofs. Its package division
-remains provisional until native EF consumers are exercised. Native append follows separately.
+remains for review alongside the now-implemented [E5.2.1 native EF consumers](e5-2-1-native-event-history.md).
+[Their report](../reports/e5-2-1-native-event-history.md) records new PostgreSQL evidence. E5.2.1
+changes remain unstaged; native append follows separately.
 
 ## Delivery model
 
@@ -439,12 +441,25 @@ increments if necessary. Integrate both aggregate families using the owning modu
 EF transaction. Domain deciders/reducers and state shapes stay consumer-owned.
 
 [E5.1](e5-1-event-history.md) implements metadata-only ordered-range validation and explicit
-two-family hydration, pending owner review. Consumer queries own version/time selection;
+two-family hydration, owner-reviewed and checkpointed as `4cc12a1`. Consumer queries own
+version/time selection;
 the initial complete-history snapshot/selection object was rejected during review.
 [Its report](../reports/e5-1-event-history.md) separates the new mechanism from consumer policy.
-E5.2 will separately define native
-EF loading/append, module integration and PostgreSQL failure/concurrency proofs. E5.1 does
-not establish database capture or transaction guarantees.
+E5.2 is split into two reviewable capabilities:
+
+- [E5.2.1 native EF history reads](e5-2-1-native-event-history.md): integrate both families
+  into owning modules, map streams/envelopes with native migrations, exercise tenant-scoped
+  version/time queries and bounded captured-head reads on PostgreSQL. Use explicit finite
+  setup writes; this is not an append protocol. Implemented and unstaged for owner review;
+  [the report](../reports/e5-2-1-native-event-history.md) records new proofs.
+- E5.2.2 native append: expected-version staging, caller-owned save/commit, competing
+  writers, stream/event-write faults, rollback and fresh-context recovery. Its detailed
+  interface follows the read/mapping evidence rather than being frozen now.
+
+E5.1 does not establish database capture or transaction guarantees. E5.2.1 proves native
+read composition under the documented append-only assumption, adds no new reusable mechanism
+and recommends retaining the small independent History library for owner review. Production
+append atomicity, conflicts and rollback remain E5.2.2.
 
 Prove captured-head contiguous history, version/time selectors and regression/corruption
 classification, competing append, stream/event-write faults, replay with no external effect,

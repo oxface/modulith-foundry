@@ -275,7 +275,10 @@ public sealed partial class CompositionTests
             Assert.Equal(HttpStatusCode.InternalServerError, unavailable.StatusCode);
             return;
         }
-        Assert.Single(await inventory.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Equal(
+            inventory.Database.GetMigrations(),
+            await inventory.Database.GetAppliedMigrationsAsync(Token)
+        );
         Assert.Single(await sales.Database.GetAppliedMigrationsAsync(Token));
         using var profileRequest = Request(
             app,

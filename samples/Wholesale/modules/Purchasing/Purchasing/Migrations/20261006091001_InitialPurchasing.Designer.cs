@@ -3,29 +3,32 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using ModulithFoundry.Samples.Wholesale.Inventory;
+using ModulithFoundry.Samples.Wholesale.Purchasing;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
+namespace ModulithFoundry.Samples.Wholesale.Purchasing.Migrations
 {
-    [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(PurchasingDbContext))]
+    [Migration("20261006091001_InitialPurchasing")]
+    partial class InitialPurchasing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("inventory")
+                .HasDefaultSchema("purchasing")
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.EventStream",
+                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.EventStream",
                 b =>
                 {
                     b.Property<string>("OrganizationKey")
@@ -59,7 +62,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
 
                     b.ToTable(
                         "event_streams",
-                        "inventory",
+                        "purchasing",
                         t =>
                         {
                             t.HasCheckConstraint("positive_stream_version", "version >= 1");
@@ -68,7 +71,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
 
                     b.HasAnnotation(
                             "ModulithFoundry:TenantContextMember",
-                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
+                            "ModulithFoundry.Samples.Wholesale.Purchasing.PurchasingDbContext, Purchasing, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
                         )
                         .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
                         .HasAnnotation(
@@ -79,7 +82,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StoredEvent",
+                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.StoredEvent",
                 b =>
                 {
                     b.Property<string>("OrganizationKey")
@@ -120,7 +123,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
 
                     b.ToTable(
                         "events",
-                        "inventory",
+                        "purchasing",
                         t =>
                         {
                             t.HasCheckConstraint("positive_event_schema", "schema_version >= 1");
@@ -131,7 +134,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
 
                     b.HasAnnotation(
                             "ModulithFoundry:TenantContextMember",
-                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
+                            "ModulithFoundry.Samples.Wholesale.Purchasing.PurchasingDbContext, Purchasing, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
                         )
                         .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
                         .HasAnnotation(
@@ -142,52 +145,11 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Inventory.StockRow",
-                b =>
-                {
-                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
-
-                    b.Property<int>("AvailableQuantity")
-                        .HasColumnType("integer")
-                        .HasColumnName("available_quantity");
-
-                    b.Property<string>("OrganizationKey")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("organization_key");
-
-                    b.Property<string>("Sku")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("sku");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationKey", "Sku").IsUnique();
-
-                    b.ToTable("stock_availability", "inventory");
-
-                    b.HasAnnotation(
-                            "ModulithFoundry:TenantContextMember",
-                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
-                        )
-                        .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
-                        .HasAnnotation(
-                            "ModulithFoundry:TenantOwnershipProperty",
-                            "OrganizationKey"
-                        );
-                }
-            );
-
-            modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StoredEvent",
+                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.StoredEvent",
                 b =>
                 {
                     b.HasOne(
-                            "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.EventStream",
+                            "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.EventStream",
                             null
                         )
                         .WithMany()

@@ -299,3 +299,24 @@ cover the active solution, while standalone build/run verifies adoption of just 
 libraries. No custom graph parser, reflection descriptor snapshot or framework-option matrix
 was introduced.
 The earlier 99-case execution describes the superseded complete-history shape only.
+
+## E5.2.1 native history reads
+
+The new **39-case** PostgreSQL consumer suite exercises real module migrations and Contracts:
+independently expected state/metadata, colliding tenant/stream identities, server-side SQL
+selection, a commit after head capture, selected corruption, native query faults, migration
+preservation and the actual executable. It reuses the range validator rather than repeating
+E5.1's traversal matrix. Schema checks protect our configured owner/stream relationship,
+position uniqueness and positive persisted values; they are not generic EF feature tests.
+
+Native DbCommandInterceptor observes relevant predicates and coordinates one deterministic
+commit before the event query. No production hook, timing sleep, SQL snapshot, custom generic
+repository or fabricated publisher effect counter was added. Consumers have no publishing or
+pending-event path in this read slice. Two existing HTTP assertions now compare all applied
+Inventory migrations against the module's declared set instead of assuming a single migration.
+
+Eight actual module/Contracts architecture cases bring that suite to 61. The combined codec
+consumer remains independently adoptable. [The slice report](e5-2-1-native-event-history.md)
+distinguishes fresh executions from prior library/browser evidence and the deferred writer
+protocol. No new reusable mechanism was proven; existing validation/decoding now compose
+through two native EF readers.

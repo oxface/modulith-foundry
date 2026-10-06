@@ -1,40 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
-using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
+using ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 using ModulithFoundry.Tenancy;
 
-namespace ModulithFoundry.Samples.Wholesale.Inventory;
+namespace ModulithFoundry.Samples.Wholesale.Purchasing;
 
-public sealed class InventoryDbContext(
-    DbContextOptions<InventoryDbContext> options,
+public sealed class PurchasingDbContext(
+    DbContextOptions<PurchasingDbContext> options,
     ITenantContextAccessor tenancy
 ) : DbContext(options)
 {
     internal DbSet<EventStream> EventStreams => Set<EventStream>();
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();
-    internal DbSet<StockRow> Stock => Set<StockRow>();
     internal string RequiredOrganizationKey => tenancy.Current.RequireTenant().Value;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("inventory");
+        modelBuilder.HasDefaultSchema("purchasing");
         HistoryMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
-        var stock = modelBuilder.Entity<StockRow>();
-        stock.ToTable("stock_availability");
-        stock.HasKey(row => row.Id);
-        stock.Property(row => row.Id).HasColumnName("id").ValueGeneratedNever();
-        stock.Property(row => row.Sku).HasColumnName("sku").HasMaxLength(128);
-        stock.Property(row => row.AvailableQuantity).HasColumnName("available_quantity");
-        stock.HasIndex(row => new { row.OrganizationKey, row.Sku }).IsUnique();
-        stock.HasTenantOwnership(
-            row => row.OrganizationKey,
-            () => RequiredOrganizationKey,
-            "OrganizationScope"
-        );
-        stock
-            .Property(row => row.OrganizationKey)
-            .HasColumnName("organization_key")
-            .HasMaxLength(256);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

@@ -26,6 +26,7 @@ public sealed class AssemblyDependencyTests
     private const string HttpSample = "HttpIdentityDemo";
     private const string EventSerialization = "ModulithFoundry.Events.Serialization";
     private const string History = "ModulithFoundry.Events.History";
+    private const string EventPersistenceSample = "EventPersistenceDemo";
     private const string CodecSample = "EventCodecDemo";
 
     private static readonly Architecture Architecture = new ArchLoader()
@@ -38,6 +39,7 @@ public sealed class AssemblyDependencyTests
             typeof(SerializedEvent).Assembly,
             typeof(EventHistory).Assembly,
             typeof(Samples.Wholesale.EventCodecDemo.DemoJourneys).Assembly,
+            typeof(Samples.Wholesale.EventPersistenceDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.ContextDemo.DemoComposition).Assembly,
             typeof(Samples.Wholesale.PersistenceDemo.DemoComposition).Assembly,
             typeof(Samples.Wholesale.HttpIdentityDemo.DemoComposition).Assembly
@@ -93,6 +95,7 @@ public sealed class AssemblyDependencyTests
                 PersistenceSample,
                 HttpSample,
                 CodecSample,
+                EventPersistenceSample,
                 History,
             }
         )
@@ -115,6 +118,7 @@ public sealed class AssemblyDependencyTests
                 PersistenceSample,
                 HttpSample,
                 CodecSample,
+                EventPersistenceSample,
             }
         )
             NoDependency(History, forbidden).Check(Architecture);

@@ -39,9 +39,12 @@ used by a [two-family consumer](samples/Wholesale/EventCodecDemo/README.md), wit
 [fresh proofs](docs/reports/e4-event-serialization.md) checkpointed as `2a49ef3b`.
 [E5.1](docs/plans/e5-1-event-history.md) adds independently adoptable
 [ordered-range validation](src/ModulithFoundry.Events.History/README.md) with explicit two-family
-hydration, left unstaged for owner review. [Its report](docs/reports/e5-1-event-history.md)
-separates new memory-only proofs from later database guarantees. Native append and messaging
-follow later increments.
+hydration, owner-reviewed and checkpointed as `4cc12a1`. [Its report](docs/reports/e5-1-event-history.md)
+separates memory-only proofs from database guarantees.
+[E5.2.1 native EF reads](docs/plans/e5-2-1-native-event-history.md) adds owning Inventory/Purchasing
+modules and an [executable database consumer](samples/Wholesale/EventPersistenceDemo/README.md),
+unstaged for owner review. [Its report](docs/reports/e5-2-1-native-event-history.md) records
+PostgreSQL selection/isolation/capture proofs; append and messaging remain later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)

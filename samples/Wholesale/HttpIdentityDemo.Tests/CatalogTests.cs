@@ -299,7 +299,10 @@ public sealed partial class CompositionTests
         await accessDb.Database.MigrateAsync(Token);
         var inventoryDb = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
         await inventoryDb.Database.MigrateAsync(Token);
-        Assert.Single(await inventoryDb.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Equal(
+            inventoryDb.Database.GetMigrations(),
+            await inventoryDb.Database.GetAppliedMigrationsAsync(Token)
+        );
         Assert.False(inventoryDb.Database.HasPendingModelChanges());
         var access = scope.ServiceProvider.GetRequiredService<IApplicationAccess>();
         Assert.Equal(

@@ -303,7 +303,15 @@ versions and nondecreasing recorded timestamps within the returned range, allowi
 [The report](reports/e5-1-event-history.md) records two-family proofs and remaining storage
 limits. Its final package division remains provisional until E5.2's native EF consumers.
 Selected-range validation does not certify excluded rows, a captured database head, commit
-order, tenant scoping or concurrent append behavior. Revisions remain for owner review.
+order, tenant scoping or concurrent append behavior. The revised implementation was
+owner-reviewed and checkpointed as `4cc12a1`. [E5.2.1 database consumers](plans/e5-2-1-native-event-history.md) implement native EF reads
+in owning Inventory/Purchasing modules, with [fresh PostgreSQL evidence](reports/e5-2-1-native-event-history.md),
+unstaged for owner review. No new Foundry mechanism or public interface is added. The range
+validator now serves two real database readers; retaining its separate library is the review
+recommendation, not a frozen package decision. Native mappings, tenant/stream constraints,
+query selectors, timestamps and domain evolution remain consumer/template policy. Captured
+heads bound reads under an atomic append-only assumption; production append/transactions
+remain E5.2.2.
 
 Use options for supported variations, and explicit registration or dependencies for larger
 policy changes. Document how a setting changes a guarantee. Schema names, transport routes,

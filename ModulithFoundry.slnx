@@ -9,6 +9,8 @@
     <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj" />
+    <Project Path="samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj" />
     <Project Path="samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj" />
@@ -22,6 +24,8 @@
     <Project Path="samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj" />
   </Folder>
   <Folder Name="/Sample modules/">
+    <Project Path="samples/Wholesale/modules/Purchasing/Purchasing/Purchasing.csproj" />
+    <Project Path="samples/Wholesale/modules/Purchasing/Purchasing.Contracts/Purchasing.Contracts.csproj" />
     <Project Path="samples/Wholesale/modules/Sales/Sales/Sales.csproj" />
     <Project Path="samples/Wholesale/modules/Sales/Sales.Contracts/Sales.Contracts.csproj" />
     <Project Path="samples/Wholesale/modules/Access/Access/Access.csproj" />

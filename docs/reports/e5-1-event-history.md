@@ -1,9 +1,8 @@
 # E5.1 selected history ranges and explicit hydration
 
-2026-10-06. Implemented the owner-approved [selected-range revision](../plans/e5-1-event-history.md)
-after E4 checkpoint `2a49ef3b`. Public interfaces remain for line-by-line review. No E5 commit
-is authorized. This turn left revisions unstaged and preserved the owner's previously staged
-version; the index alone does not contain this revision.
+2026-10-06. The owner reviewed and approved the complete revised 38-file change set for
+[selected-range validation](../plans/e5-1-event-history.md). Checkpoint `4cc12a1` follows E4
+checkpoint `2a49ef3b`. The working tree was clean immediately after committing.
 
 ## Outcome and extraction finding
 
@@ -116,11 +115,17 @@ are local results, not an observed remote CI execution.
 Native style/analyzers passed. CSharpier verified **228 files**, archive integrity verified
 all **800 original files**, and the two retained Inventory copies matched their originals
 byte for byte. Local Markdown checking resolved **603 links in 61 active documents**;
-whitespace checks passed. No staging or commit was performed during this revision.
+whitespace checks passed. These were the implementation handoff results.
+
+The approved checkpoint freshly passed every required hook: **229 active cases** across ten
+container-free suites and **21 archived architecture cases**, with no failures or skips.
+Active/archive native style and analyzers, the 228-file formatter check and commitlint passed.
+The context and EF model suites were rerun by these hooks; PostgreSQL and browser suites
+were not. Hook execution does not add persistence evidence.
 
 The first E5.1 shape's 99-case execution is superseded evidence; it does not describe the
-revised contract. Other context, EF behavior, PostgreSQL and browser suites retain earlier
-results and were not rerun. No storage guarantee follows from these 101 memory-only cases.
+revised contract. PostgreSQL and browser results remain historical. No storage guarantee
+follows from either the focused 101 cases or the checkpoint's container-free suites.
 
 ## Review and remaining gaps
 
@@ -136,8 +141,11 @@ with [range proofs](../../tests/EventHistoryTests/HistoryTests.cs) and
 [consumer proofs](../../samples/Wholesale/EventCodecDemo.Tests/HistoryCompatibilityTests.cs).
 The shared [row shape](../../samples/Wholesale/EventCodecDemo/RecordedEvent.cs) remains sample code.
 
-E5.2 must prove actual tenant-scoped native EF selection, trustworthy captured-head reads,
-stream creation/update metadata consistency, expected-version append, competing writers,
-write faults, caller-owned transactions and recovery. A coherent range from the wrong stream
-or tenant cannot be detected from positions alone. Required views/repair remain E6 and
-reliable messaging E7. Reassess the library/package division with those real consumers.
+The implemented [E5.2.1 native EF readers](e5-2-1-native-event-history.md) now exercise both
+libraries through actual tenant-scoped queries, captured-head boundaries and header/event
+metadata consistency on PostgreSQL. Its fresh results belong to that report, not these
+memory-only proofs. A coherent range from the wrong stream or tenant cannot be detected from
+positions alone. Production expected-version append, competing writers, write faults,
+caller-owned transactions and recovery remain E5.2.2; required views/repair remain E6 and
+reliable messaging E7. The separate History library remains an owner-review recommendation
+alongside those real readers.

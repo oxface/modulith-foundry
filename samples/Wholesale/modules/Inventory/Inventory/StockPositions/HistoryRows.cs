@@ -1,0 +1,25 @@
+using System.Text.Json;
+
+namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
+
+internal sealed class EventStream
+{
+    public string OrganizationKey { get; set; } = null!;
+    public Guid Id { get; set; }
+    public string StreamType { get; set; } = null!;
+    public long Version { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+internal sealed class StoredEvent
+{
+    public string OrganizationKey { get; set; } = null!;
+    public Guid EventId { get; set; }
+    public Guid StreamId { get; set; }
+    public long StreamVersion { get; set; }
+    public string EventName { get; set; } = null!;
+    public int SchemaVersion { get; set; }
+    public DateTimeOffset RecordedAt { get; set; }
+    public JsonElement Payload { get; set; }
+}

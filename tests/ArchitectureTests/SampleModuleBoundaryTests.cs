@@ -13,6 +13,8 @@ using ModulithFoundry.Samples.Wholesale.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Purchasing;
+using ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
 using ModulithFoundry.Samples.Wholesale.Sales;
 using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
 using ModulithFoundry.Tenancy;
@@ -29,12 +31,14 @@ public sealed class SampleModuleBoundaryTests
         typeof(AccessDbContext).Assembly,
         typeof(InventoryDbContext).Assembly,
         typeof(SalesDbContext).Assembly,
+        typeof(PurchasingDbContext).Assembly,
     ];
     private static readonly ReflectionAssembly[] Contracts =
     [
         typeof(IApplicationAccess).Assembly,
         typeof(IStockCatalog).Assembly,
         typeof(ICustomerProfiles).Assembly,
+        typeof(IPurchaseOrderHistory).Assembly,
     ];
     private static readonly ReflectionAssembly[] Libraries =
     [
@@ -58,6 +62,13 @@ public sealed class SampleModuleBoundaryTests
         .Build();
 
     [Theory]
+    [InlineData("Purchasing", "Access")]
+    [InlineData("Access", "Purchasing")]
+    [InlineData("Purchasing", "Inventory")]
+    [InlineData("Inventory", "Purchasing")]
+    [InlineData("Purchasing", "Sales")]
+    [InlineData("Sales", "Purchasing")]
+    [InlineData("Purchasing", "HttpIdentityDemo")]
     [InlineData("Access", "Sales")]
     [InlineData("Sales", "Access")]
     [InlineData("Inventory", "Sales")]
@@ -71,6 +82,7 @@ public sealed class SampleModuleBoundaryTests
         NoDependency(ReflectionAssembly.Load(module), ReflectionAssembly.Load(forbidden));
 
     [Theory]
+    [InlineData("Purchasing.Contracts")]
     [InlineData("Access.Contracts")]
     [InlineData("Inventory.Contracts")]
     [InlineData("Sales.Contracts")]

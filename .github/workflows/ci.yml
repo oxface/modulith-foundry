@@ -137,6 +137,8 @@ jobs:
         run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
       - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
+      - name: Test native event-history reads and captured-head races
+        run: dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-restore
       - name: Test persisted admission, isolated business operations and native telemetry through HTTP
         run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-restore
 

@@ -1,9 +1,8 @@
 # E5.1 ordered range validation and explicit hydration
 
-Status: the owner approved revising the initial E5.1 implementation after review.
-The selected-range implementation is for line-by-line review after E4 checkpoint
-`2a49ef3b`; no E5 commit is authorized. [The report](../reports/e5-1-event-history.md)
-records fresh verification and limits.
+Status: the owner reviewed and approved the selected-range revision and its complete
+38-file change set, checkpointed as `4cc12a1` on 2026-10-06 after E4 checkpoint `2a49ef3b`.
+[The report](../reports/e5-1-event-history.md) records fresh verification and limits.
 
 ## Approved revision and extraction case
 
@@ -91,8 +90,9 @@ timestamps, domain evolution, business validation, admission and errors remain c
 policy. Template material is the exercised select/materialize/validate/decode/hydrate recipe;
 materialized template output remains E10.
 
-E5.2 integrates the event families into owning modules and reviews native EF mappings,
-tenant-scoped queries, captured-head loading, expected-version staging and caller-owned
-save/commit. Real PostgreSQL proofs must cover competing appends, capture races, stream/event
-write faults, rollback and recovery. Reassess whether this validator earns a separate library
-there. Required views/repair remain E6, and reliable messaging E7.
+The proposed [E5.2.1](e5-2-1-native-event-history.md) integrates the event families into owning
+modules and reviews native EF mappings, tenant-scoped queries and captured-head loading.
+E5.2.2 separately reviews expected-version staging and caller-owned save/commit. Real
+PostgreSQL proofs across those increments must cover competing appends, capture races,
+stream/event-write faults, rollback and recovery. Reassess whether this validator earns a
+separate library there. Required views/repair remain E6, and reliable messaging E7.

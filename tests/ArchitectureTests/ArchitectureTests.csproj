@@ -18,6 +18,8 @@
     <ProjectReference Include="../../samples/Wholesale/ContextDemo/ContextDemo.csproj" />
     <ProjectReference Include="../../samples/Wholesale/HttpIdentityDemo/HttpIdentityDemo.csproj" />
     <ProjectReference Include="../../samples/Wholesale/PersistenceDemo/PersistenceDemo.csproj" />
+    <ProjectReference Include="../../samples/Wholesale/modules/Purchasing/Purchasing/Purchasing.csproj" />
+    <ProjectReference Include="../../samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>

@@ -156,3 +156,16 @@ without event payloads. The combined standalone sample builds with just history,
 and its own executable. No new architecture helper or exact restored dependency graph is
 maintained. [The E5.1 report](e5-1-event-history.md) records actual product proof scope and
 the unproven database capture/append boundary.
+
+## E5.2.1 owning database consumers
+
+Eight added cases bring the suite to **61 freshly passed cases**. Purchasing is included in
+both directions of peer implementation isolation, the module-to-host prohibition and the
+existing Contracts rule. The grouped technical-library/module and business-endpoint checks
+now inspect Purchasing without additional custom helpers. Both event libraries' existing
+consumer prohibitions also include EventPersistenceDemo.
+
+These protect actual module/Contracts boundaries while allowing explicit native persistence
+composition. They do not freeze the exact restored graph or claim that catalog-only registration
+removes Inventory's event-library references. No new reusable architecture mechanism was
+introduced. [The read report](e5-2-1-native-event-history.md) records fresh persistence evidence.
