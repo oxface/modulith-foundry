@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Libraries/">
+    <Project Path="src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
     <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
@@ -7,6 +8,8 @@
     <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj" />
+    <Project Path="samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj" />
     <Project Path="samples/Wholesale/AppHost/Wholesale.AppHost.csproj" />
     <Project Path="samples/Wholesale/ServiceDefaults/Wholesale.ServiceDefaults.csproj" />
@@ -26,6 +29,7 @@
     <Project Path="samples/Wholesale/modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/EventSerializationTests/EventSerializationTests.csproj" />
     <Project Path="tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj" />
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
     <Project Path="tests/ActorIdentityTests/ActorIdentityTests.csproj" />

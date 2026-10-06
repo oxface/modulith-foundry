@@ -1,8 +1,8 @@
 # E3.7 Real OIDC and protected browser journey
 
-Status: scope approved after E3.6 checkpoint `28ee797`; implemented and unstaged for owner
-review. [The report](../reports/e3-7-oidc-browser-journey.md) records actual verification and
-remaining limits. No commit is authorized.
+Status: owner-reviewed and checkpointed as `dc3ac3b` after E3.6 checkpoint `28ee797`.
+[The report](../reports/e3-7-oidc-browser-journey.md) records actual verification and remaining
+limits. The checkpoint's repository hooks passed.
 
 ## Outcome
 

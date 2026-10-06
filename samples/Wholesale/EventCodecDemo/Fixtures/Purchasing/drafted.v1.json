@@ -1,0 +1,9 @@
+{
+  "eventName": "purchasing.purchase-order.drafted",
+  "schemaVersion": 1,
+  "payload": {
+    "code": "OLD-1",
+    "supplierReference": "SUP-1",
+    "currency": "EUR"
+  }
+}

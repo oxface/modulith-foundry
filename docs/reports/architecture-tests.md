@@ -128,3 +128,16 @@ implementation/peer-or-host pairs and one Contracts case bring architecture to 4
 The existing technical-library and business-endpoint rules now also inspect Sales, without
 a new custom parser, exact project graph or synthetic failure suite. All 49 passed freshly;
 [the mutation report](e3-5-profile-mutation.md) records the full consumer proof scope.
+
+## E4 standalone event codec
+
+Two added cases bring the suite to **51 freshly passed cases**. The existing native XML
+declaration test now checks the codec's project: no package, project or extra framework
+references. One compiled-dependency case groups prohibitions on using the five other technical
+segments or four consumer assemblies. The existing technical-library/module rule also includes
+the codec, protecting the actual module/Contracts boundary without another case.
+
+The finite consumer builds independently with just the codec. These are adoption policies,
+not an exact sample graph or restored transitive snapshot. No new architecture helper/parser
+or reusable architecture mechanism was introduced. [The E4 report](e4-event-serialization.md)
+separately records the new reusable product mechanism and consumer proofs.

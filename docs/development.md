@@ -1,7 +1,7 @@
 # Development and verification
 
-`ModulithFoundry.slnx` contains 27 active projects: independent ActorIdentity and Tenancy
-cores, their optional ASP.NET Core adapters, the EF ownership utility, two finite console
+`ModulithFoundry.slnx` contains 31 active projects: independent ActorIdentity and Tenancy
+cores, their optional ASP.NET Core adapters, the EF ownership utility, the event codec, three finite console
 samples, an HTTP identity/Organization host, six populated Access/Inventory/Sales module projects and
 their proof suites, an Aspire AppHost, sample ServiceDefaults and a runtime composition suite.
 The archived solution is independent. Root build defaults target .NET 10; central package
@@ -24,7 +24,7 @@ Root formatting excludes `archive/` through `.csharpierignore`; archived formatt
 verified separately against its original configuration. CSharpier owns C#/XML layout.
 Semantic style and analyzer checks operate on a concrete solution.
 
-Lefthook checks root formatting, active style/analyzers/context and EF model tests/dependencies,
+Lefthook checks root formatting, active style/analyzers/context, EF model and event codec tests/dependencies,
 and the archived semantic/architecture baseline. Restore the active and archived solutions before
 using hooks. Container suites stay outside local commit hooks.
 
@@ -45,12 +45,15 @@ dotnet test --project tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
 dotnet test --project tests/TenantTests/TenantTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
 dotnet test --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
+dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
+dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
+dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
 ```
 
 These checks require no containers, identity provider or personal credentials. The active
-architecture suite uses ArchUnitNET for compiled type dependencies. Five short declaration
-tests read the runtime libraries' copied project files with native XML APIs: both cores
+architecture suite uses ArchUnitNET for compiled type dependencies. Six short declaration
+tests read the runtime libraries' copied project files with native XML APIs: both cores and the event codec
 allow no package/project/extra-framework references, and persistence allows only an explicit
 EF Core Relational package reference; each HTTP adapter permits only its corresponding core and the
 native ASP.NET Core framework. No restored-graph parser or exact transitive-package
@@ -68,8 +71,8 @@ ordinary restore/build and their behavior tests remain part of CI. Sample projec
 graphs are editable composition rather than exact test snapshots. Architecture policies are
 repository-owned; consumers select their own module structure.
 
-CI's Active context lane runs architecture tests, style, analyzers, build, the other six
-container-free test projects and the context console. Root formatter verification remains
+CI's Active context lane runs architecture tests, style, analyzers, build, the other eight
+container-free test projects and the context/event codec consoles. Root formatter verification remains
 in the repository-check lane. See [the test audit](reports/test-audit.md),
 [architecture checks](reports/architecture-tests.md), [the E1 split report](reports/e1-identity-split.md)
 and [the E2.1 report](reports/e2-1-tenant-ownership.md).
@@ -92,6 +95,25 @@ catalog rows and separate module/Contracts projects. Focused ArchUnitNET rules e
 module/host business-call boundaries without a restored-project graph.
 [E3.5](reports/e3-5-profile-mutation.md) adds cookie JSON protection, actor-bound native
 antiforgery, tenant-owned Sales profile changes and explicit versioned transactions.
+
+## Standalone event codec
+
+The sixth technical library, `ModulithFoundry.Events.Serialization`, is independently
+adoptable. Its finite [two-family consumer](../samples/Wholesale/EventCodecDemo/README.md)
+has only a project reference to the codec. Build and run it directly:
+
+```bash
+dotnet build samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj
+dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
+```
+
+Inventory and Purchasing explicitly register their durable aliases and choose their own
+native JSON contracts. The library and consumer suites above protect exact dispatch,
+configuration snapshots, failure classification and literal payload compatibility with
+independently expected quantities/totals. They require no database, HTTP host, identity
+provider or other Foundry segment. See [the E4 report](reports/e4-event-serialization.md)
+for fresh results and the boundary before stream persistence. Existing database/browser
+results remain separate evidence.
 
 ## Active PostgreSQL ownership lane
 

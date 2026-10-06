@@ -1,7 +1,8 @@
 # E3.7 Real OIDC and protected browser journey
 
-Status: implemented after E3.6 checkpoint `28ee797`, unstaged for owner review. No commit is
-authorized. See [the scope](../plans/e3-7-oidc-browser-journey.md) and
+Status: owner-reviewed and checkpointed as `dc3ac3b` after E3.6 checkpoint `28ee797`.
+All configured pre-commit and commit-message hooks passed. See
+[the scope](../plans/e3-7-oidc-browser-journey.md) and
 [local runtime guide](../../samples/Wholesale/AppHost/README.md).
 
 ## Outcome and ownership
@@ -119,7 +120,9 @@ The final solution build succeeds for all 27 active projects with zero warnings/
 Native style/analyzer verification, CSharpier (198 files including generated migrations),
 archive integrity (800 originals), local Markdown links, CI YAML/realm JSON parsing and
 diff whitespace pass. The independent context console runs successfully. Technical library
-and archive source changes are absent, and the index is empty.
+and archive source changes were absent at the implementation handoff, with an empty index.
+Checkpoint hooks additionally reran the 21 archived architecture cases successfully; those
+are outside the active 320-case total.
 
 Runtime tests used the separately installed pinned native CLI 13.5.4 through PATH and
 rootless Podman. The matching Chromium binary was installed using Playwright's bundled
@@ -170,6 +173,6 @@ local Keycloak. The preview hosting dependency remains an explicit sample limita
 Logout/provider end-session, ticket stores/session invalidation, account lifecycle, explicit
 linking, membership administration, roles/permissions, open registration and tenant-aware
 native authorization handlers remain separate capabilities. This closes the bounded E3
-state-stored ingress proof pending owner review, not those additional features. The next
-planned slice is E4 durable event identity/payload codecs, exercised by two event families
+state-stored ingress proof, not those additional features. The next
+planned slice is [E4 durable event identity/payload codecs](../plans/e4-event-serialization.md), exercised by two event families
 without requiring messaging or EF.

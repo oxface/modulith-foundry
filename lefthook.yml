@@ -36,6 +36,12 @@ pre-commit:
     - name: active-architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
+    - name: event-serialization-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-restore
+    - name: event-codec-consumer-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-restore
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore

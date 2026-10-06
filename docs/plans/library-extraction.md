@@ -30,9 +30,12 @@ was owner-reviewed and checkpointed with E3.5 as `31c7a8b`;
 [E3.6 runtime composition](e3-6-runtime-composition.md) was owner-reviewed and checkpointed
 as `28ee797`; [its report](../reports/e3-6-runtime-composition.md) distinguishes
 runtime and native exporter proofs from manual dashboard observations.
-[E3.7 real OIDC/browser journey](e3-7-oidc-browser-journey.md) is implemented and unstaged for
-owner review; [its report](../reports/e3-7-oidc-browser-journey.md) records optional local
-Keycloak, explicit account mappings and actual Chromium journeys. No commit is authorized.
+[E3.7 real OIDC/browser journey](e3-7-oidc-browser-journey.md) was owner-reviewed and
+checkpointed as `dc3ac3b`; [its report](../reports/e3-7-oidc-browser-journey.md) records optional
+local Keycloak, explicit account mappings and actual Chromium journeys.
+[E4 event serialization](e4-event-serialization.md) is implemented and unstaged for owner
+review; [its report](../reports/e4-event-serialization.md) records fresh two-family codec,
+compatibility and independent-adoption proofs. E5 history/append remains a proposal.
 
 ## Delivery model
 
@@ -358,8 +361,10 @@ actual workflows and alternative policies exist; it need not wait until E9.
 
 E3.6 runtime composition/telemetry is checkpointed. [E3.7](e3-7-oidc-browser-journey.md)
 implements disposable OIDC hosting and real browser login/callback, mapped actor, admission
-and protected profile mutation, pending owner review. This closes the bounded E3 ingress
-scope; next is E4 durable event identity and payload codec extraction. E3.7 adds no technical
+and protected profile mutation, checkpointed as `dc3ac3b`. This closes the bounded E3 ingress
+scope; [E4 durable event identity and payload codec extraction](e4-event-serialization.md)
+is now implemented for review, before E5 history/append.
+E3.7 adds no technical
 library or provider-neutral authentication abstraction. Its local HTTPS topology does not
 prove external cross-site providers, proxy/subdomain sessions or account administration.
 Materialized template output and bootstrap CLI remain E10; sample source is
@@ -406,6 +411,12 @@ coverage with actual identity/session wiring, not a production fake actor. This 
 that state-stored modules work without event sourcing or messaging.
 
 ### E4 Durable event identity and payload codec
+
+[The approved E4 scope](e4-event-serialization.md) compares the two archived serializers
+and defines the native JSON codec, standalone two-family consumer, dependency promise and
+relevant proofs. `ModulithFoundry.Events.Serialization` is implemented, with line-by-line
+owner review remaining; [the report](../reports/e4-event-serialization.md) records actual
+bounded guarantees without claiming event-store behavior.
 
 Compare Inventory and Purchasing stable identities, required/optional payload behavior,
 error classification and serializer configuration. Replace their repeated technical logic

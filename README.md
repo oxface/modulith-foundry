@@ -32,8 +32,12 @@ requests read tenant-owned Inventory data through separate module/Contracts proj
 [Aspire AppHost](samples/Wholesale/AppHost/README.md), explicit setup, readiness and native
 telemetry, checkpointed as `28ee797`. [E3.7](docs/plans/e3-7-oidc-browser-journey.md) implements
 optional local Keycloak, explicit application account mappings and real browser journeys,
-with [implementation findings](docs/reports/e3-7-oidc-browser-journey.md) left for owner review.
-Durable event codecs are next; messaging follows later increments.
+checkpointed as `dc3ac3b` with [implementation findings](docs/reports/e3-7-oidc-browser-journey.md).
+[E4](docs/plans/e4-event-serialization.md) implements the independent
+[Events.Serialization library](src/ModulithFoundry.Events.Serialization/README.md), immediately
+used by a [two-family consumer](samples/Wholesale/EventCodecDemo/README.md), with
+[fresh proofs](docs/reports/e4-event-serialization.md) left unstaged for owner review.
+Event history/append and messaging follow later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -60,6 +64,7 @@ Durable event codecs are next; messaging follows later increments.
 - [E3.5 Sales profile mutation plan](docs/plans/e3-5-profile-mutation.md) and [proof report](docs/reports/e3-5-profile-mutation.md)
 - [E3.6 runtime composition plan](docs/plans/e3-6-runtime-composition.md) and [proof report](docs/reports/e3-6-runtime-composition.md)
 - [E3.7 real OIDC/browser journey plan](docs/plans/e3-7-oidc-browser-journey.md) and [proof report](docs/reports/e3-7-oidc-browser-journey.md)
+- [E4 event serialization plan](docs/plans/e4-event-serialization.md) and [proof report](docs/reports/e4-event-serialization.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)
@@ -85,6 +90,6 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-CI checks active architecture, context, HTTP identity and EF model tests, with a separate active PostgreSQL ownership
+CI checks active architecture, context, HTTP identity, EF models and event codecs, with a separate active PostgreSQL ownership
 lane and an active Aspire runtime composition lane. Archived Fast, PostgreSQL, RabbitMQ and
 Aspire Topology proofs remain independent.

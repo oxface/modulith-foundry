@@ -103,6 +103,15 @@ jobs:
           --no-build
           --no-restore
 
+      - name: Test explicit event serialization
+        run: dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
+
+      - name: Test event codec consumer compatibility
+        run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
+
+      - name: Run independent event codec consumer
+        run: dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
+
   persistence:
     name: Active PostgreSQL ownership lane
     runs-on: ubuntu-latest

@@ -287,6 +287,13 @@ sourcing does not require messaging; messaging does not require event sourcing; 
 modules do not depend on event-sourcing types or registrations. Technical libraries do not
 reference sample module Contracts. Use project references during local development.
 
+[E4](plans/e4-event-serialization.md) implements `ModulithFoundry.Events.Serialization`
+with native JSON and explicit durable name/version registrations, independently of every
+other segment. Consumer event definitions, JSON requirements/defaults and domain meaning
+stay outside the codec. [Its report](reports/e4-event-serialization.md) records fresh
+two-family compatibility and dependency proofs; the implementation remains unstaged for
+owner review. Codec support does not establish event-store or delivery guarantees.
+
 Use options for supported variations, and explicit registration or dependencies for larger
 policy changes. Document how a setting changes a guarantee. Schema names, transport routes,
 worker hosting, and application policy remain consumer choices.
@@ -321,8 +328,8 @@ with native database references, manual finite setup, distinct readiness/livenes
 export. Startup never applies migrations or seeds. Its health policy is host-owned and no
 global retry/resilience handler is installed. The owner confirmed native ServiceDefaults
 supplies sensible defaults and belongs in template source, with no Foundry library wrapper.
-The [E3.7 real OIDC/browser slice](plans/e3-7-oidc-browser-journey.md) is implemented and
-unstaged for owner review. Its optional native Keycloak resource, explicit external identity
+The [E3.7 real OIDC/browser slice](plans/e3-7-oidc-browser-journey.md) was owner-reviewed and
+checkpointed as `dc3ac3b`. Its optional native Keycloak resource, explicit external identity
 setup and cookie/OIDC challenge composition stay editable sample/template code.
 [The report](reports/e3-7-oidc-browser-journey.md) records actual browser journeys and their
 local HTTPS topology limits. No new reusable authentication mechanism is extracted.

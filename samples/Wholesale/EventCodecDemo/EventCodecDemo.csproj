@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ModulithFoundry.Samples.Wholesale.EventCodecDemo</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
+    <InternalsVisibleTo Include="EventCodecDemo.Tests" />
+    <None Update="Fixtures/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

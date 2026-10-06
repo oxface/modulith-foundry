@@ -252,3 +252,24 @@ setup cases observe process failure and absent module tables, rather than testin
 URI/null variation. Manual login/edit observations are separately reported. All eleven
 active suites passed freshly: 320 cases (177 container-free, 143 container/runtime), none
 failed/skipped. The slice report records those results and local HTTPS/browser-trust limits.
+
+## E4 event codec increment
+
+[E4](e4-event-serialization.md) adds 23 focused cases: 16 library and seven executable-consumer
+cases. They protect explicit registration conflicts, exact runtime dispatch, unknown identity
+versus invalid payload, configuration snapshots and propagation of non-JSON converter faults.
+Literal consumer payloads prove CLR renaming, Inventory's absent optional receipt reference,
+required/null policy and Purchasing's required constructor field through independently expected
+stock quantity and order totals. The console itself is exercised; round trips alone are not
+the compatibility evidence.
+
+These tests protect decisions in our codec/recipes, rather than enumerating native JSON
+options. No null-argument matrix, descriptor snapshot, private reflection, generic fixture
+framework or restored-project reader was added. Two architecture cases extend the existing
+declaration/dependency policies, bringing that suite to 51.
+
+All nine container-free suites passed freshly: **202 cases**, none failed/skipped. E4 changes
+no database/browser composition; the 143 container/runtime cases remain E3.7 historical
+evidence and were not rerun. The new reusable registry/dispatch mechanism is proven within
+the documented JSON boundary; event-stream persistence and complete domain validation remain
+later capabilities.
