@@ -6,7 +6,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
 internal sealed class StockPositionCommands(
     InventoryDbContext database,
-    IStockPositionHistory history
+    StockPositionInlineProjection projection
 ) : IStockPositionCommands
 {
     private static readonly JsonEventCodec<IStockPositionEvent> Codec =
@@ -68,7 +68,7 @@ internal sealed class StockPositionCommands(
         EventStream? stream = await database
             .EventStreams.AsNoTracking()
             .SingleOrDefaultAsync(row => row.Id == id, cancellationToken);
-        StockPositionHistory? current = null;
+        StockPositionCurrentRow? current = null;
         if (expectedVersion == 0)
         {
             if (stream is not null)
@@ -82,15 +82,14 @@ internal sealed class StockPositionCommands(
                 throw new InvalidDataException("The owned stream has an unexpected type.");
             if (stream.Version != expectedVersion)
                 return new StockPositionChangeResult.Conflict();
-            current =
-                await history.ReadAtVersionAsync(id, expectedVersion, cancellationToken)
-                ?? throw new InvalidDataException(
-                    "The owned stream disappeared during write preparation."
-                );
-            if (current.RecordedAt != stream.UpdatedAt)
-                throw new InvalidDataException(
-                    "The observed header and selected history disagree."
-                );
+            try
+            {
+                current = await projection.LoadAsync(stream, cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return new StockPositionChangeResult.Conflict();
+            }
             if (recordedAt < stream.UpdatedAt)
                 throw new ArgumentOutOfRangeException(
                     nameof(recordedAt),
@@ -99,7 +98,9 @@ internal sealed class StockPositionCommands(
         }
 
         long nextVersion = checked(expectedVersion + events.LongLength);
-        var proposed = StockPositionEvolution.Apply(current, id, nextVersion, recordedAt, events);
+        var state = StockPositionEvolution.Apply(current?.ReadState(), events);
+        var proposed = state.ToHistory(id, nextVersion, recordedAt);
+        var next = StockPositionCurrentRow.Prepare(owner, id, nextVersion, recordedAt, state);
         SerializedEvent[] encoded = events.Select(Codec.Serialize).ToArray();
         StoredEvent[] rows = encoded
             .Select(
@@ -140,6 +141,7 @@ internal sealed class StockPositionCommands(
             stream.UpdatedAt = recordedAt;
         }
         database.Events.AddRange(rows);
+        projection.Stage(current, next);
         return new StockPositionChangeResult.Staged(proposed);
     }
 }

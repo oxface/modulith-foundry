@@ -8,8 +8,8 @@ consumer-owned sample/template projects, not reusable technical libraries.
 | --- | --- | --- |
 | Access | Global application users, exact external identities, canonical Organizations and current-membership admission. | Schema `access`, native AccessDbContext, separate migration history; queries run before tenancy exists. |
 | Sales | Versioned customer profile edits and one demonstration address per customer. | Schema `sales`, native SalesDbContext, separate history; explicit tenant ownership and native transactions. |
-| Inventory | Availability reads, stock-position history, opening and receipt commands within the selected Organization. | Schema `inventory`, native InventoryDbContext, separate history; ordinary queries use the registered E2 ownership filter. |
-| Purchasing | Purchase-order history, drafting and line changes, including replacement of a line for the same item. | Schema `purchasing`, native PurchasingDbContext, separate history; explicit tenant ownership. |
+| Inventory | Availability reads, stock-position history and inline state, opening and receipt commands within the selected Organization. | Schema `inventory`, native InventoryDbContext, separate history; ordinary queries use the registered E2 ownership filter. |
+| Purchasing | Purchase-order history, inline state and independent summary, drafting and line replacement. | Schema `purchasing`, native PurchasingDbContext, separate history; explicit tenant ownership. |
 
 Each implementation references its own Contracts. None references a peer implementation
 or the HTTP host. Contracts contain domain keys, query/command interfaces and immutable results;
@@ -78,7 +78,8 @@ references. Positive stream/event/schema versions are database constraints. Nati
 and storage/ownership choices remain editable consumer/template source. [E5.3 registration](../../../docs/reports/e5-3-event-storage-registration.md)
 now supplies the repeated technical mapping through an explicit call in each owning context;
 there is no context discovery or automatic schema population. Existing snapshots/migrations
-remain unchanged. Inventory's forward migration preserves its availability table.
+were preserved by E5.3. E6.1 adds native forward migrations for the three required inline views;
+existing history and availability data remain intact.
 
 [The native executable](../EventPersistenceDemo/README.md) exercises both modules independently
 of HTTP and messaging. Its read consistency assumptions and error boundaries are documented
@@ -98,8 +99,8 @@ Consumers register commands explicitly alongside history queries and native cont
 
 Staged is proposed state only. The caller must start the module's native transaction before
 command preparation, save and commit explicitly, and handle both preflight NotFound/Conflict
-and save-time failures. Internal decisions deliberately produce typed events, reconstruct the
-expected prefix, evolve and encode the complete proposal before changing tracked rows. Native
+and save-time failures. Internal decisions deliberately produce typed events, load checked inline
+decision state, evolve the complete candidate and encode all required rows before tracking. Native
 EF original-version predicates and owned keys arbitrate competing writers. Headers/envelopes
 commit together; no worker lock, hidden retry, automatic event collection or publishing is added.
 
@@ -108,12 +109,28 @@ repeats before and after save; no separate command-lifecycle set is stored in th
 Manual clearing/detaching tracking mid-operation is outside this recipe. Different
 streams can share the caller's native module transaction. Discard the whole context and proposal
 after failure/rollback; a fresh operation may decide again. Public native AppendFailures helpers
-recognize only stream-header concurrency and known owning-schema key/position constraints;
+recognize only stream/required-view concurrency and known owning-schema key/position constraints;
 catalog concurrency and unrelated constraints remain faults.
 
 Stock-item/location uniqueness and purchase-code uniqueness across different streams remain
-unproven. Availability still is not an event projection. Required inline views/repair remain E6,
-audit and messaging remain later explicit participants. No new Foundry library mechanism was
+unproven. Availability still is not an event projection. Required inline views are implemented;
+repair, audit and messaging remain later explicit participants. No new Foundry library mechanism was
 needed for these writes; the native setup and protocol are editable template candidates.
 The later E5.3 utility extracts technical model registration only; it does not take over
 command decisions, event collection, saving or transaction ownership.
+
+## Inline decision state and committed queries
+
+[E6.1](../../../docs/plans/e6-1-inline-decision-state.md) adds module-internal state and explicit
+projectors. Stock Position maintains one aggregate-shaped write view; Purchase Order maintains
+its write view and a separate summary. Native key/ownership/version mappings, JSON state shapes,
+summary reduction and required-view policy are consumer source. Commands no longer depend on
+history readers. IStockPositionQueries/IPurchaseOrderQueries return committed views; the existing
+History Contracts still replay facts explicitly. Missing/behind required views fail, while a
+newer view observed after an older header is concurrency. There is no ordinary-write repair.
+
+Forward migrations create empty view tables and preserve existing events; they do not backfill
+the live-history fixture streams. The executable's command-created streams establish views
+normally. Bounded repair/backfill needs its own reviewed operation before editing older streams
+without required views. [The findings](../../../docs/reports/e6-1-inline-decision-state.md)
+record the new proofs and remaining extraction candidates.

@@ -22,6 +22,8 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         return new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
         {
             Database = database,
+            // Each proof gets a new database. Retaining its idle pool exhausts the shared container.
+            Pooling = false,
         }.ConnectionString;
     }
 }

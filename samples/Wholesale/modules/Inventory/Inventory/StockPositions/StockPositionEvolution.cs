@@ -9,13 +9,10 @@ internal static class StockPositionEvolution
         long version,
         DateTimeOffset recordedAt,
         IEnumerable<IStockPositionEvent> events
-    ) => Apply(null, id, version, recordedAt, events);
+    ) => Apply(null, events).ToHistory(id, version, recordedAt);
 
-    internal static StockPositionHistory Apply(
-        StockPositionHistory? state,
-        Guid id,
-        long version,
-        DateTimeOffset recordedAt,
+    internal static StockPositionState Apply(
+        StockPositionState? state,
         IEnumerable<IStockPositionEvent> events
     )
     {
@@ -27,10 +24,7 @@ internal static class StockPositionEvolution
                         && opened.StockItemId != Guid.Empty
                         && opened.StockingLocationId != Guid.Empty
                         && !string.IsNullOrWhiteSpace(opened.BaseUnitCode) =>
-                    new StockPositionHistory(
-                        id,
-                        version,
-                        recordedAt,
+                    new StockPositionState(
                         opened.StockItemId,
                         opened.StockingLocationId,
                         opened.BaseUnitCode,
@@ -47,12 +41,7 @@ internal static class StockPositionEvolution
                     "Invalid stock-position event sequence or business values."
                 ),
             };
-        return (
-            state ?? throw new InvalidOperationException("The stock position has not been opened.")
-        ) with
-        {
-            Version = version,
-            RecordedAt = recordedAt,
-        };
+        return state
+            ?? throw new InvalidOperationException("The stock position has not been opened.");
     }
 }

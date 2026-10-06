@@ -362,3 +362,23 @@ property names. They open no connection and do not add a general parser, cache-k
 in-memory mapping matrix. Four new native-XML/ArchUnitNET architecture cases protect dependency
 declarations and actual library/consumer boundaries; existing module/Contracts rules also include
 the new library. [The report](e5-3-event-storage-registration.md) records fresh results and limits.
+
+## E6.1 inline decision state and required views
+
+The PostgreSQL event suite adds **29 cases**, bringing it to 111: 26 focused inline-state cases
+and three required-view write faults. Existing append assertions now observe committed views,
+so tenant isolation, winning writes, two saves, rollback and cancellation do not require a
+copied transaction matrix. Both aggregate families edit under actual denied history SELECT
+permissions; explicit live reads still fail. Required-view damage/races, complete-candidate
+arithmetic and independently expected summary replacement exercise our new consumer protocol.
+
+Two existing damaged-history cases deliberately change assurance: an inline edit does not
+certify the recorded prefix, while an explicit live read does. The tests no longer require an
+incidental history query just to preserve the old loading implementation. No new architecture
+infrastructure or generic EF behavior tests were added. [The report](e6-1-inline-decision-state.md)
+records extraction comparison and limitations; no new reusable mechanism was proven.
+
+The larger native suite exposed retained per-database idle connection pools in the shared
+fixture. Disposable proof connections now set Pooling=false, preventing shared-container
+connection exhaustion without changing production configuration. All five fixture consumers
+were rerun successfully; the report separates their fresh results from historical evidence.

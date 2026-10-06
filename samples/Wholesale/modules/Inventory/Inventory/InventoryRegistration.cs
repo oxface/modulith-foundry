@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
@@ -12,6 +13,15 @@ public static class InventoryRegistration
     public static IServiceCollection AddStockPositionHistory(this IServiceCollection services) =>
         services.AddScoped<IStockPositionHistory, StockPositionHistoryReader>();
 
-    public static IServiceCollection AddStockPositionCommands(this IServiceCollection services) =>
-        services.AddScoped<IStockPositionCommands, StockPositionCommands>();
+    public static IServiceCollection AddStockPositionCommands(this IServiceCollection services)
+    {
+        services.TryAddScoped<StockPositionInlineProjection>();
+        return services.AddScoped<IStockPositionCommands, StockPositionCommands>();
+    }
+
+    public static IServiceCollection AddStockPositionQueries(this IServiceCollection services)
+    {
+        services.TryAddScoped<StockPositionInlineProjection>();
+        return services.AddScoped<IStockPositionQueries, StockPositionQueries>();
+    }
 }

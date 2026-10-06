@@ -9,13 +9,10 @@ internal static class PurchaseOrderEvolution
         long version,
         DateTimeOffset recordedAt,
         IEnumerable<IPurchaseOrderEvent> events
-    ) => Apply(null, id, version, recordedAt, events);
+    ) => Apply(null, events).ToHistory(id, version, recordedAt);
 
-    internal static PurchaseOrderHistory Apply(
-        PurchaseOrderHistory? state,
-        Guid id,
-        long version,
-        DateTimeOffset recordedAt,
+    internal static PurchaseOrderState Apply(
+        PurchaseOrderState? state,
         IEnumerable<IPurchaseOrderEvent> events
     )
     {
@@ -55,10 +52,7 @@ internal static class PurchaseOrderEvolution
         }
         if (draft is null)
             throw new InvalidOperationException("The purchase order has not been drafted.");
-        return new PurchaseOrderHistory(
-            id,
-            version,
-            recordedAt,
+        return new PurchaseOrderState(
             draft.Code,
             draft.SupplierReference,
             draft.Currency,

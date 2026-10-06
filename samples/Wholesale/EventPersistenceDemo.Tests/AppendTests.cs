@@ -11,7 +11,8 @@ using Npgsql;
 
 namespace ModulithFoundry.Samples.Wholesale.EventPersistenceDemo.Tests;
 
-public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<PostgreSqlFixture>
+public sealed partial class AppendTests(PostgreSqlFixture postgres)
+    : IClassFixture<PostgreSqlFixture>
 {
     private const string Alpha = "append-alpha";
     private const string Beta = "append-beta";
@@ -255,6 +256,9 @@ public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<Post
     [InlineData(false, "event-identity")]
     [InlineData(true, "position")]
     [InlineData(false, "position")]
+    [InlineData(true, "current")]
+    [InlineData(false, "current")]
+    [InlineData(false, "summary")]
     public async Task WriteFaultsRollBackTheWholeBatchAndClassificationIsNarrow(
         bool inventory,
         string fault
@@ -292,6 +296,10 @@ public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<Post
                     ? $"ALTER TABLE {schema}.event_streams DROP CONSTRAINT test_header_fault"
                 : fault is "first-event" or "later-event"
                     ? $"ALTER TABLE {schema}.events DROP CONSTRAINT test_event_fault"
+                : fault == "current"
+                    ? $"ALTER TABLE {schema}.{CurrentTable(inventory)} DROP CONSTRAINT test_view_fault"
+                : fault == "summary"
+                    ? "ALTER TABLE purchasing.purchase_order_summary DROP CONSTRAINT test_view_fault"
                 : $"DROP TRIGGER test_fault ON {schema}.events; DROP FUNCTION {schema}.test_fault()"
         );
         await using var fresh = Scope(provider, Alpha);
@@ -339,7 +347,7 @@ public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<Post
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task DamagedHistoryCannotBeUsedToPrepareANewBatch(bool inventory)
+    public async Task InlineCommandsDoNotCertifyHistoryThatOnlyLiveReadsInspect(bool inventory)
     {
         string connection = await SeedAsync(inventory);
         await ExecuteAsync(
@@ -347,14 +355,28 @@ public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<Post
             $"DELETE FROM {Schema(inventory)}.events WHERE stream_version = 2"
         );
         await using var provider = Provider(connection);
-        await using var write = Scope(provider, Alpha);
-        var database = Context(write, inventory);
-        await using var transaction = await database.Database.BeginTransactionAsync(Token);
-        await Assert.ThrowsAsync<EventHistoryException>(() =>
-            AppendAsync(write, inventory, 3, WinningBatch)
-        );
-        Assert.Empty(database.ChangeTracker.Entries());
-        Assert.Equal(2, await EventCountAsync(connection, inventory));
+        await using (var write = Scope(provider, Alpha))
+        {
+            var database = Context(write, inventory);
+            await using var transaction = await database.Database.BeginTransactionAsync(Token);
+            Proposed(await AppendAsync(write, inventory, 3, WinningBatch));
+            await database.SaveChangesAsync(Token);
+            await transaction.CommitAsync(Token);
+        }
+        await using var read = Scope(provider, Alpha);
+        Assert.Equal((5, inventory ? 20m : 100m), await CurrentAsync(read, inventory));
+        await Assert.ThrowsAsync<EventHistoryException>(async () =>
+        {
+            if (inventory)
+                await read
+                    .ServiceProvider.GetRequiredService<IStockPositionHistory>()
+                    .ReadCurrentAsync(Id, Token);
+            else
+                await read
+                    .ServiceProvider.GetRequiredService<IPurchaseOrderHistory>()
+                    .ReadCurrentAsync(Id, Token);
+        });
+        Assert.Equal(4, await EventCountAsync(connection, inventory));
     }
 
     [Fact]
@@ -564,6 +586,19 @@ public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<Post
             actual = state is null ? null : (state.Version, state.Total);
         }
         Assert.Equal(expected, actual);
+        Assert.Equal(expected, await CurrentAsync(read, inventory, streamId));
+        if (!inventory)
+        {
+            var summary = await read
+                .ServiceProvider.GetRequiredService<IPurchaseOrderQueries>()
+                .ReadSummaryAsync(streamId, Token);
+            Assert.Equal(
+                expected,
+                summary is null
+                    ? null
+                    : ((long Version, decimal Amount)?)(summary.Version, summary.Total)
+            );
+        }
     }
 
     private static async Task ExecuteAsync(string connection, string sql)
@@ -591,6 +626,10 @@ public sealed class AppendTests(PostgreSqlFixture postgres) : IClassFixture<Post
         string schema = Schema(inventory);
         string statement = fault switch
         {
+            "current" =>
+                $"ALTER TABLE {schema}.{CurrentTable(inventory)} ADD CONSTRAINT test_view_fault CHECK (version <= 3)",
+            "summary" =>
+                "ALTER TABLE purchasing.purchase_order_summary ADD CONSTRAINT test_view_fault CHECK (version <= 3)",
             "header" =>
                 $"ALTER TABLE {schema}.event_streams ADD CONSTRAINT test_header_fault CHECK (version <= 3)",
             "first-event" =>

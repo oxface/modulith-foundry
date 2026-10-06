@@ -467,6 +467,9 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
             "wholesale-beta: order current=125.00, version-2=62.50, cutoff=125.00, before-draft=none",
             "inventory append: committed-version=3, on-hand=13.000",
             "purchasing append: committed-version=3, total=62.50",
+            "inventory inline: committed-version=3, on-hand=13.000",
+            "purchasing inline: committed-version=3, total=62.50",
+            "purchasing summary: committed-version=3, lines=1, total=62.50",
         ];
         Assert.Equal(
             expected,

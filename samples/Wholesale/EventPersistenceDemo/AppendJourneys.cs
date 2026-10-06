@@ -195,6 +195,31 @@ public static class AppendJourneys
                 $"purchasing append: committed-version={order.Version}, total={order.Total:F2}"
             )
         );
+        var inlineStock = (
+            await read
+                .ServiceProvider.GetRequiredService<IStockPositionQueries>()
+                .ReadCurrentAsync(CommandStreamId, cancellationToken)
+        )!;
+        var orderQueries = read.ServiceProvider.GetRequiredService<IPurchaseOrderQueries>();
+        var inlineOrder = (
+            await orderQueries.ReadCurrentAsync(CommandStreamId, cancellationToken)
+        )!;
+        var summary = (await orderQueries.ReadSummaryAsync(CommandStreamId, cancellationToken))!;
+        output.WriteLine(
+            FormattableString.Invariant(
+                $"inventory inline: committed-version={inlineStock.Version}, on-hand={inlineStock.OnHand:F3}"
+            )
+        );
+        output.WriteLine(
+            FormattableString.Invariant(
+                $"purchasing inline: committed-version={inlineOrder.Version}, total={inlineOrder.Total:F2}"
+            )
+        );
+        output.WriteLine(
+            FormattableString.Invariant(
+                $"purchasing summary: committed-version={summary.Version}, lines={summary.LineCount}, total={summary.Total:F2}"
+            )
+        );
     }
 
     private static AsyncServiceScope Scope(ServiceProvider provider)

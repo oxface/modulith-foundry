@@ -79,6 +79,55 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
+                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionCurrentRow",
+                b =>
+                {
+                    b.Property<string>("OrganizationKey")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("organization_key");
+
+                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<JsonElement>("State").HasColumnType("jsonb").HasColumnName("state");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("OrganizationKey", "StreamId");
+
+                    b.ToTable(
+                        "stock_position_current",
+                        "inventory",
+                        t =>
+                        {
+                            t.HasCheckConstraint(
+                                "ck_stock_position_current_version",
+                                "version > 0"
+                            );
+                        }
+                    );
+
+                    b.HasAnnotation(
+                            "ModulithFoundry:TenantContextMember",
+                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
+                        )
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
+                        .HasAnnotation(
+                            "ModulithFoundry:TenantOwnershipProperty",
+                            "OrganizationKey"
+                        );
+                }
+            );
+
+            modelBuilder.Entity(
                 "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StoredEvent",
                 b =>
                 {
@@ -179,6 +228,21 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                             "ModulithFoundry:TenantOwnershipProperty",
                             "OrganizationKey"
                         );
+                }
+            );
+
+            modelBuilder.Entity(
+                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionCurrentRow",
+                b =>
+                {
+                    b.HasOne(
+                            "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.EventStream",
+                            null
+                        )
+                        .WithMany()
+                        .HasForeignKey("OrganizationKey", "StreamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 }
             );
 

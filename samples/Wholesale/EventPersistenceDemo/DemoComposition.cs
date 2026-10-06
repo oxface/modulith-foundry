@@ -26,8 +26,10 @@ public static class DemoComposition
         );
         services.AddStockPositionHistory();
         services.AddStockPositionCommands();
+        services.AddStockPositionQueries();
         services.AddPurchaseOrderHistory();
         services.AddPurchaseOrderCommands();
+        services.AddPurchaseOrderQueries();
         return services;
     }
 }

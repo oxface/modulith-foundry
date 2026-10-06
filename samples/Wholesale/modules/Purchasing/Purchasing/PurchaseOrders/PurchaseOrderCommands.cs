@@ -6,7 +6,7 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
 internal sealed class PurchaseOrderCommands(
     PurchasingDbContext database,
-    IPurchaseOrderHistory history
+    PurchaseOrderInlineProjection projection
 ) : IPurchaseOrderCommands
 {
     private static readonly JsonEventCodec<IPurchaseOrderEvent> Codec =
@@ -68,7 +68,8 @@ internal sealed class PurchaseOrderCommands(
         EventStream? stream = await database
             .EventStreams.AsNoTracking()
             .SingleOrDefaultAsync(row => row.Id == id, cancellationToken);
-        PurchaseOrderHistory? current = null;
+        PurchaseOrderCurrentRow? current = null;
+        PurchaseOrderSummaryRow? summary = null;
         if (expectedVersion == 0)
         {
             if (stream is not null)
@@ -82,15 +83,14 @@ internal sealed class PurchaseOrderCommands(
                 throw new InvalidDataException("The owned stream has an unexpected type.");
             if (stream.Version != expectedVersion)
                 return new PurchaseOrderChangeResult.Conflict();
-            current =
-                await history.ReadAtVersionAsync(id, expectedVersion, cancellationToken)
-                ?? throw new InvalidDataException(
-                    "The owned stream disappeared during write preparation."
-                );
-            if (current.RecordedAt != stream.UpdatedAt)
-                throw new InvalidDataException(
-                    "The observed header and selected history disagree."
-                );
+            try
+            {
+                (current, summary) = await projection.LoadAsync(stream, cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return new PurchaseOrderChangeResult.Conflict();
+            }
             if (recordedAt < stream.UpdatedAt)
                 throw new ArgumentOutOfRangeException(
                     nameof(recordedAt),
@@ -99,7 +99,18 @@ internal sealed class PurchaseOrderCommands(
         }
 
         long nextVersion = checked(expectedVersion + events.LongLength);
-        var proposed = PurchaseOrderEvolution.Apply(current, id, nextVersion, recordedAt, events);
+        var state = PurchaseOrderEvolution.Apply(current?.ReadState(), events);
+        _ = state.Total; // Validate the complete candidate before tracking anything.
+        var proposed = state.ToHistory(id, nextVersion, recordedAt);
+        var next = PurchaseOrderCurrentRow.Prepare(owner, id, nextVersion, recordedAt, state);
+        var nextSummary = PurchaseOrderSummaryRow.Prepare(
+            summary,
+            owner,
+            id,
+            nextVersion,
+            recordedAt,
+            events
+        );
         SerializedEvent[] encoded = events.Select(Codec.Serialize).ToArray();
         StoredEvent[] rows = encoded
             .Select(
@@ -140,6 +151,7 @@ internal sealed class PurchaseOrderCommands(
             stream.UpdatedAt = recordedAt;
         }
         database.Events.AddRange(rows);
+        projection.Stage(current, next, summary, nextSummary);
         return new PurchaseOrderChangeResult.Staged(proposed);
     }
 }

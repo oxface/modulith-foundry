@@ -8,6 +8,7 @@ internal sealed class QueryObservation(string schema) : DbCommandInterceptor
 {
     internal List<(string Sql, object?[] Values)> Commands { get; } = [];
     internal Func<CancellationToken, Task>? BeforeEventRead { get; set; }
+    internal Func<CancellationToken, Task>? BeforeInlineRead { get; set; }
 
     public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
         DbCommand command,
@@ -32,6 +33,22 @@ internal sealed class QueryObservation(string schema) : DbCommandInterceptor
         {
             BeforeEventRead = null;
             await action(cancellationToken);
+        }
+        if (
+            (
+                command.CommandText.Contains(
+                    $"FROM {schema}.stock_position_current AS",
+                    StringComparison.Ordinal
+                )
+                || command.CommandText.Contains(
+                    $"FROM {schema}.purchase_order_current AS",
+                    StringComparison.Ordinal
+                )
+            ) && BeforeInlineRead is { } inlineAction
+        )
+        {
+            BeforeInlineRead = null;
+            await inlineAction(cancellationToken);
         }
         return result;
     }
