@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Modulith Foundry",
+  "classifications": ["Console", "Solution"],
+  "identity": "ModulithFoundry.StateStored.Rehearsal",
+  "name": "Foundry state-stored adoption rehearsal",
+  "shortName": "foundry-state-stored",
+  "sourceName": "FoundryApplication",
+  "preferNameDirectory": true,
+  "tags": {"language": "C#", "type": "solution"},
+  "symbols": {
+    "RootNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "isRequired": true,
+      "replaces": "ConsumerRoot",
+      "description": "Consumer-owned C# root namespace"
+    }
+  },
+  "sources": [{"modifiers": [{"copyOnly": ["libraries/**", "library-sources.json"]}]}]
+}

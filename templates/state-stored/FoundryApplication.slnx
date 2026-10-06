@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/libraries/">
+    <Project Path="libraries/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
+    <Project Path="libraries/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <Project Path="libraries/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/modules/Catalog/">
+    <Project Path="modules/Catalog/FoundryApplication.Catalog.Contracts/FoundryApplication.Catalog.Contracts.csproj" />
+    <Project Path="modules/Catalog/FoundryApplication.Catalog/FoundryApplication.Catalog.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FoundryApplication.Host/FoundryApplication.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FoundryApplication.Adoption.Tests/FoundryApplication.Adoption.Tests.csproj" />
+  </Folder>
+</Solution>

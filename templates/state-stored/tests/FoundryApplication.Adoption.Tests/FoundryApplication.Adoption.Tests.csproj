@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ConsumerRoot.Adoption.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" />
+    <ProjectReference Include="../../src/FoundryApplication.Host/FoundryApplication.Host.csproj" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

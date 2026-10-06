@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ConsumerRoot.Catalog</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <ProjectReference Include="../FoundryApplication.Catalog.Contracts/FoundryApplication.Catalog.Contracts.csproj" />
+    <ProjectReference Include="../../../libraries/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
+    <ProjectReference Include="../../../libraries/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <ProjectReference Include="../../../libraries/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+</Project>
