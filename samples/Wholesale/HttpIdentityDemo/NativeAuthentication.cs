@@ -23,7 +23,7 @@ internal static class NativeAuthentication
             .AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = OidcScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
             .AddCookie(options =>
             {
@@ -31,6 +31,7 @@ internal static class NativeAuthentication
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
+                options.LoginPath = "/login";
             })
             .AddOpenIdConnect(
                 OidcScheme,

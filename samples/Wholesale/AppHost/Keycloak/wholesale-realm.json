@@ -1,0 +1,52 @@
+{
+  "realm": "wholesale",
+  "enabled": true,
+  "registrationAllowed": false,
+  "duplicateEmailsAllowed": true,
+  "clients": [
+    {
+      "clientId": "wholesale-bff",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${WHOLESALE_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["${WHOLESALE_CALLBACK}"],
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    }
+  ],
+  "users": [
+    {
+      "id": "20000000-0000-0000-0000-000000000001",
+      "username": "alpha",
+      "enabled": true,
+      "email": "alpha@example.test",
+      "emailVerified": true,
+      "firstName": "Alpha",
+      "lastName": "Example",
+      "credentials": [{"type": "password", "value": "${WHOLESALE_USER_PASSWORD}", "temporary": false}]
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000002",
+      "username": "beta",
+      "enabled": true,
+      "email": "beta@example.test",
+      "emailVerified": true,
+      "firstName": "Beta",
+      "lastName": "Example",
+      "credentials": [{"type": "password", "value": "${WHOLESALE_USER_PASSWORD}", "temporary": false}]
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000003",
+      "username": "unmapped",
+      "enabled": true,
+      "email": "alpha@example.test",
+      "emailVerified": true,
+      "firstName": "Unmapped",
+      "lastName": "Example",
+      "credentials": [{"type": "password", "value": "${WHOLESALE_USER_PASSWORD}", "temporary": false}]
+    }
+  ]
+}

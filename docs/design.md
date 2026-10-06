@@ -315,10 +315,17 @@ Libraries use native `ILogger`, `ActivitySource`, and `Meter`. The host's Servic
 configures collection, export, and health. Aspire is local orchestration and topology-test
 infrastructure, not a required library runtime.
 
-[E3.6](plans/e3-6-runtime-composition.md) adds sample-owned AppHost and ServiceDefaults source,
+[E3.6](plans/e3-6-runtime-composition.md), checkpointed as `28ee797`, adds sample-owned AppHost
+and ServiceDefaults source,
 with native database references, manual finite setup, distinct readiness/liveness and OTLP
 export. Startup never applies migrations or seeds. Its health policy is host-owned and no
-global retry/resilience handler is installed. The real OIDC/browser journey remains E3.7.
+global retry/resilience handler is installed. The owner confirmed native ServiceDefaults
+supplies sensible defaults and belongs in template source, with no Foundry library wrapper.
+The [E3.7 real OIDC/browser slice](plans/e3-7-oidc-browser-journey.md) is implemented and
+unstaged for owner review. Its optional native Keycloak resource, explicit external identity
+setup and cookie/OIDC challenge composition stay editable sample/template code.
+[The report](reports/e3-7-oidc-browser-journey.md) records actual browser journeys and their
+local HTTPS topology limits. No new reusable authentication mechanism is extracted.
 
 Retain `.editorconfig`, CSharpier, Lefthook, and commitlint. Introduce a pinned pnpm workspace
 and shared frontend subpackages with the first exercised frontend setup; existing npm-based

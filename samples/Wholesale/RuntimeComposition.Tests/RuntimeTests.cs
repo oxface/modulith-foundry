@@ -12,7 +12,11 @@ namespace ModulithFoundry.Samples.Wholesale.RuntimeComposition.Tests;
 
 public sealed class RuntimeTests
 {
-    private static readonly string[] EphemeralArguments = ["LocalDevelopment:UseDataVolume=false"];
+    private static readonly string[] EphemeralArguments =
+    [
+        "LocalDevelopment:UseDataVolume=false",
+        "LocalDevelopment:UseLocalIdentityProvider=false",
+    ];
 
     [Fact]
     public async Task ExplicitSetupEnablesRealCatalogAndDatabaseOutageLeavesApiAlive()

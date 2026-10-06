@@ -27,9 +27,12 @@ was owner-reviewed and checkpointed with E3.5 as `31c7a8b`;
 [the approved design posture](../design.md) alongside this plan.
 [E3.5 Sales profile mutation](e3-5-profile-mutation.md) was owner-reviewed and checkpointed as `31c7a8b`;
 [its report](../reports/e3-5-profile-mutation.md) records native antiforgery, concurrency and rollback proofs.
-[E3.6 runtime composition](e3-6-runtime-composition.md) has owner-approved direction and is
-implemented for review; [its report](../reports/e3-6-runtime-composition.md) distinguishes
+[E3.6 runtime composition](e3-6-runtime-composition.md) was owner-reviewed and checkpointed
+as `28ee797`; [its report](../reports/e3-6-runtime-composition.md) distinguishes
 runtime and native exporter proofs from manual dashboard observations.
+[E3.7 real OIDC/browser journey](e3-7-oidc-browser-journey.md) is implemented and unstaged for
+owner review; [its report](../reports/e3-7-oidc-browser-journey.md) records optional local
+Keycloak, explicit account mappings and actual Chromium journeys. No commit is authorized.
 
 ## Delivery model
 
@@ -353,11 +356,16 @@ Membership administration, invitation acceptance, explicit account linking and p
 may also earn an optional Access feature module. Revisit that extraction gate when their
 actual workflows and alternative policies exist; it need not wait until E9.
 
-The remaining bounded E3 sequence is E3.6 runtime composition/telemetry review, then E3.7
-disposable OIDC provider and real browser login/callback, mapped actor, admission and protected
-profile mutation. After that proof, return to E4 durable event identity and payload codec
-extraction. Materialized template output and bootstrap CLI remain E10; sample source is
+E3.6 runtime composition/telemetry is checkpointed. [E3.7](e3-7-oidc-browser-journey.md)
+implements disposable OIDC hosting and real browser login/callback, mapped actor, admission
+and protected profile mutation, pending owner review. This closes the bounded E3 ingress
+scope; next is E4 durable event identity and payload codec extraction. E3.7 adds no technical
+library or provider-neutral authentication abstraction. Its local HTTPS topology does not
+prove external cross-site providers, proxy/subdomain sessions or account administration.
+Materialized template output and bootstrap CLI remain E10; sample source is
 the exercised template recipe now.
+Native ServiceDefaults remains template source; the owner confirmed it warrants no Foundry
+library wrapper.
 
 Build the smallest real Access-to-business-module journey using the new context seam and
 persistence utilities. Keep BFF/OIDC, memberships, permissions, Minimal API endpoints and

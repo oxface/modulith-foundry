@@ -1,7 +1,7 @@
 # E3.6 Runtime composition and native telemetry
 
-Status: implemented for owner review after E3.4/E3.5 checkpoint `31c7a8b`. Changes remain
-unstaged; no E3.6 commit is authorized. See [the scope](../plans/e3-6-runtime-composition.md)
+Status: owner-reviewed and checkpointed as `28ee797` after E3.4/E3.5 checkpoint `31c7a8b`.
+All configured pre-commit and commit-message hooks passed. See [the scope](../plans/e3-6-runtime-composition.md)
 and [runtime guide](../../samples/Wholesale/AppHost/README.md).
 
 ## Outcome and control
@@ -14,7 +14,8 @@ the active AppHost; archived sources and fixtures remain unchanged.
 
 API startup waits for the database resource but never applies module migrations or seeds.
 `demo-setup` executes the existing `--initialize-demo` path only when explicitly started.
-Its exit precedes healthy readiness; setup is not an API startup dependency or repeatable
+The test waits for its exit before asserting healthy readiness/data; readiness itself only
+checks tables and may become healthy during seeding. Setup is not an API startup dependency or repeatable
 reconciliation. Native database creation does not imply application schema creation.
 
 The host explicitly registers and maps readiness/liveness. `/health/live` remains healthy
@@ -97,6 +98,8 @@ also runs successfully. Archived application/broker/topology suites were not rer
 **No new reusable library mechanism was proven or extracted.** The five existing technical
 segments remain unchanged and independently adopted. There is no new dependency from a
 library to Aspire, OpenTelemetry export, Access or sample module Contracts.
+The owner confirmed native ServiceDefaults is useful template material and warrants no
+Foundry library wrapper.
 
 The exercised template recipe now includes the AppHost graph, explicit setup resource,
 editable ServiceDefaults, health endpoint policy, required parameters and native lifecycle

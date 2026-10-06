@@ -5,8 +5,14 @@ namespace ModulithFoundry.Samples.Wholesale.Access;
 // Only the explicitly invoked setup mode uses these disposable demonstration rows.
 public static class AccessDemoSeed
 {
-    public static void Stage(AccessDbContext database)
+    public static void Stage(AccessDbContext database, DemoAccessIdentities? identities = null)
     {
+        identities ??= new DemoAccessIdentities(
+            new Contracts.ExternalIdentity("https://identity.test", "shared-subject"),
+            new Contracts.ExternalIdentity("https://other-identity.test", "shared-subject")
+        );
+        ArgumentNullException.ThrowIfNull(identities.Alpha);
+        ArgumentNullException.ThrowIfNull(identities.Beta);
         database.AddRange(
             new UserRow { Id = "application-alpha" },
             new UserRow { Id = "application-beta" }
@@ -14,14 +20,14 @@ public static class AccessDemoSeed
         database.AddRange(
             new ExternalIdentityRow
             {
-                Issuer = "https://identity.test",
-                Subject = "shared-subject",
+                Issuer = identities.Alpha.Issuer,
+                Subject = identities.Alpha.Subject,
                 UserId = "application-alpha",
             },
             new ExternalIdentityRow
             {
-                Issuer = "https://other-identity.test",
-                Subject = "shared-subject",
+                Issuer = identities.Beta.Issuer,
+                Subject = identities.Beta.Subject,
                 UserId = "application-beta",
             }
         );

@@ -30,7 +30,10 @@ requests read tenant-owned Inventory data through separate module/Contracts proj
 [E3.5](docs/plans/e3-5-profile-mutation.md) adds protected, versioned Sales profile edits.
 [E3.6](docs/plans/e3-6-runtime-composition.md) adds an editable
 [Aspire AppHost](samples/Wholesale/AppHost/README.md), explicit setup, readiness and native
-telemetry, implemented for review. Messaging follows later increments.
+telemetry, checkpointed as `28ee797`. [E3.7](docs/plans/e3-7-oidc-browser-journey.md) implements
+optional local Keycloak, explicit application account mappings and real browser journeys,
+with [implementation findings](docs/reports/e3-7-oidc-browser-journey.md) left for owner review.
+Durable event codecs are next; messaging follows later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -56,6 +59,7 @@ telemetry, implemented for review. Messaging follows later increments.
 - [E3.4 implementation and proof report](docs/reports/e3-4-persisted-business-ingress.md)
 - [E3.5 Sales profile mutation plan](docs/plans/e3-5-profile-mutation.md) and [proof report](docs/reports/e3-5-profile-mutation.md)
 - [E3.6 runtime composition plan](docs/plans/e3-6-runtime-composition.md) and [proof report](docs/reports/e3-6-runtime-composition.md)
+- [E3.7 real OIDC/browser journey plan](docs/plans/e3-7-oidc-browser-journey.md) and [proof report](docs/reports/e3-7-oidc-browser-journey.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)

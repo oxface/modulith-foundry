@@ -20,6 +20,7 @@ Environment variables use double underscores instead of colons.
 | `Oidc:Authority` | HTTPS OIDC provider authority for HTTP login. |
 | `Oidc:ClientId` | Registered authorization-code client. |
 | `Oidc:ClientSecret` | Credential when that client registration requires one. |
+| `DemoIdentity:Issuer`, `DemoIdentity:AlphaSubject`, `DemoIdentity:BetaSubject` | Optional finite-setup mapping inputs. Supply all three together, with HTTPS issuer and distinct subjects. |
 
 Set `ConnectionStrings__Access` to a disposable, fresh database and run the finite setup:
 
@@ -41,7 +42,9 @@ The seed contains two global users: `application-alpha` belongs to `wholesale-al
 Its external accounts are fictional exact pairs `https://identity.test`/`shared-subject`
 and `https://other-identity.test`/`shared-subject`. For actual login, provision your validated
 issuer/subject pair against an application user explicitly; neither request mapping nor
-setup automatically provisions provider accounts, creates users or links by email.
+setup automatically provisions provider accounts, creates users or links by email. The
+optional local Keycloak graph passes its real issuer/subjects to finite setup explicitly.
+Partial, non-HTTPS or duplicate-subject inputs fail before migrations/data setup.
 
 The [design-time factory](../modules/Access/Access/Persistence/AccessDesignTimeFactory.cs) supports native EF tooling:
 
@@ -69,6 +72,9 @@ available `DEMO-NOTEBOOK` units from their persisted Inventory rows. Use `?sku=Y
 to select another exact SKU; an absent SKU returns 404, a blank selection returns 400.
 The protected `/organizations/{organization}/stock/{sku}` endpoint requires native
 authentication and current active membership before reading the same isolated catalog.
+The default challenge uses native cookies, so recognized JSON API endpoints return 401
+without sending the browser to the provider. `/login` explicitly challenges the named OIDC
+scheme. Native token validation, HTTPS metadata and code-flow/PKCE remain unchanged.
 
 [Program](Program.cs) chooses route selection explicitly through
 `AddOrganizationTenancyFromRoute("organization")`. For the tested subdomain alternative,
@@ -222,7 +228,13 @@ Standalone actor/tenancy HTTP suites remain container-free. See
 antiforgery, exact application-actor rebinding, tenant/pair isolation, stale/competing edits,
 second-save database failure and cancellation at a blocked address UPDATE.
 
+The [real browser journeys](../RuntimeComposition.Tests/BrowserTests.cs) exercise local
+Keycloak login/callback and native session cookies against HTTPS Kestrel, with no injected
+authentication cookie or OIDC form replay. Their scope/limits are recorded in
+[E3.7](../../../docs/plans/e3-7-oidc-browser-journey.md).
+
 User creation/linking, invitations, membership administration, roles/permissions,
-session invalidation, remote provider/proxy topology, tenant-aware
+logout/provider end-session, session invalidation, external provider/proxy topology, tenant-aware
 native authorization handlers and shared module transactions remain separate increments. Inventory availability does not establish reservation
-logic or the future event-sourced stock model. E3 remains open.
+logic or the future event-sourced stock model. The bounded E3 ingress scope is implemented
+through E3.7 and pending owner review; these remaining capabilities are not implied by it.

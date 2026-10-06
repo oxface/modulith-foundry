@@ -1,7 +1,7 @@
 # E3.6 Runnable sample composition and native telemetry
 
-Status: owner approved the slice direction after E3.4/E3.5 checkpoint `31c7a8b`.
-Implementation and wiring remain for owner review; no commit is authorized.
+Status: owner-reviewed and checkpointed as `28ee797`. The report records implementation
+evidence; E3.7 provider/browser work has a separate scope proposal.
 
 ## Outcome and resource ownership
 
@@ -78,7 +78,7 @@ instrumentation alone nor a raw substring in binary OTLP establishes correlation
 Run appropriate active build/style/analyzers/formatter, the runtime and HTTP/PostgreSQL
 suites, architecture and independent adoption checks, archive integrity and local links.
 Add a separate CI runtime lane; the existing library-only lanes remain independent.
-Leave all implementation changes unstaged for owner review.
+The implementation was left unstaged for owner review before its approved checkpoint.
 
 ## Extraction findings
 

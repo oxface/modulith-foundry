@@ -279,10 +279,6 @@ public sealed partial class CompositionTests(PostgreSqlFixture postgres)
         else
             builder.Services.AddOrganizationTenancyFromRoute("organization");
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
-        // Cookie round trips prove this slice; no test contacts a personal OIDC provider.
-        builder.Services.PostConfigure<AuthenticationOptions>(options =>
-            options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme
-        );
         var app = builder.Build();
         try
         {

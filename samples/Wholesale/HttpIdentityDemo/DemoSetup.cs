@@ -13,7 +13,8 @@ public static class DemoSetup
     public static async Task InitializeAsync(
         string connection,
         bool fullDemo,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        DemoAccessIdentities? identities = null
     )
     {
         var accessOptions = new DbContextOptionsBuilder<AccessDbContext>();
@@ -45,7 +46,7 @@ public static class DemoSetup
             await using var transaction = await access.Database.BeginTransactionAsync(
                 cancellationToken
             );
-            AccessDemoSeed.Stage(access);
+            AccessDemoSeed.Stage(access, identities);
             await access.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }

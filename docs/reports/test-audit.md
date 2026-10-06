@@ -228,3 +228,27 @@ These steps form one capability journey; they do not maintain an exact AppHost a
 snapshot. Tests choose ephemeral storage through ordinary configuration and randomize ports.
 Inert OIDC settings are used only for public work and prove no provider/browser behavior.
 Manual dashboard OTLP observations are separately reported and do not inflate test counts.
+
+## E3.7 real OIDC/browser increment
+
+[E3.7](e3-7-oidc-browser-journey.md) adds six cases: three real browser capability journeys
+and three rejected finite-setup configurations with PostgreSQL mutation checks. Browser
+tests exercise our native host composition, exact realm callback and application mapping,
+not OIDC cryptography or Keycloak implementation details. They navigate provider forms and
+callbacks, retain real cookies and use same-origin fetch without injected sessions/XHR
+headers. Slow browser/container checks remain outside commit hooks.
+
+Alpha covers two admitted tenants, native anonymous API status, antiforgery, a committed
+profile edit and a stale version. Beta covers denied admission before deliberately
+unavailable business persistence and fresh membership revocation with an unchanged session.
+The unmapped user covers fail-closed mapping despite matching email and no automatic
+account/link creation. The HTTP suite retains detailed isolation/race/cancellation matrices;
+the browser suite adds the actual provider/browser boundary rather than duplicating them.
+
+The first browser run caught missing native JSON endpoint metadata on two untyped GETs,
+despite the other HTTP 401 cases passing. Native typed results correct the declaration;
+the capability assertions remain the proof, with no metadata snapshot tests. The finite
+setup cases observe process failure and absent module tables, rather than testing every
+URI/null variation. Manual login/edit observations are separately reported. All eleven
+active suites passed freshly: 320 cases (177 container-free, 143 container/runtime), none
+failed/skipped. The slice report records those results and local HTTPS/browser-trust limits.

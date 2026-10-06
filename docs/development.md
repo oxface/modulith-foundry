@@ -142,17 +142,25 @@ After restoring/building the active solution, run:
 ```bash
 dotnet tool install --global Aspire.Cli --version 13.5.4
 dotnet dev-certs https
+pwsh samples/Wholesale/RuntimeComposition.Tests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
 dotnet test --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj --no-build --no-restore
 ```
 
 Use an existing matching CLI instead of reinstalling it. This suite uses native
 Aspire.Hosting.Testing, real Kestrel and PostgreSQL, ephemeral storage and randomized ports.
-It requires a Docker-compatible engine and a native development certificate, but no running
-AppHost, provider or personal credentials. The requests use HTTP and do not prove browser
-TLS/cookie behavior. For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
+It requires a Docker-compatible engine, native development certificate and Chromium matching
+the pinned test-only Playwright package, but no running AppHost/provider or personal credentials.
+The provider-free runtime case uses HTTP. Three optional-provider browser journeys use
+actual HTTPS login/callback, browser cookies and same-origin fetch. They explicitly ignore
+browser development-certificate trust errors; native API backchannel validation stays enabled.
+On Linux without PowerShell, the package's bundled `.playwright/node/linux-x64/node` can run
+its `.playwright/package/cli.js install chromium` from the same build output; no Node workspace
+is required. CI uses the generated PowerShell installer with system dependencies.
+For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
 `DOCKER_HOST` to your user socket and optionally `DOTNET_PROCESSOR_COUNT=4`.
 Keep this container test outside commit hooks. CI has a separate Active Aspire runtime
-composition lane. Actual remote OIDC/browser session behavior remains E3.7.
+composition lane. External provider, proxy/subdomain and production trust/session guarantees
+remain outside these local proofs.
 
 ## Archived backend
 

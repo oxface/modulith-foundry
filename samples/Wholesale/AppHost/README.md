@@ -30,6 +30,8 @@ secret provider). Environment variables use double underscores.
 | `Parameters:oidc-authority` | Required HTTPS authority passed to the API's native OIDC configuration. |
 | `Parameters:oidc-client-id` | Required authorization-code client identifier passed to the API. |
 | `LocalDevelopment:UseDataVolume` | Defaults to true. False uses ephemeral PostgreSQL storage for a disposable graph. |
+| `LocalDevelopment:UseLocalIdentityProvider` | Defaults to false. True adds the local HTTPS Keycloak realm instead of external authority/client parameters. |
+| `LocalDevelopment:KeycloakPort` | Local provider port, default 58081. Keep stable with retained Access mappings. Isolated/test graphs randomize ports. |
 
 For example, set secrets with `dotnet user-secrets set --project
 samples/Wholesale/AppHost/Wholesale.AppHost.csproj KEY VALUE` using your values.
@@ -37,19 +39,61 @@ Do not commit credentials. For Podman set `ASPIRE_CONTAINER_RUNTIME=podman` and 
 to your rootless socket. Aspire supplies the actual database connection as
 `ConnectionStrings:Access` to API and setup; all three modules register their own contexts.
 
-Tests use inert `https://identity.test` authority/client settings solely for public requests.
-There is no default fake login or provider. For actual authentication configure the API's
+The provider-free runtime test uses inert `https://identity.test` settings solely for public requests.
+For external authentication configure the API's
 `Oidc:ClientSecret` if required, provision an exact external issuer/subject pair against an
 application user and register the discovered HTTPS `/signin-oidc` callback. This graph does
-not provision a provider, select a stable callback port or establish a browser-session proof;
-E3.7 owns that complete topology. See [HTTP configuration](../HttpIdentityDemo/README.md).
+not provision your external provider. See [HTTP configuration](../HttpIdentityDemo/README.md).
+
+## Optional local identity provider
+
+Set `LocalDevelopment:UseLocalIdentityProvider=true` and provide these secret AppHost
+parameters through your usual configuration provider:
+
+| Key | Purpose |
+| --- | --- |
+| `Parameters:postgres-password` | The existing database credential. |
+| `Parameters:keycloak-password` | Local Keycloak administrator credential. |
+| `Parameters:oidc-client-secret` | Local confidential `wholesale-bff` client secret. |
+| `Parameters:demo-user-password` | Disposable password shared by `alpha`, `beta` and `unmapped` demo accounts. |
+
+External `oidc-authority`/`oidc-client-id` parameters are not needed in this mode. The graph
+uses Keycloak 26.8.0 and the explicitly pinned preview hosting integration, native HTTPS
+certificate handling and an ephemeral realm import. Its exact browser callback uses
+Aspire's localhost network context, so container endpoint translation cannot replace the
+browser's hostname. There is no redirect wildcard or backchannel certificate bypass.
+
+For normal local use, start without `--isolated` to retain the configured stable provider port:
+
+```bash
+aspire start --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --no-build --non-interactive
+aspire wait keycloak --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --non-interactive --timeout 90
+```
+
+Skip the repeated start command below if this graph is already running. Continue with
+explicit `demo-setup` on a fresh database and check its exit 0 before
+using demo rows. Setup maps actual imported subjects and the allocated realm issuer to the
+two existing application users. Visit the API's discovered HTTPS `/login`, sign in as
+`alpha` or `beta`, and the native callback returns to `/identity`. Alpha belongs to both
+Organizations; Beta belongs only to South. `unmapped` has no application link and receives
+403 after provider login, even though its email matches Alpha. Registration is disabled;
+requests never provision accounts or link email addresses.
+
+The provider is ephemeral and reimports the exact callback each session. PostgreSQL data
+may be retained. A stable issuer preserves its existing mappings; if the authority changes
+(including its port), update application links explicitly rather than rerunning seed setup.
+For a throwaway `--isolated` graph choose `UseDataVolume=false`, since its randomized issuer
+must not silently change retained Access data. Browser tests use that fully disposable mode.
+Trust the native development certificate for ordinary manual browsing. Automated browser
+contexts explicitly ignore development certificate trust errors; this is not production
+certificate-trust evidence.
 
 ## Start and explicitly initialize
 
 Run from the repository root after configuration:
 
 ```bash
-aspire start --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --isolated --no-build --non-interactive
+aspire start --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --no-build --non-interactive
 aspire wait wholesale --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --non-interactive --timeout 90
 aspire wait api --status up --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --non-interactive --timeout 90
 aspire describe --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --non-interactive
@@ -66,7 +110,8 @@ aspire wait api --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --n
 aspire describe demo-setup --apphost samples/Wholesale/AppHost/Wholesale.AppHost.csproj --non-interactive
 ```
 
-Check setup finished with exit 0. It runs the existing finite `--initialize-demo` mode,
+Check setup finished with exit 0. Readiness checks table presence and can become healthy
+before seed work finishes; it is not a setup completion signal. The resource runs the existing finite `--initialize-demo` mode,
 applies each module's own migrations/history and explicitly seeds its demonstration rows.
 Then the public `/organizations/north-supply/catalog` and `/organizations/south-supply/catalog`
 return 42 and 7 available units. Setup is not repeatable reconciliation; rerunning it against
@@ -101,8 +146,9 @@ Metrics are configured too; CLI 13.5.4 exposes traces/spans/logs, so use the das
 metrics. The runtime test independently proves database-outage readiness 503, liveness 200
 and failed business reads. There is no automatic repair, global HTTP retry policy or custom
 shutdown worker. Local stop/cleanup was verified; exporter-outage delivery guarantees,
-production deployment and real OIDC/browser sessions remain separate proofs.
+production deployment, external providers and proxy/subdomain sessions remain separate proofs.
 
-See [the slice report](../../../docs/reports/e3-6-runtime-composition.md) and
+See [runtime evidence](../../../docs/reports/e3-6-runtime-composition.md),
+[OIDC/browser evidence](../../../docs/reports/e3-7-oidc-browser-journey.md) and
 [test commands](../../../docs/development.md). The AppHost/health/ServiceDefaults source is
 editable template material; generated template output and the bootstrap CLI remain E10.

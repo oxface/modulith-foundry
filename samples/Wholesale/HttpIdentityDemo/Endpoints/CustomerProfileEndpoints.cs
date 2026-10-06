@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
 
@@ -7,26 +8,23 @@ public static class CustomerProfileEndpoints
 {
     public static void Map(IEndpointRouteBuilder endpoints, string pattern)
     {
-        endpoints
-            .MapGet(
-                pattern,
-                async (
-                    Guid customerId,
-                    ICustomerProfiles profiles,
-                    CancellationToken cancellation
-                ) =>
-                {
-                    if (customerId == Guid.Empty)
-                        return Results.Problem(statusCode: 400, title: "Invalid customer ID.");
-                    CustomerProfile? profile = await profiles.ReadAsync(customerId, cancellation);
-                    return profile is null ? Results.NotFound() : Results.Ok(profile);
-                }
-            )
-            .RequireAuthorization();
+        endpoints.MapGet(pattern, ReadAsync).RequireAuthorization();
         endpoints
             .MapPut(pattern, ChangeAsync)
             .RequireAuthorization()
             .AddEndpointFilter<ValidateAntiforgeryFilter>();
+    }
+
+    private static async Task<Results<Ok<CustomerProfile>, NotFound, ProblemHttpResult>> ReadAsync(
+        Guid customerId,
+        ICustomerProfiles profiles,
+        CancellationToken cancellation
+    )
+    {
+        if (customerId == Guid.Empty)
+            return TypedResults.Problem(statusCode: 400, title: "Invalid customer ID.");
+        CustomerProfile? profile = await profiles.ReadAsync(customerId, cancellation);
+        return profile is null ? TypedResults.NotFound() : TypedResults.Ok(profile);
     }
 
     private static async Task<IResult> ChangeAsync(

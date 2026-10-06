@@ -12,7 +12,8 @@ if (initializeAccess || initializeDemo)
         ?? throw new InvalidOperationException(
             "Configure ConnectionStrings:Access for the HTTP sample."
         );
-    await DemoSetup.InitializeAsync(connection, initializeDemo, CancellationToken.None);
+    var identities = DemoIdentitySetup.Read(builder.Configuration);
+    await DemoSetup.InitializeAsync(connection, initializeDemo, CancellationToken.None, identities);
     Console.WriteLine(
         initializeDemo
             ? "Wholesale demo initialized; HTTP host was not started."

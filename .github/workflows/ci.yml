@@ -152,7 +152,9 @@ jobs:
         run: dotnet restore ModulithFoundry.slnx
       - name: Build active projects
         run: dotnet build ModulithFoundry.slnx --no-restore
-      - name: Test explicit setup, readiness and database outage through Kestrel
+      - name: Install matching Chromium and browser system dependencies
+        run: pwsh samples/Wholesale/RuntimeComposition.Tests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Test runtime setup, database outage and real OIDC browser journeys
         run: >-
           dotnet test
           --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj

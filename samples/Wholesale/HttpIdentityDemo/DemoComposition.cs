@@ -78,7 +78,7 @@ public static class DemoComposition
                 (HttpContext context, IAntiforgery antiforgery) =>
                 {
                     context.Response.Headers.CacheControl = "no-store";
-                    return Results.Ok(
+                    return TypedResults.Ok(
                         new AntiforgeryResponse(
                             antiforgery.GetAndStoreTokens(context).RequestToken!
                         )
