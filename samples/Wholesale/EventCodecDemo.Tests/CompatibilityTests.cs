@@ -63,6 +63,10 @@ public sealed class CompatibilityTests
             "inventory: item=11111111-1111-1111-1111-111111111111, location=22222222-2222-2222-2222-222222222222, unit=EA, on-hand=10.125"
                 + Environment.NewLine
                 + "purchasing: code=OLD-1, supplier=SUP-1, currency=EUR, total=31.25"
+                + Environment.NewLine
+                + "inventory history: head=3, current=13.000, at-version-2=10.125, at-cutoff=10.125, before-open=none"
+                + Environment.NewLine
+                + "purchasing history: head=3, current-total=62.50, at-version-2=31.25, at-cutoff=62.50, before-draft=none"
                 + Environment.NewLine,
             output.ToString()
         );

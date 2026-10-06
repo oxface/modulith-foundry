@@ -31,5 +31,6 @@ public static class DemoJourneys
                 $"purchasing: code={order.Code}, supplier={order.SupplierReference}, currency={order.Currency}, total={order.Total}"
             )
         );
+        HistoryJourneys.Run(fixtureDirectory, output);
     }
 }

@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <ProjectReference Include="../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <ProjectReference Include="../../samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj" />
     <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
@@ -20,6 +21,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None
+      Include="../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj"
+      Link="ProjectDeclarations/ModulithFoundry.Events.History.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
     <None
       Include="../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj"
       Link="ProjectDeclarations/ModulithFoundry.Events.Serialization.csproj"

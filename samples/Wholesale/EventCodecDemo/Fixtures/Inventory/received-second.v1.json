@@ -1,0 +1,8 @@
+{
+  "eventName": "inventory.stock-position.received",
+  "schemaVersion": 1,
+  "payload": {
+    "quantity": 2.875,
+    "deliveryReference": "DELIVERY-2"
+  }
+}

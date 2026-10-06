@@ -42,6 +42,9 @@ pre-commit:
     - name: event-codec-consumer-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-restore
+    - name: event-history-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project tests/EventHistoryTests/EventHistoryTests.csproj --no-restore
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore

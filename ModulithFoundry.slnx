@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Libraries/">
+    <Project Path="src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <Project Path="src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
@@ -29,6 +30,7 @@
     <Project Path="samples/Wholesale/modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/EventHistoryTests/EventHistoryTests.csproj" />
     <Project Path="tests/EventSerializationTests/EventSerializationTests.csproj" />
     <Project Path="tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj" />
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />

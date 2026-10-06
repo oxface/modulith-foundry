@@ -12,4 +12,11 @@ there were no corresponding retained Purchasing JSON fixture files to relocate. 
 values deliberately give quantity 2.5, unit price 12.5 and independently expected total 31.25.
 
 The envelopes contain only event name, schema version and payload. Stream identity/version,
-timestamps, attribution, ordering validation and storage are outside this codec proof.
+timestamps, attribution and storage are outside the codec envelope. E5.1 supplies stream
+positions/timestamps explicitly in the two history recipes; these are authored demonstration
+metadata, not retained database history or commit-order evidence.
+
+Inventory `received-second.v1.json` and Purchasing `line-replaced.v1.json` are new E5.1
+literals using the existing v1 schemas. The receipt adds 2.875 and a delivery reference;
+the replacement line uses quantity 5 and unit price 12.5. Independently expected current
+results are on-hand 13 and order total 62.50. The four E4 payload files are unchanged.

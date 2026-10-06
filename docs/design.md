@@ -291,8 +291,19 @@ reference sample module Contracts. Use project references during local developme
 with native JSON and explicit durable name/version registrations, independently of every
 other segment. Consumer event definitions, JSON requirements/defaults and domain meaning
 stay outside the codec. [Its report](reports/e4-event-serialization.md) records fresh
-two-family compatibility and dependency proofs; the implementation remains unstaged for
-owner review. Codec support does not establish event-store or delivery guarantees.
+two-family compatibility and dependency proofs; the owner-reviewed implementation is
+checkpointed as `2a49ef3b`. Codec support does not establish event-store or delivery guarantees.
+
+[E5.1](plans/e5-1-event-history.md) implements independently adoptable
+`ModulithFoundry.Events.History` for consumer-selected ordered-range validation. The owner
+approved removing the initial complete-history snapshot/selection object. The utility has
+no payload generic, JSON or other segment dependency; consumers explicitly select/materialize
+rows, validate metadata, decode and hydrate. The strict range policy requires contiguous
+versions and nondecreasing recorded timestamps within the returned range, allowing equal times.
+[The report](reports/e5-1-event-history.md) records two-family proofs and remaining storage
+limits. Its final package division remains provisional until E5.2's native EF consumers.
+Selected-range validation does not certify excluded rows, a captured database head, commit
+order, tenant scoping or concurrent append behavior. Revisions remain for owner review.
 
 Use options for supported variations, and explicit registration or dependencies for larger
 policy changes. Document how a setting changes a guarantee. Schema names, transport routes,

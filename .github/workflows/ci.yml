@@ -106,6 +106,9 @@ jobs:
       - name: Test explicit event serialization
         run: dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
 
+      - name: Test bounded ordered event history
+        run: dotnet test --project tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
+
       - name: Test event codec consumer compatibility
         run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
 

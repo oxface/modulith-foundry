@@ -1,0 +1,9 @@
+{
+  "eventName": "purchasing.purchase-order.line-set",
+  "schemaVersion": 1,
+  "payload": {
+    "itemCode": "ITEM-1",
+    "quantity": 5,
+    "unitPrice": 12.5
+  }
+}

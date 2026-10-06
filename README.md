@@ -36,8 +36,12 @@ checkpointed as `dc3ac3b` with [implementation findings](docs/reports/e3-7-oidc-
 [E4](docs/plans/e4-event-serialization.md) implements the independent
 [Events.Serialization library](src/ModulithFoundry.Events.Serialization/README.md), immediately
 used by a [two-family consumer](samples/Wholesale/EventCodecDemo/README.md), with
-[fresh proofs](docs/reports/e4-event-serialization.md) left unstaged for owner review.
-Event history/append and messaging follow later increments.
+[fresh proofs](docs/reports/e4-event-serialization.md) checkpointed as `2a49ef3b`.
+[E5.1](docs/plans/e5-1-event-history.md) adds independently adoptable
+[ordered-range validation](src/ModulithFoundry.Events.History/README.md) with explicit two-family
+hydration, left unstaged for owner review. [Its report](docs/reports/e5-1-event-history.md)
+separates new memory-only proofs from later database guarantees. Native append and messaging
+follow later increments.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)
@@ -65,6 +69,7 @@ Event history/append and messaging follow later increments.
 - [E3.6 runtime composition plan](docs/plans/e3-6-runtime-composition.md) and [proof report](docs/reports/e3-6-runtime-composition.md)
 - [E3.7 real OIDC/browser journey plan](docs/plans/e3-7-oidc-browser-journey.md) and [proof report](docs/reports/e3-7-oidc-browser-journey.md)
 - [E4 event serialization plan](docs/plans/e4-event-serialization.md) and [proof report](docs/reports/e4-event-serialization.md)
+- [E5.1 ordered history plan](docs/plans/e5-1-event-history.md) and [proof report](docs/reports/e5-1-event-history.md)
 - [E2 persistence proposal](docs/plans/e2-persistence.md)
 - [E2 design findings](docs/reports/e2-persistence-design.md)
 - [Active .NET architecture checks](docs/reports/architecture-tests.md)
@@ -90,6 +95,6 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-CI checks active architecture, context, HTTP identity, EF models and event codecs, with a separate active PostgreSQL ownership
+CI checks active architecture, context, HTTP identity, EF models, event codecs and history, with a separate active PostgreSQL ownership
 lane and an active Aspire runtime composition lane. Archived Fast, PostgreSQL, RabbitMQ and
 Aspire Topology proofs remain independent.

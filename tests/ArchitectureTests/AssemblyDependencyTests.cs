@@ -4,6 +4,7 @@ using ArchUnitNET.Loader;
 using ArchUnitNET.xUnitV3;
 using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
+using ModulithFoundry.Events.History;
 using ModulithFoundry.Events.Serialization;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Tenancy;
@@ -24,6 +25,7 @@ public sealed class AssemblyDependencyTests
     private const string PersistenceSample = "PersistenceDemo";
     private const string HttpSample = "HttpIdentityDemo";
     private const string EventSerialization = "ModulithFoundry.Events.Serialization";
+    private const string History = "ModulithFoundry.Events.History";
     private const string CodecSample = "EventCodecDemo";
 
     private static readonly Architecture Architecture = new ArchLoader()
@@ -34,6 +36,7 @@ public sealed class AssemblyDependencyTests
             typeof(TenantContextMiddleware).Assembly,
             typeof(TenantOwnershipExtensions).Assembly,
             typeof(SerializedEvent).Assembly,
+            typeof(EventHistory).Assembly,
             typeof(Samples.Wholesale.EventCodecDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.ContextDemo.DemoComposition).Assembly,
             typeof(Samples.Wholesale.PersistenceDemo.DemoComposition).Assembly,
@@ -90,9 +93,31 @@ public sealed class AssemblyDependencyTests
                 PersistenceSample,
                 HttpSample,
                 CodecSample,
+                History,
             }
         )
             NoDependency(EventSerialization, forbidden).Check(Architecture);
+    }
+
+    [Fact]
+    public void EventHistoryUsesNoOtherSegmentsOrConsumerTypes()
+    {
+        foreach (
+            string forbidden in new[]
+            {
+                Actor,
+                ActorHttp,
+                Tenancy,
+                TenancyHttp,
+                Persistence,
+                EventSerialization,
+                ContextSample,
+                PersistenceSample,
+                HttpSample,
+                CodecSample,
+            }
+        )
+            NoDependency(History, forbidden).Check(Architecture);
     }
 
     private static TypesShouldConjunction NoDependency(string source, string forbidden)

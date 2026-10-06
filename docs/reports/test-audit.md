@@ -273,3 +273,29 @@ no database/browser composition; the 143 container/runtime cases remain E3.7 his
 evidence and were not rerun. The new reusable registry/dispatch mechanism is proven within
 the documented JSON boundary; event-stream persistence and complete domain validation remain
 later capabilities.
+
+## E5.1 ordered-range revision
+
+[E5.1](e5-1-event-history.md) revises the initial complete-history object into a metadata-only
+range validator. Its 16 cases protect exact ranges, missing tails/excess rows, nonzero starts,
+empty ranges, timestamp regression/equality, invalid bounds, maximum-version arithmetic and
+single enumeration. Snapshot and in-library selection tests were removed with those capabilities.
+These cases protect our policies and traversal, not native record/array behavior.
+
+Consumer tests use actual fixture envelopes to assert current/historical stock quantities
+and line-replacement totals, repeated reconstruction without accumulated state, existing
+codec errors and preservation of consumer domain exceptions. The consumer suite now has
+16 cases, including rejection of invalid version selectors and proof that earlier selected
+ranges do not certify later metadata. Both unselected payload failures and metadata regression
+can remain outside an earlier read; selecting the damaged range then fails. The existing
+console test asserts both actual history journeys.
+No fake command/publisher counters or pending-event framework were added merely to test replay.
+
+Two focused architecture cases bring that suite to 53. The four affected suites passed
+freshly: **101 cases**, none failed/skipped (16 range, 16 combined consumer, 16 serialization,
+53 architecture). The remaining context/database/browser suites retain earlier evidence and
+were not rerun; this is not an all-active-suites result. Native build/style/analyzer checks
+cover the active solution, while standalone build/run verifies adoption of just the two event
+libraries. No custom graph parser, reflection descriptor snapshot or framework-option matrix
+was introduced.
+The earlier 99-case execution describes the superseded complete-history shape only.

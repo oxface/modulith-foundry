@@ -1,9 +1,8 @@
 # E4 Durable event identity and JSON payload codec
 
 Status: scope approved after E3.7 checkpoint `dc3ac3b`, including the owner-selected
-`ModulithFoundry.Events.Serialization` name. Implemented and unstaged for line-by-line owner
-review; [the report](../reports/e4-event-serialization.md) records fresh proofs and limits.
-No commit is authorized.
+`ModulithFoundry.Events.Serialization` name. Owner-reviewed and checkpointed as `2a49ef3b`;
+[the report](../reports/e4-event-serialization.md) records fresh proofs and limits.
 
 ## Outcome and extraction case
 
@@ -193,7 +192,7 @@ remaining limits and consumer/template/library findings separately from this pro
 E4 supplies an editable explicit event-registration/JSON-contract recipe through its
 consumer. It needs no separate template generator or new host resource. Materialized
 template output remains E10. The codec is the sixth implemented technical library, with
-fresh bounded reuse proofs and its implementation still for owner review.
+fresh bounded reuse proofs and owner-reviewed implementation.
 
 E5 owns stream history, ordered hydration, expected-version append and caller-controlled
 persistence. E6 owns required views/repair, and E7 owns reliable delivery. Codec evolution,

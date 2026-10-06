@@ -4,6 +4,7 @@
     <RootNamespace>ModulithFoundry.Samples.Wholesale.EventCodecDemo</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <ProjectReference Include="../../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <InternalsVisibleTo Include="EventCodecDemo.Tests" />
     <None Update="Fixtures/**/*.json" CopyToOutputDirectory="PreserveNewest" />

@@ -141,3 +141,18 @@ The finite consumer builds independently with just the codec. These are adoption
 not an exact sample graph or restored transitive snapshot. No new architecture helper/parser
 or reusable architecture mechanism was introduced. [The E4 report](e4-event-serialization.md)
 separately records the new reusable product mechanism and consumer proofs.
+
+## E5.1 independent ordered-range validation
+
+Two added cases bring the suite to **53 freshly passed cases**. The native XML policy checks
+the history project's package/project/extra-framework independence. One grouped ArchUnitNET
+case prohibits history dependencies on JSON serialization, the other five technical segments
+and four consumer assemblies. The existing serialization rule now also rejects dependence
+on history; consumers may compose either segment independently. Existing module/Contracts
+rules include the new library without additional test cases.
+
+The pure range proof executable references only history and test tooling and uses metadata
+without event payloads. The combined standalone sample builds with just history, serialization
+and its own executable. No new architecture helper or exact restored dependency graph is
+maintained. [The E5.1 report](e5-1-event-history.md) records actual product proof scope and
+the unproven database capture/append boundary.

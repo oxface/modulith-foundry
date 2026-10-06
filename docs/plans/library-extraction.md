@@ -33,9 +33,12 @@ runtime and native exporter proofs from manual dashboard observations.
 [E3.7 real OIDC/browser journey](e3-7-oidc-browser-journey.md) was owner-reviewed and
 checkpointed as `dc3ac3b`; [its report](../reports/e3-7-oidc-browser-journey.md) records optional
 local Keycloak, explicit account mappings and actual Chromium journeys.
-[E4 event serialization](e4-event-serialization.md) is implemented and unstaged for owner
-review; [its report](../reports/e4-event-serialization.md) records fresh two-family codec,
-compatibility and independent-adoption proofs. E5 history/append remains a proposal.
+[E4 event serialization](e4-event-serialization.md) was owner-reviewed and checkpointed as
+`2a49ef3b`; [its report](../reports/e4-event-serialization.md) records fresh two-family codec,
+compatibility and independent-adoption proofs. [E5.1 history/hydration](e5-1-event-history.md)
+is implemented and unstaged for owner review; [its report](../reports/e5-1-event-history.md)
+records selected-range integrity and two-family reconstruction proofs. Its package division
+remains provisional until native EF consumers are exercised. Native append follows separately.
 
 ## Delivery model
 
@@ -363,7 +366,7 @@ E3.6 runtime composition/telemetry is checkpointed. [E3.7](e3-7-oidc-browser-jou
 implements disposable OIDC hosting and real browser login/callback, mapped actor, admission
 and protected profile mutation, checkpointed as `dc3ac3b`. This closes the bounded E3 ingress
 scope; [E4 durable event identity and payload codec extraction](e4-event-serialization.md)
-is now implemented for review, before E5 history/append.
+is checkpointed as `2a49ef3b`, before E5 history/append.
 E3.7 adds no technical
 library or provider-neutral authentication abstraction. Its local HTTPS topology does not
 prove external cross-site providers, proxy/subdomain sessions or account administration.
@@ -414,8 +417,8 @@ that state-stored modules work without event sourcing or messaging.
 
 [The approved E4 scope](e4-event-serialization.md) compares the two archived serializers
 and defines the native JSON codec, standalone two-family consumer, dependency promise and
-relevant proofs. `ModulithFoundry.Events.Serialization` is implemented, with line-by-line
-owner review remaining; [the report](../reports/e4-event-serialization.md) records actual
+relevant proofs. `ModulithFoundry.Events.Serialization` was owner-reviewed and checkpointed
+as `2a49ef3b`; [the report](../reports/e4-event-serialization.md) records actual
 bounded guarantees without claiming event-store behavior.
 
 Compare Inventory and Purchasing stable identities, required/optional payload behavior,
@@ -434,6 +437,14 @@ new template beyond explicit event registration.
 Deliver ordered-history/hydration and stream/envelope staging as independently reviewable
 increments if necessary. Integrate both aggregate families using the owning module's native
 EF transaction. Domain deciders/reducers and state shapes stay consumer-owned.
+
+[E5.1](e5-1-event-history.md) implements metadata-only ordered-range validation and explicit
+two-family hydration, pending owner review. Consumer queries own version/time selection;
+the initial complete-history snapshot/selection object was rejected during review.
+[Its report](../reports/e5-1-event-history.md) separates the new mechanism from consumer policy.
+E5.2 will separately define native
+EF loading/append, module integration and PostgreSQL failure/concurrency proofs. E5.1 does
+not establish database capture or transaction guarantees.
 
 Prove captured-head contiguous history, version/time selectors and regression/corruption
 classification, competing append, stream/event-write faults, replay with no external effect,

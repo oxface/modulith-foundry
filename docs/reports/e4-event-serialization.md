@@ -2,7 +2,10 @@
 
 2026-10-06. Implemented the approved [E4 scope](../plans/e4-event-serialization.md) after
 E3.7 checkpoint `dc3ac3b`, using the owner-selected `ModulithFoundry.Events.Serialization`
-name. All changes remain unstaged for line-by-line review. No E4 commit is authorized.
+name. The owner approved the exact 42-file change set, checkpointed as `2a49ef3b`.
+Pre-commit checks and commitlint passed. The hooks reran all 202 active container-free cases
+and 21 archived architecture cases; these archived dependency checks are separate from
+active product proofs and do not establish archived persistence or messaging behavior.
 
 ## Outcome and reuse finding
 

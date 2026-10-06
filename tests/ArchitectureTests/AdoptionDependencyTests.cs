@@ -33,6 +33,7 @@ public sealed class AdoptionDependencyTests
     [InlineData("ModulithFoundry.ActorIdentity", null)]
     [InlineData("ModulithFoundry.Tenancy", null)]
     [InlineData("ModulithFoundry.Events.Serialization", null)]
+    [InlineData("ModulithFoundry.Events.History", null)]
     [InlineData(
         "ModulithFoundry.Persistence.EntityFrameworkCore",
         "Microsoft.EntityFrameworkCore.Relational"

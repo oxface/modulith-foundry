@@ -14,13 +14,23 @@ internal static class FixtureEvents
     {
         foreach (string path in paths)
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(path));
-            JsonElement envelope = document.RootElement;
+            SerializedEvent envelope = ReadEnvelope(path);
             yield return codec.Deserialize(
-                envelope.GetProperty("eventName").GetString()!,
-                envelope.GetProperty("schemaVersion").GetInt32(),
-                envelope.GetProperty("payload")
+                envelope.EventName,
+                envelope.SchemaVersion,
+                envelope.Payload
             );
         }
+    }
+
+    internal static SerializedEvent ReadEnvelope(string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        JsonElement envelope = document.RootElement;
+        return new SerializedEvent(
+            envelope.GetProperty("eventName").GetString()!,
+            envelope.GetProperty("schemaVersion").GetInt32(),
+            envelope.GetProperty("payload").Clone()
+        );
     }
 }
