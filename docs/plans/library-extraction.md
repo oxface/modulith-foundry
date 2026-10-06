@@ -40,7 +40,12 @@ was owner-reviewed and checkpointed as `4cc12a1`; [its report](../reports/e5-1-e
 records selected-range integrity and two-family reconstruction proofs. Its package division
 remains for review alongside the now-implemented [E5.2.1 native EF consumers](e5-2-1-native-event-history.md).
 [Their report](../reports/e5-2-1-native-event-history.md) records new PostgreSQL evidence. E5.2.1
-changes remain unstaged; native append follows separately.
+was owner-reviewed and checkpointed as `4f4d5b2`. [E5.2.2](e5-2-2-native-event-append.md) is
+implemented and unstaged for owner review; [its report](../reports/e5-2-2-native-event-append.md)
+records new native append evidence and no new library mechanism.
+[E5.3 explicit storage registration](e5-3-event-storage-registration.md) is implemented before
+E6 and unstaged for review. [Its report](../reports/e5-3-event-storage-registration.md) records
+the extracted stream/envelope model utility independently of append orchestration.
 
 ## Delivery model
 
@@ -129,6 +134,7 @@ interfaces. Links below deliberately point to the historical evidence.
 | Module persistence | Explicit EF ownership-filter/model utilities and justified write validation | Module DbContext, schema, mappings, migrations and transaction ownership. The archived `shared/Persistence` utility is a starting comparison, not a required base context. |
 | Event identity and codec | Explicit alias/version registry, payload encoding/decoding and compatibility errors | Event definitions, required/optional fields, allowed schemas and evolution. Compare both serializers before designing a common interface. |
 | Event history | Contiguous ordered-range checks, captured-head reads and deterministic hydration mechanics | Domain reducer, state shape and temporal meaning. Preserve application append time versus commit time. |
+| Event-sourcing model registration | Explicit EF stream/envelope mapping, version token, selected keys/relationship and position uniqueness; E5.3 implementation awaiting review | Consumer row types, ownership/filter choice, DbContext/provider, migrations, stream families and saves. No required tenancy or codec dependency. |
 | Event append | Stream expected-version checks and event/envelope staging in native EF transactions | Business-key identity, decision state, view definitions, audit and transaction owner. PostgreSQL guarantees stay explicit. |
 | Inline projections and repair | Explicit batch coordination and bounded reconstruction helpers where genuinely shared | View identities/reducers, required-view policy, write admission, lock granularity and privileged recovery. Purchasing repair is not yet proven. |
 | Reliable messaging | Inbox/outbox storage, lease claims, token-guarded completion/backoff and callable dispatch | Semantic operation identities, fingerprint meaning, producer trust, retention, routes and payload mapping. Delivery deduplication is not business idempotency. |
@@ -450,16 +456,21 @@ E5.2 is split into two reviewable capabilities:
 - [E5.2.1 native EF history reads](e5-2-1-native-event-history.md): integrate both families
   into owning modules, map streams/envelopes with native migrations, exercise tenant-scoped
   version/time queries and bounded captured-head reads on PostgreSQL. Use explicit finite
-  setup writes; this is not an append protocol. Implemented and unstaged for owner review;
+  setup writes; this is not an append protocol. Owner-reviewed and checkpointed as `4f4d5b2`;
   [the report](../reports/e5-2-1-native-event-history.md) records new proofs.
-- E5.2.2 native append: expected-version staging, caller-owned save/commit, competing
-  writers, stream/event-write faults, rollback and fresh-context recovery. Its detailed
-  interface follows the read/mapping evidence rather than being frozen now.
+- [E5.2.2 native append](e5-2-2-native-event-append.md): expected-version staging,
+  caller-owned save/commit, competing
+  writers, stream/event-write faults, rollback and fresh-context recovery. Implemented and
+  unstaged for owner review. [The report](../reports/e5-2-2-native-event-append.md) compares the
+  consumer-owned writers: native EF supplies the concurrency/transaction mechanism. Reassess
+  the repeated staging shape with E6's required participants before proposing another interface.
 
 E5.1 does not establish database capture or transaction guarantees. E5.2.1 proves native
 read composition under the documented append-only assumption, adds no new reusable mechanism
-and recommends retaining the small independent History library for owner review. Production
-append atomicity, conflicts and rollback remain E5.2.2.
+and recommends retaining the small independent History library for owner review. E5.2.2 now
+proves append atomicity, conflicts and rollback for the explicit module protocol on PostgreSQL.
+Its initial E5 read/append scope is implemented; required views, audit and messaging have not
+yet participated in these transactions.
 
 Prove captured-head contiguous history, version/time selectors and regression/corruption
 classification, competing append, stream/event-write faults, replay with no external effect,
@@ -467,7 +478,51 @@ and caller-owned save/commit. Neither API promises projection-independent busine
 uniqueness. An event-sourced consumer runs without messaging; state-stored composition is
 unchanged. Add no generic aggregate repository or compulsory DDD base type.
 
+### E5.3 Explicit event-sourcing storage registration
+
+[The E5.3 scope](e5-3-event-storage-registration.md) extracts a narrower capability
+before E6: duplicated technical stream/envelope mappings in the two active modules. Implemented
+one EventSourcing.EntityFrameworkCore library with native EF Relational, consumer-owned row
+interfaces and explicit model registration. A tenant-free overload uses ordinary identities;
+native key expressions support the current owned keys. Ownership filters and jsonb mapping
+remain explicit consumer configuration; no actor, tenant, codec or messaging dependency.
+
+The owner authorized the interface before implementation. [The report](../reports/e5-3-event-storage-registration.md)
+records new adoption proofs: preserved module schemas/migrations and append behavior, multiple
+StreamType values in one table pair and customized tenant-free independent usage. The new
+mechanism is model registration; it does not enforce append-only behavior or commit transactions.
+Implementation remains unstaged for line-by-line review. Append coordination remains a separate
+candidate for E6 evidence.
+
 ### E6 Required inline views and bounded repair
+
+[E6.1 inline decision state and required views](e6-1-inline-decision-state.md) specifies the
+next reviewable capability and proposed consumer Contracts. It is a preparation document,
+not an implemented projector interface. Bounded repair will receive a separate E6.2 scope.
+
+Before proposing the E6 interface, compare the archived aggregate wrappers, deciders,
+candidate-state policies, live readers and inline projectors with the Marten reference.
+Record that comparison in [the event-sourcing reference review](../reports/marten-event-sourcing-reference.md).
+The E5.3 mapping proof does not settle aggregate loading, projection execution or repair.
+Do not infer that these capabilities have no reusable mechanics from native EF providing
+the transaction and concurrency primitives.
+
+First establish one reviewable decision-and-inline-view capability in both aggregate families:
+
+- Keep command eligibility and complete-candidate invariant validation separate from historical
+  evolution. Accept a batch only after its final candidate is valid; a rejected batch must
+  not change accepted state or pending events. Aggregate wrappers remain optional consumer code
+  unless their bookkeeping earns a separately reviewed utility.
+- Load current decision state from an aggregate-shaped inline write view and compare its
+  version with the stream registry. Keep live reconstruction available as an explicit read;
+  demonstrate that ordinary editing can succeed without replaying the whole history.
+- Apply accepted events to explicitly selected inline views. An independent summary owns its
+  reducer and advances from its own committed state. Calculating an in-memory preview, staging
+  inline rows, and repairing persisted rows are separate operations.
+- Compare repeated expected-version checks, accepted-batch handling and required-projector
+  coordination before deciding whether to extract a callable utility. Consumers retain projector
+  definitions, persistence mappings, required-view policy and the final save/commit. No assembly
+  discovery, generated projection code or SaveChanges interception is proposed.
 
 Integrate an aggregate-shaped write view and an independent summary view with one atomic
 append. Prove failure of each participant rolls back all required views/events/audit, with
@@ -479,6 +534,13 @@ lock lifetime and stream-creation coordination visible. Full reconstruction rema
 maintenance until measured evidence justifies another mechanism. Purchasing repair requires
 its own implementation and proof before it can be claimed. Async projections, checkpoints,
 shadow reconstruction and leader election are outside this extraction increment.
+
+Keep async projections as a later capability candidate requiring an actual eventual-consistency
+consumer and its own scope. A global event position alone does not establish committed ordering
+or safe progress. Explicit callable processing, progress/effect atomicity, gaps, competing workers
+and replay without external effects need new proofs before supporting that execution model.
+Metadata, checkpoint snapshots, projection revisions and pending-event preview likewise remain
+separate candidates, rather than compulsory fields or services in E5.3 storage registration.
 
 ### E7 Reliable messaging storage and callable dispatch
 

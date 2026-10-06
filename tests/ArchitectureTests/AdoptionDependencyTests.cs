@@ -38,6 +38,10 @@ public sealed class AdoptionDependencyTests
         "ModulithFoundry.Persistence.EntityFrameworkCore",
         "Microsoft.EntityFrameworkCore.Relational"
     )]
+    [InlineData(
+        "ModulithFoundry.EventSourcing.EntityFrameworkCore",
+        "Microsoft.EntityFrameworkCore.Relational"
+    )]
     public void RuntimeLibrariesDeclareOnlyTheirIntendedDependencies(
         string library,
         string? package
@@ -53,5 +57,29 @@ public sealed class AdoptionDependencyTests
             .Select(reference => (string)reference.Attribute("Include")!)
             .ToArray();
         Assert.Equal(package is null ? [] : [package], packages);
+    }
+
+    [Fact]
+    public void IndependentStorageConsumerDeclaresOnlyStorageAndNativeProviderPackages()
+    {
+        XDocument declaration = XDocument.Load(
+            Path.Combine(AppContext.BaseDirectory, "ProjectDeclarations", "EventStorageDemo.csproj")
+        );
+        Assert.Equal(
+            ["ModulithFoundry.EventSourcing.EntityFrameworkCore"],
+            declaration
+                .Descendants("ProjectReference")
+                .Select(reference =>
+                    Path.GetFileNameWithoutExtension((string)reference.Attribute("Include")!)
+                )
+        );
+        Assert.Equal(
+            ["Microsoft.EntityFrameworkCore.Design", "Npgsql.EntityFrameworkCore.PostgreSQL"],
+            declaration
+                .Descendants("PackageReference")
+                .Select(reference => (string)reference.Attribute("Include")!)
+                .Order(StringComparer.Ordinal)
+        );
+        Assert.Empty(declaration.Descendants("FrameworkReference"));
     }
 }

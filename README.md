@@ -43,8 +43,16 @@ hydration, owner-reviewed and checkpointed as `4cc12a1`. [Its report](docs/repor
 separates memory-only proofs from database guarantees.
 [E5.2.1 native EF reads](docs/plans/e5-2-1-native-event-history.md) adds owning Inventory/Purchasing
 modules and an [executable database consumer](samples/Wholesale/EventPersistenceDemo/README.md),
-unstaged for owner review. [Its report](docs/reports/e5-2-1-native-event-history.md) records
-PostgreSQL selection/isolation/capture proofs; append and messaging remain later increments.
+owner-reviewed and checkpointed as `4f4d5b2`. [Its report](docs/reports/e5-2-1-native-event-history.md)
+records PostgreSQL selection/isolation/capture proofs. The implemented, unstaged
+[E5.2.2 append slice](docs/plans/e5-2-2-native-event-append.md) adds explicit command staging
+and caller-owned transactions before views and messaging. [Its report](docs/reports/e5-2-2-native-event-append.md)
+records real PostgreSQL conflict/rollback proofs; no new library mechanism was needed.
+[E5.3 storage registration](docs/plans/e5-3-event-storage-registration.md) adds
+[EventSourcing.EntityFrameworkCore](src/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md),
+adopted by both modules and an [independent shared-table consumer](samples/EventStorageDemo/README.md).
+It is unstaged for review; [the report](docs/reports/e5-3-event-storage-registration.md) records
+fresh tenant-free/customized/mixed-stream proofs and preserved module schemas.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)

@@ -306,12 +306,31 @@ Selected-range validation does not certify excluded rows, a captured database he
 order, tenant scoping or concurrent append behavior. The revised implementation was
 owner-reviewed and checkpointed as `4cc12a1`. [E5.2.1 database consumers](plans/e5-2-1-native-event-history.md) implement native EF reads
 in owning Inventory/Purchasing modules, with [fresh PostgreSQL evidence](reports/e5-2-1-native-event-history.md),
-unstaged for owner review. No new Foundry mechanism or public interface is added. The range
+owner-reviewed and checkpointed as `4f4d5b2`. No new Foundry mechanism or public interface is
+added. The range
 validator now serves two real database readers; retaining its separate library is the review
 recommendation, not a frozen package decision. Native mappings, tenant/stream constraints,
 query selectors, timestamps and domain evolution remain consumer/template policy. Captured
-heads bound reads under an atomic append-only assumption; production append/transactions
-remain E5.2.2.
+heads bound reads under an atomic append-only assumption.
+[E5.2.2](plans/e5-2-2-native-event-append.md) implements module-owned command decisions and
+expected-version staging in caller-owned native transactions, unstaged for owner review.
+[Its fresh PostgreSQL proofs](reports/e5-2-2-native-event-append.md) cover competing creation/
+append, complete-batch rollback, two explicit saves and fresh-context recovery. No new Foundry
+mechanism was needed: EF's original-version predicate and native constraints arbitrate writes.
+The repeated staging shape remains a comparison candidate for E6's required participants;
+decisions, result types, row mappings and narrow native fault classification stay consumer-owned.
+
+Owner review identified a narrower extraction candidate in the two duplicated HistoryMapping
+implementations. [E5.3 explicit event-sourcing storage registration](plans/e5-3-event-storage-registration.md)
+is implemented before E6, unstaged for line-by-line review. Consumer rows keep their concrete
+types and optional ownership fields;
+an explicit EF utility configures shared stream/envelope tables, version concurrency and
+selected keys/relationships/position uniqueness. Schema/table options and native builders
+keep setup editable. Ownership, provider payload mapping, DbContext, migrations and saves
+remain explicit consumer choices. The proposed segment requires neither tenancy nor other
+event libraries. [The fresh report](reports/e5-3-event-storage-registration.md) proves adoption
+by both modules without schema changes and customized tenant-free mixed-type storage in an
+independent executable. It adds a reusable mapping utility, not append/transaction orchestration.
 
 Use options for supported variations, and explicit registration or dependencies for larger
 policy changes. Document how a setting changes a guarantee. Schema names, transport routes,

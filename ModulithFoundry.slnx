@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Libraries/">
+    <Project Path="src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
     <Project Path="src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <Project Path="src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <Project Path="src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
@@ -9,6 +10,8 @@
     <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/EventStorageDemo/EventStorageDemo.csproj" />
+    <Project Path="samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj" />
     <Project Path="samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj" />
     <Project Path="samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj" />

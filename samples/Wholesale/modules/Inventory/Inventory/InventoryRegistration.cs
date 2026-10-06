@@ -11,4 +11,7 @@ public static class InventoryRegistration
 
     public static IServiceCollection AddStockPositionHistory(this IServiceCollection services) =>
         services.AddScoped<IStockPositionHistory, StockPositionHistoryReader>();
+
+    public static IServiceCollection AddStockPositionCommands(this IServiceCollection services) =>
+        services.AddScoped<IStockPositionCommands, StockPositionCommands>();
 }

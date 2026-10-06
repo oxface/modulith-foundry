@@ -9,10 +9,22 @@ internal static class PurchaseOrderEvolution
         long version,
         DateTimeOffset recordedAt,
         IEnumerable<IPurchaseOrderEvent> events
+    ) => Apply(null, id, version, recordedAt, events);
+
+    internal static PurchaseOrderHistory Apply(
+        PurchaseOrderHistory? state,
+        Guid id,
+        long version,
+        DateTimeOffset recordedAt,
+        IEnumerable<IPurchaseOrderEvent> events
     )
     {
-        PurchaseOrderDrafted? draft = null;
-        var lines = new Dictionary<string, PurchaseOrderLine>(StringComparer.Ordinal);
+        PurchaseOrderDrafted? draft = state is null
+            ? null
+            : new PurchaseOrderDrafted(state.Code, state.SupplierReference, state.Currency);
+        var lines =
+            state?.Lines.ToDictionary(line => line.ItemCode, StringComparer.Ordinal)
+            ?? new Dictionary<string, PurchaseOrderLine>(StringComparer.Ordinal);
         foreach (IPurchaseOrderEvent @event in events)
         {
             switch (@event)

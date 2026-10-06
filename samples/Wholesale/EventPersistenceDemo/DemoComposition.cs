@@ -25,7 +25,9 @@ public static class DemoComposition
             PurchasingDatabase.Configure(options, connectionString)
         );
         services.AddStockPositionHistory();
+        services.AddStockPositionCommands();
         services.AddPurchaseOrderHistory();
+        services.AddPurchaseOrderCommands();
         return services;
     }
 }

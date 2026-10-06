@@ -320,3 +320,45 @@ consumer remains independently adoptable. [The slice report](e5-2-1-native-event
 distinguishes fresh executions from prior library/browser evidence and the deferred writer
 protocol. No new reusable mechanism was proven; existing validation/decoding now compose
 through two native EF readers.
+
+## E5.2.2 native event append
+
+The append increment adds **43 cases** to the PostgreSQL consumer suite, bringing it to 82.
+Cases protect module command staging and the native composition protocol: creation/batch
+visibility, independently expected state, two prepared writers at one head, stale/foreign
+preflight outcomes, invalid preparation without tracked changes, damaged history, repeated
+staging before/after save, rollback of saved work and fresh-scope recovery. Header, first/later
+envelope and second-save faults prove complete rollback of our staged participants.
+
+Constraint classification uses real PostgreSQL failures: known owned position collisions are
+conflicts; event-ID/check failures are faults. Competing creation exercises the real header key.
+One catalog concurrency case prevents our helper from classifying unrelated module writes as
+event conflicts. These are assertions about our error policy and append protocol, not generic
+transaction, foreign-key or argument-validation demonstrations. Cancellation is deliberately
+before commit dispatch; it makes no ambiguous-commit recovery claim.
+
+The tests use native contexts/migrations and existing command observation. No fake store,
+publisher counter, production hook or custom architecture infrastructure is added. Codec/range
+matrices are reused rather than copied. [The report](e5-2-2-native-event-append.md) records
+fresh results, remaining limitations and the finding that no new library mechanism was needed.
+
+Owner review removed StagedStreamIds bookkeeping from both contexts. The two repeated-staging/
+cancellation cases now use native tracked headers before and after save; they no longer clear
+tracking to test preservation of an artificial lifecycle restriction. Case count is unchanged.
+
+## E5.3 explicit event-sourcing model registration
+
+The independent storage consumer adds **10 cases**: six real PostgreSQL/executable cases and
+four focused connection-free model cases. The database cases protect our selected shared-table
+identity, position uniqueness, restrictive relationship, version token and customization. They
+check independently authored counter/note output, actual migrations and absence of per-family
+tables. These assertions protect configuration supplied by the utility, not generic native EF
+behavior. Complete writer/fault/rollback coverage is reused from the module suite rather than
+copied into a second store implementation.
+
+The four model cases protect key-shape validation: reject wrong header order, missing reference
+ownership and missing event-key ownership; accept matching prefixes with different consumer
+property names. They open no connection and do not add a general parser, cache-key factory or
+in-memory mapping matrix. Four new native-XML/ArchUnitNET architecture cases protect dependency
+declarations and actual library/consumer boundaries; existing module/Contracts rules also include
+the new library. [The report](e5-3-event-storage-registration.md) records fresh results and limits.

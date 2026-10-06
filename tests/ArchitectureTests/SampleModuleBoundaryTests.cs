@@ -7,6 +7,7 @@ using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Events.History;
 using ModulithFoundry.Events.Serialization;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Access.Contracts;
 using ModulithFoundry.Samples.Wholesale.Access.Persistence;
@@ -49,6 +50,7 @@ public sealed class SampleModuleBoundaryTests
         typeof(TenantOwnershipExtensions).Assembly,
         typeof(SerializedEvent).Assembly,
         typeof(EventHistory).Assembly,
+        typeof(IEventStreamRecord).Assembly,
     ];
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies([

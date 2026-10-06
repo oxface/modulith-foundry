@@ -11,3 +11,4 @@ await DemoJourneys.RunAsync(
     Console.Out,
     CancellationToken.None
 );
+await AppendJourneys.RunAsync(connection, Console.Out, CancellationToken.None);

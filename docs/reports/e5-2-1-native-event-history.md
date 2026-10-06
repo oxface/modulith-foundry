@@ -1,8 +1,8 @@
 # E5.2.1 native EF history reads
 
-2026-10-06. Implemented the owner-authorized [read/mapping increment](../plans/e5-2-1-native-event-history.md)
-after E5.1 checkpoint `4cc12a1`. All changes remain unstaged for owner review; no commit
-was performed. The existing checkpoint documentation updates accompany this slice.
+2026-10-06. The owner reviewed and approved the complete 60-file
+[read/mapping increment](../plans/e5-2-1-native-event-history.md), checkpointed as `4f4d5b2`
+after E5.1 checkpoint `4cc12a1`. The working tree was clean immediately after committing.
 
 ## Outcome and extraction finding
 
@@ -128,10 +128,16 @@ assertion; the final full 97-case run passed after replacing it with the module'
 applied set. Two HTTP migration assertions were updated in total. No failing result is presented
 as verification of the final change set.
 
-These are fresh local executions, not observed remote CI results. Other independent core/HTTP
-library suites, older PersistenceDemo suites and Aspire/browser suites were not rerun; their
-previous results remain historical. Archived readers supplied comparison evidence, not current
-storage guarantees. No provider-neutral or production deployment claim follows from this slice.
+The checkpoint freshly passed all required hooks: **237 active cases** across ten
+container-free suites and **21 archived architecture cases**, with no failures or skips.
+Active/archive native style and analyzers, the 265-file formatter check and commitlint passed.
+The independent core/HTTP library suites were rerun by those hooks. PostgreSQL suites retain
+the implementation results above; they were not rerun during checkpointing.
+
+These are fresh local executions, not observed remote CI results. Older PersistenceDemo suites
+and Aspire/browser results remain historical. Archived readers supplied comparison evidence,
+not current storage guarantees. No provider-neutral or production deployment claim follows
+from this slice.
 
 ## Review and remaining gaps
 
@@ -154,8 +160,9 @@ updates/deletes are not a snapshot guarantee. Header/selected-range checks do no
 excluded rows. Replay remains unbounded in stream length; index/performance tuning and snapshots
 need workload evidence. The new native model is PostgreSQL-specific and alternatives are unproven.
 
-E5.2.2 must define expected-version staging and caller-owned native save/commit, then prove
-competing append, stream/event-write faults, rollback and fresh-context recovery. Finite fixture
-setup does not provide that protocol. Required views and repair remain E6, reliable messaging
+[E5.2.2](e5-2-2-native-event-append.md) now implements expected-version staging and caller-owned
+native save/commit, with new competing-writer, write-fault, rollback and fresh-context proofs.
+Those results are separate from this checkpoint's read evidence above. Finite fixture setup
+does not provide that protocol. Required views and repair remain E6, reliable messaging
 E7, and materialized template/bootstrap E10. Rich command aggregates, reservations and complete
 purchase lifecycle are not established by read-only evolution.

@@ -141,6 +141,7 @@ dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-build 
 dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-build --no-restore
+dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj --no-build --no-restore
 ```
 
 For this repository's rootless Podman setup, prefix each command with:
@@ -154,9 +155,11 @@ DOTNET_PROCESSOR_COUNT=4
 Use your actual user socket path when it differs. The console smoke proof starts its own
 finite child process from the source checkout and passes the disposable connection through
 its environment. The sample executable must have been built in the same configuration.
-CI's separate Active PostgreSQL ownership lane runs all four suites. The event-history suite
+CI's separate Active PostgreSQL ownership lane runs all five suites. The event-history suite
 launches the built native executable and coordinates captured-head races through EF command
-interception, with no production test hook. The HTTP sample uses
+interception, with no production test hook. It also exercises module command staging,
+expected-version conflicts and caller-owned rollback on actual PostgreSQL; see
+[the append findings](reports/e5-2-2-native-event-append.md). The HTTP sample uses
 native protected cookies and actual Access migrations, without contacting an identity
 provider. Its suite moved out of container-free CI/hooks rather than retaining fake directory
 implementations; both independently adoptable HTTP library suites remain container-free. See
@@ -168,6 +171,8 @@ implementations; both independently adoptable HTTP library suites remain contain
 [the E3.3 Access report](reports/e3-3-persisted-access.md) and
 [HTTP/database setup](../samples/Wholesale/HttpIdentityDemo/README.md), and
 [the native event-history consumer](../samples/Wholesale/EventPersistenceDemo/README.md).
+The [independent storage consumer](../samples/EventStorageDemo/README.md) uses the mapping
+segment alone with custom table names and mixed stream types; its tests use actual migrations.
 
 ## Active Aspire runtime composition lane
 

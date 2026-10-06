@@ -6,6 +6,7 @@ using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Events.History;
 using ModulithFoundry.Events.Serialization;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Tenancy;
 using ModulithFoundry.Tenancy.AspNetCore;
@@ -27,6 +28,8 @@ public sealed class AssemblyDependencyTests
     private const string EventSerialization = "ModulithFoundry.Events.Serialization";
     private const string History = "ModulithFoundry.Events.History";
     private const string EventPersistenceSample = "EventPersistenceDemo";
+    private const string Storage = "ModulithFoundry.EventSourcing.EntityFrameworkCore";
+    private const string StorageSample = "EventStorageDemo";
     private const string CodecSample = "EventCodecDemo";
 
     private static readonly Architecture Architecture = new ArchLoader()
@@ -38,6 +41,8 @@ public sealed class AssemblyDependencyTests
             typeof(TenantOwnershipExtensions).Assembly,
             typeof(SerializedEvent).Assembly,
             typeof(EventHistory).Assembly,
+            typeof(IEventStreamRecord).Assembly,
+            typeof(Samples.EventStorageDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.EventCodecDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.EventPersistenceDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.ContextDemo.DemoComposition).Assembly,
@@ -96,6 +101,8 @@ public sealed class AssemblyDependencyTests
                 HttpSample,
                 CodecSample,
                 EventPersistenceSample,
+                Storage,
+                StorageSample,
                 History,
             }
         )
@@ -119,9 +126,58 @@ public sealed class AssemblyDependencyTests
                 HttpSample,
                 CodecSample,
                 EventPersistenceSample,
+                Storage,
+                StorageSample,
             }
         )
             NoDependency(History, forbidden).Check(Architecture);
+    }
+
+    [Fact]
+    public void EventStorageUsesNoOtherSegmentsOrConsumerTypes()
+    {
+        foreach (
+            string forbidden in new[]
+            {
+                Actor,
+                ActorHttp,
+                Tenancy,
+                TenancyHttp,
+                Persistence,
+                EventSerialization,
+                History,
+                ContextSample,
+                PersistenceSample,
+                HttpSample,
+                CodecSample,
+                EventPersistenceSample,
+                StorageSample,
+            }
+        )
+            NoDependency(Storage, forbidden).Check(Architecture);
+    }
+
+    [Fact]
+    public void IndependentStorageConsumerUsesNoOtherSegmentsOrSampleApplications()
+    {
+        foreach (
+            string forbidden in new[]
+            {
+                Actor,
+                ActorHttp,
+                Tenancy,
+                TenancyHttp,
+                Persistence,
+                EventSerialization,
+                History,
+                ContextSample,
+                PersistenceSample,
+                HttpSample,
+                CodecSample,
+                EventPersistenceSample,
+            }
+        )
+            NoDependency(StorageSample, forbidden).Check(Architecture);
     }
 
     private static TypesShouldConjunction NoDependency(string source, string forbidden)

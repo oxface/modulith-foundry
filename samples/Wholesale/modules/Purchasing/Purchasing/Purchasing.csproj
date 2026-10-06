@@ -12,5 +12,6 @@
     <ProjectReference Include="../../../../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../../../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <ProjectReference Include="../../../../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
+    <ProjectReference Include="../../../../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>

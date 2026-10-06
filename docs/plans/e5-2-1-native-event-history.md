@@ -1,7 +1,7 @@
 # E5.2.1 native EF event-history reads
 
-Status: implementation authorized by the owner on 2026-10-06 after E5.1 checkpoint
-`4cc12a1`; implemented changes remain unstaged for line-by-line review. No commit is authorized.
+Status: owner-reviewed and checkpointed as `4f4d5b2` on 2026-10-06 after E5.1 checkpoint
+`4cc12a1`. The owner approved the exact complete 60-file change set.
 [The implementation report](../reports/e5-2-1-native-event-history.md) records verification and limits.
 Read [the extraction plan](library-extraction.md), [design](../design.md) and
 [E5.1 findings](../reports/e5-1-event-history.md) alongside this proposal.
@@ -135,7 +135,8 @@ The template gains editable module mappings, migrations, explicit registration a
 read recipes. The sample gains actual module-owned event-history queries. Materialized
 template output and configurable bootstrap remain E10.
 
-E5.2.2 defines caller-controlled expected-version staging and native saving/transactions,
+[The proposed E5.2.2](e5-2-2-native-event-append.md) defines caller-controlled expected-version
+staging and native saving/transactions,
 with competing append, stream/event-write faults, rollback and fresh-context recovery.
 Required atomic views and repair remain E6; reliable messaging remains E7. These capabilities
 are not inferred from successful reads or setup writes.

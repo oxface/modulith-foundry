@@ -1,8 +1,9 @@
 using System.Text.Json;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
-internal sealed class EventStream
+internal sealed class EventStream : IEventStreamRecord
 {
     public string OrganizationKey { get; set; } = null!;
     public Guid Id { get; set; }
@@ -12,7 +13,7 @@ internal sealed class EventStream
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
-internal sealed class StoredEvent
+internal sealed class StoredEvent : IStoredEventRecord
 {
     public string OrganizationKey { get; set; } = null!;
     public Guid EventId { get; set; }
