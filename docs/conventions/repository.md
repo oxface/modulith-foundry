@@ -18,6 +18,14 @@ template file is needed only when the increment establishes a reusable setup pat
 Leave all changes unstaged for owner review. The old pattern-focused automatic-staging
 workflow is historical and no longer applies.
 
+## Repository scripts
+
+Use TypeScript for new durable repository scripts and proof harnesses, and when actively
+reworking such tooling. The owner reviews TypeScript; Python is not the preferred language
+for maintained scripting. Document the runtime and invocation, and verify types and formatting.
+Preserve archived tooling and unrelated existing scripts; this preference does not authorize
+a repository-wide migration.
+
 ## Handoff
 
 Present the coherent outcome, important choices, review-worthy files, verification, risks,

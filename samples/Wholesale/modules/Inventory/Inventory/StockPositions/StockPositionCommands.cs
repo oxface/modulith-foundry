@@ -7,7 +7,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> store)
     : IStockPositionCommands
 {
-    public async Task<StockPositionChangeResult> StageOpenAsync(
+    public async Task<StockPositionChangeResult> OpenAsync(
         OpenStockPosition request,
         CancellationToken cancellationToken
     )
@@ -22,7 +22,7 @@ internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> 
             );
             aggregate ??= StockPositionAggregate.Create(request);
             var recordedAt = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new StockPositionChangeResult.Staged(
+            return new StockPositionChangeResult.Changed(
                 aggregate.State!.ToHistory(aggregate.Id, aggregate.Version, recordedAt)
             );
         }
@@ -32,7 +32,7 @@ internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> 
         }
     }
 
-    public async Task<StockPositionChangeResult> StageReceiptsAsync(
+    public async Task<StockPositionChangeResult> ReceiveAsync(
         ReceiveStock request,
         CancellationToken cancellationToken
     )
@@ -49,7 +49,7 @@ internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> 
                 return new StockPositionChangeResult.NotFound();
             aggregate.Receive(items);
             var recordedAt = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new StockPositionChangeResult.Staged(
+            return new StockPositionChangeResult.Changed(
                 aggregate.State!.ToHistory(aggregate.Id, aggregate.Version, recordedAt)
             );
         }
@@ -59,7 +59,7 @@ internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> 
         }
     }
 
-    public async Task<StockPositionChangeResult> StageIssuesAsync(
+    public async Task<StockPositionChangeResult> IssueAsync(
         IssueStock request,
         CancellationToken cancellationToken
     )
@@ -80,7 +80,7 @@ internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> 
                     requested
                 );
             var recordedAt = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new StockPositionChangeResult.Staged(
+            return new StockPositionChangeResult.Changed(
                 aggregate.State!.ToHistory(aggregate.Id, aggregate.Version, recordedAt)
             );
         }

@@ -1,5 +1,9 @@
 # ES1 default envelope and library-local documentation refinement
 
+Historical design/execution record. The active interface is superseded by
+[the owner-approved native EF replacement](../plans/es2-native-ef-simplification.md).
+Renamed-source links lead to current replacements; removed mechanisms link to their replacement scope.
+
 Status: implemented for owner review, 2026-10-07. The owner requested a default StoredEventRecord,
 accepted clearer store/projection names, and required self-sufficient capability/limitation/
 plan context beside each library. This refines the same reviewable ES1 capability. New changes
@@ -85,7 +89,7 @@ Archive references and Marten comparisons remain historical/source evidence.
 ## Review scope and preserved work
 
 Review [StoredEventRecord](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/StoredEventRecord.cs),
-[InlineProjectionStorage](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineProjectionStorage.cs),
+[InlineProjectionStorage](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineStateReader.cs),
 [EventStore](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStore.cs),
 [save validation](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs)
 and [default-envelope adoption](../../samples/EventStorageDemo.Tests/AppendTests.DefaultEnvelope.cs).

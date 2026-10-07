@@ -3,11 +3,11 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
 // Staging changes the caller's native context only. Staged is not committed success.
 public interface IPurchaseOrderCommands
 {
-    Task<PurchaseOrderChangeResult> StageDraftAsync(
+    Task<PurchaseOrderChangeResult> DraftAsync(
         DraftPurchaseOrder request,
         CancellationToken cancellationToken
     );
-    Task<PurchaseOrderChangeResult> StageLinesAsync(
+    Task<PurchaseOrderChangeResult> ChangeLinesAsync(
         ChangePurchaseOrderLines request,
         CancellationToken cancellationToken
     );
@@ -29,7 +29,7 @@ public sealed record ChangePurchaseOrderLines(
 
 public abstract record PurchaseOrderChangeResult
 {
-    public sealed record Staged(PurchaseOrderHistory Proposed) : PurchaseOrderChangeResult;
+    public sealed record Changed(PurchaseOrderHistory Proposed) : PurchaseOrderChangeResult;
 
     public sealed record NotFound : PurchaseOrderChangeResult;
 

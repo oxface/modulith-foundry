@@ -3,7 +3,7 @@ using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
-internal sealed class PurchaseOrderCurrentRow : IInlineStateRecord
+internal sealed class PurchaseOrderStateRow : IInlineStateRecord
 {
     private static readonly JsonSerializerOptions StateJson = new(JsonSerializerDefaults.Web)
     {
@@ -36,10 +36,10 @@ internal sealed class PurchaseOrderCurrentRow : IInlineStateRecord
         return state;
     }
 
-    internal static PurchaseOrderCurrentRow PrepareCandidate(PurchaseOrderState state) =>
+    internal static PurchaseOrderStateRow FromState(PurchaseOrderState state) =>
         new() { State = JsonSerializer.SerializeToElement(state, StateJson) };
 
-    internal static PurchaseOrderCurrentRow Prepare(
+    internal static PurchaseOrderStateRow FromState(
         string owner,
         Guid id,
         long version,

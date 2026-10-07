@@ -3,90 +3,68 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
-/// <summary>Shared native stream lookup, version checks and atomic batch/inline staging.</summary>
-public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
+/// <summary>Native stream lookup, version checks, batch encoding and inline aggregate writes.</summary>
+public abstract class EventStore<TAggregate, TEvent, TStreamRecord, TStoredEventRecord>
     : IEventStore<TAggregate>
     where TAggregate : class, IEventSourcedAggregate<TEvent>
     where TEvent : class
-    where TStream : class, IEventStreamRecord
-    where TStoredEvent : class, IStoredEventRecord
+    where TStreamRecord : class, IEventStreamRecord
+    where TStoredEventRecord : class, IStoredEventRecord
 {
     private readonly DbContext database;
-    private readonly EventAppender<TEvent, TStream, TStoredEvent> appender;
+    private readonly EventBatchEncoder<TEvent, TStreamRecord, TStoredEventRecord> encoder;
     private readonly string streamType;
-    private readonly Dictionary<Guid, LoadedStream> loadedStreams = [];
-    private readonly List<ProjectionBinding> requiredProjections = [];
-    private ProjectionBinding? aggregateState;
+    private readonly Dictionary<Guid, StreamWriteObservation> loadedStreams = [];
+    private InlineAggregatePersistence<TAggregate, TStreamRecord>? inlineStatePersistence;
 
     protected EventStore(
         DbContext database,
-        EventRecordAdapter<TEvent, TStream, TStoredEvent> records,
+        EventRecordMapping<TEvent, TStreamRecord, TStoredEventRecord> records,
         TimeProvider timeProvider
     )
     {
-        appender = new(database, records, timeProvider);
+        encoder = new(database, records, timeProvider);
         this.database = database;
         streamType = records.StreamType;
     }
 
     /// <summary>Supplies trusted ownership and extra fields only. The store assigns stream metadata.</summary>
-    protected abstract TStream CreateStream(Guid id);
+    protected abstract TStreamRecord CreateStream(Guid id);
 
-    /// <summary>A raw stream may reuse its existing history reader. Inline stores configure an adapter instead.</summary>
+    /// <summary>A raw stream may reuse its existing history reader. Inline stores configure a mapping instead.</summary>
     protected virtual Task<TAggregate> LoadAggregateAsync(
-        TStream stream,
+        TStreamRecord stream,
         CancellationToken cancellationToken
     ) =>
         throw new InvalidOperationException("Configure aggregate state or a raw aggregate reader.");
 
-    protected void ConfigureMainState<TRow>(InlineAggregateAdapter<TAggregate, TRow> adapter)
-        where TRow : class, IInlineStateRecord
+    protected void ConfigureInlineState<TInlineStateRecord>(
+        AggregateStateMapping<TAggregate, TInlineStateRecord> mapping
+    )
+        where TInlineStateRecord : class, IInlineStateRecord
     {
-        ArgumentNullException.ThrowIfNull(adapter);
-        if (aggregateState is not null || loadedStreams.Count != 0)
+        ArgumentNullException.ThrowIfNull(mapping);
+        if (inlineStatePersistence is not null || loadedStreams.Count != 0)
             throw new InvalidOperationException(
                 "Configure one aggregate state before using the store."
             );
         if (
             !RequiredInlineStateExtensions.IsRegistered(
                 database.Model,
-                typeof(TStream),
-                typeof(TStoredEvent),
-                typeof(TRow),
+                typeof(TStreamRecord),
+                typeof(TStoredEventRecord),
+                typeof(TInlineStateRecord),
                 streamType
             )
         )
             throw new InvalidOperationException(
                 "Register this aggregate state in the native model/save contract."
             );
-        aggregateState = new AggregateStateBinding<TRow>(database, adapter);
-        requiredProjections.Add(aggregateState);
-    }
-
-    protected void ConfigureRequiredProjection<TRow>(InlineEventProjection<TEvent, TRow> projection)
-        where TRow : class, IInlineStateRecord
-    {
-        ArgumentNullException.ThrowIfNull(projection);
-        if (aggregateState is null || loadedStreams.Count != 0)
-            throw new InvalidOperationException(
-                "Configure required projections after aggregate state, before use."
-            );
-        if (requiredProjections.Any(participant => participant.RowType == typeof(TRow)))
-            throw new InvalidOperationException("An inline row type is already configured.");
-        if (
-            !RequiredInlineStateExtensions.IsRegistered(
-                database.Model,
-                typeof(TStream),
-                typeof(TStoredEvent),
-                typeof(TRow),
-                streamType,
-                isMainState: false
-            )
-        )
-            throw new InvalidOperationException(
-                "Register this required projection in the native model/save contract."
-            );
-        requiredProjections.Add(new SecondaryProjectionBinding<TRow>(database, projection));
+        inlineStatePersistence = new InlineAggregatePersistence<
+            TAggregate,
+            TStreamRecord,
+            TInlineStateRecord
+        >(database, mapping);
     }
 
     public async Task<TAggregate?> GetForWritingAsync(
@@ -100,13 +78,24 @@ public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
         if (expectedVersion is < 0)
             throw new ArgumentOutOfRangeException(nameof(expectedVersion));
         var transaction = RequireTransaction();
-        if (database.Set<TStream>().Local.Any(row => row.Id == id))
+        if (
+            inlineStatePersistence is null
+            && RequiredInlineStateExtensions.HasRegistration(
+                database.Model,
+                typeof(TStreamRecord),
+                streamType
+            )
+        )
+            throw new InvalidOperationException(
+                "Configure the registered inline aggregate state before writing."
+            );
+        if (database.Set<TStreamRecord>().Local.Any(row => row.Id == id))
             throw new InvalidOperationException(
                 "Use one terminal append per stream in a fresh context."
             );
         loadedStreams.Remove(id);
-        TStream? stream = await database
-            .Set<TStream>()
+        TStreamRecord? stream = await database
+            .Set<TStreamRecord>()
             .AsNoTracking()
             .SingleOrDefaultAsync(row => row.Id == id, cancellationToken);
         if (stream is null)
@@ -121,20 +110,20 @@ public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
                 throw new InvalidOperationException(
                     "The native transaction changed during loading."
                 );
-            loadedStreams[id] = new(stream, null, transaction, expectedVersion, []);
+            loadedStreams[id] = new(stream, null, transaction, expectedVersion, null);
             return null;
         }
-        ValidateHeader(stream);
+        EventStreamValidation.ValidateExistingStream(stream, streamType);
         if (expectedVersion is { } expectation && expectation != stream.Version)
             throw new DbUpdateConcurrencyException(
                 "The stream differs from the command's expected version."
             );
-        var states = new object?[requiredProjections.Count];
-        for (int index = 0; index < requiredProjections.Count; index++)
-            states[index] = await requiredProjections[index].LoadAsync(stream, cancellationToken);
-        TAggregate aggregate = aggregateState is null
+        object? state = inlineStatePersistence is null
+            ? null
+            : await inlineStatePersistence.ReadAsync(stream, cancellationToken);
+        TAggregate aggregate = inlineStatePersistence is null
             ? await LoadAggregateAsync(stream, cancellationToken)
-            : aggregateState.Restore(states[0]!);
+            : inlineStatePersistence.ToAggregate(state!);
         if (
             aggregate.Id != id
             || aggregate.ExpectedVersion != stream.Version
@@ -146,7 +135,7 @@ public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
             );
         if (!ReferenceEquals(transaction, database.Database.CurrentTransaction))
             throw new InvalidOperationException("The native transaction changed during loading.");
-        loadedStreams[id] = new(stream, aggregate, transaction, expectedVersion, states);
+        loadedStreams[id] = new(stream, aggregate, transaction, expectedVersion, state);
         return aggregate;
     }
 
@@ -159,7 +148,7 @@ public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
         cancellationToken.ThrowIfCancellationRequested();
         if (
             !loadedStreams.TryGetValue(aggregate.Id, out var loaded)
-            || loaded.Staged
+            || loaded.HasAppended
             || !ReferenceEquals(loaded.Transaction, RequireTransaction())
             || (loaded.Aggregate is not null && !ReferenceEquals(loaded.Aggregate, aggregate))
         )
@@ -171,32 +160,38 @@ public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
             && (aggregate.ExpectedVersion != 0 || loaded.Expectation is > 0)
         )
             throw new DbUpdateConcurrencyException(
-                "Creation requires an loaded missing stream at version zero."
+                "Creation requires a loaded missing stream at version zero."
             );
         if (aggregate.PendingEvents.Count == 0)
             throw new InvalidOperationException(
                 "Append requires accepted facts; an empty decision needs no append."
             );
-        var append = appender.Prepare(loaded.Stream, aggregate, cancellationToken);
-        TEvent[] events = aggregate.PendingEvents.ToArray();
-        var changes = new List<PreparedInlineProjection>();
-        for (int index = 0; index < requiredProjections.Count; index++)
-            changes.Add(
-                requiredProjections[index]
-                    .Prepare(
-                        loaded.Stream,
-                        loaded.States.Length == 0 ? null : loaded.States[index],
-                        aggregate,
-                        events,
-                        append.NextVersion,
-                        append.RecordedAt
-                    )
-            );
+        var append = encoder.Encode(loaded.ObservedStream, aggregate, cancellationToken);
+        var state = inlineStatePersistence?.Encode(
+            loaded.ObservedStream,
+            loaded.PersistedStateRow,
+            aggregate,
+            append.NextVersion,
+            append.RecordedAt
+        );
         cancellationToken.ThrowIfCancellationRequested();
-        append.Stage(cancellationToken);
-        foreach (var change in changes)
-            change.Stage();
-        loaded.Staged = true;
+        // All event/state encoding has succeeded. Only now enter the native unit of work.
+        if (loaded.ObservedStream.Version == 0)
+        {
+            loaded.ObservedStream.CreatedAt = append.RecordedAt;
+            database.Set<TStreamRecord>().Add(loaded.ObservedStream);
+        }
+        else
+            database.Set<TStreamRecord>().Attach(loaded.ObservedStream);
+        loaded.ObservedStream.Version = append.NextVersion;
+        loaded.ObservedStream.UpdatedAt = append.RecordedAt;
+        loaded.ObservedStream.ConcurrencyStamp = Guid.NewGuid();
+        database.Set<TStoredEventRecord>().AddRange(append.Rows);
+        if (state is not null)
+            inlineStatePersistence!.AddOrUpdate(loaded.PersistedStateRow, state);
+
+        // Pending facts remain on the aggregate; this observation must not append them twice.
+        loaded.HasAppended = true;
         return Task.FromResult(new EventAppendResult(append.NextVersion, append.RecordedAt));
     }
 
@@ -206,103 +201,19 @@ public abstract class EventStore<TAggregate, TEvent, TStream, TStoredEvent>
             "The store requires the caller's active native transaction."
         );
 
-    private void ValidateHeader(TStream stream)
-    {
-        if (
-            stream.StreamType != streamType
-            || stream.Version < 1
-            || stream.CreatedAt.Offset != TimeSpan.Zero
-            || stream.UpdatedAt.Offset != TimeSpan.Zero
-            || stream.CreatedAt > stream.UpdatedAt
-        )
-            throw new InvalidDataException(
-                "The captured stream family/version/timestamps are invalid."
-            );
-    }
-
-    private sealed class LoadedStream(
-        TStream stream,
+    private sealed class StreamWriteObservation(
+        TStreamRecord stream,
         TAggregate? aggregate,
         IDbContextTransaction transaction,
         long? expectation,
-        object?[] states
+        object? state
     )
     {
-        internal TStream Stream { get; } = stream;
+        internal TStreamRecord ObservedStream { get; } = stream;
         internal TAggregate? Aggregate { get; } = aggregate;
         internal IDbContextTransaction Transaction { get; } = transaction;
         internal long? Expectation { get; } = expectation;
-        internal object?[] States { get; } = states;
-        internal bool Staged { get; set; }
-    }
-
-    private abstract class ProjectionBinding
-    {
-        internal abstract Type RowType { get; }
-        internal abstract Task<object> LoadAsync(TStream stream, CancellationToken token);
-
-        internal virtual TAggregate Restore(object state) => throw new InvalidOperationException();
-
-        internal abstract PreparedInlineProjection Prepare(
-            TStream stream,
-            object? committed,
-            TAggregate aggregate,
-            IReadOnlyList<TEvent> events,
-            long version,
-            DateTimeOffset time
-        );
-    }
-
-    private sealed class AggregateStateBinding<TRow>(
-        DbContext database,
-        InlineAggregateAdapter<TAggregate, TRow> adapter
-    ) : ProjectionBinding
-        where TRow : class, IInlineStateRecord
-    {
-        private readonly InlineProjectionStorage<TStream, TRow> rows = new(database);
-        internal override Type RowType => typeof(TRow);
-
-        internal override async Task<object> LoadAsync(TStream stream, CancellationToken token) =>
-            await rows.LoadAsync(stream, token);
-
-        internal override TAggregate Restore(object state) => adapter.Restore((TRow)state);
-
-        internal override PreparedInlineProjection Prepare(
-            TStream stream,
-            object? committed,
-            TAggregate aggregate,
-            IReadOnlyList<TEvent> events,
-            long version,
-            DateTimeOffset time
-        ) => rows.Prepare(stream, (TRow?)committed, adapter.CreateRecord(aggregate), version, time);
-    }
-
-    private sealed class SecondaryProjectionBinding<TRow>(
-        DbContext database,
-        InlineEventProjection<TEvent, TRow> projection
-    ) : ProjectionBinding
-        where TRow : class, IInlineStateRecord
-    {
-        private readonly InlineProjectionStorage<TStream, TRow> rows = new(database);
-        internal override Type RowType => typeof(TRow);
-
-        internal override async Task<object> LoadAsync(TStream stream, CancellationToken token) =>
-            await rows.LoadAsync(stream, token);
-
-        internal override PreparedInlineProjection Prepare(
-            TStream stream,
-            object? committed,
-            TAggregate aggregate,
-            IReadOnlyList<TEvent> events,
-            long version,
-            DateTimeOffset time
-        ) =>
-            rows.Prepare(
-                stream,
-                (TRow?)committed,
-                projection.Evolve((TRow?)committed, events),
-                version,
-                time
-            );
+        internal object? PersistedStateRow { get; } = state;
+        internal bool HasAppended { get; set; }
     }
 }

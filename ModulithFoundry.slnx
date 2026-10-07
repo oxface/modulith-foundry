@@ -35,6 +35,7 @@
     <Project Path="src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/Libraries/EventSourcing/Tests/">
+    <Project Path="src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj" />
     <Project Path="src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj" />
   </Folder>
   <Folder Name="/Samples/">

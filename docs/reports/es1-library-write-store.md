@@ -1,5 +1,9 @@
 # ES1 provided write-store follow-up
 
+Historical design/execution record. The active interface is superseded by
+[the owner-approved native EF replacement](../plans/es2-native-ef-simplification.md).
+Renamed-source links lead to current replacements; removed mechanisms link to their replacement scope.
+
 Status: implemented and verified for owner review, 2026-10-07. The owner endorsed
 IEventStore<TAggregate> and authorized concrete implementation. Exact public configuration and
 implementation remain available for line-by-line review. Changes are unstaged; the existing
@@ -120,8 +124,8 @@ prefixes are documented there. Concurrency/transaction assertions require Postgr
 
 Start with [IEventStore](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/IEventStore.cs),
 [EventStore](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStore.cs),
-[state/projection bindings](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineAggregateAdapter.cs),
-[native inline state](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineProjectionStorage.cs)
+[state/projection bindings](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/AggregateStateMapping.cs),
+[native inline state](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineStateReader.cs)
 and [model/save validation](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs).
 The previously reviewed EventRecordAdapter, EventAppender and PreparedEventAppend remain the
 underlying batch mechanism, with their existing public shapes.

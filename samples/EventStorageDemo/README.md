@@ -1,9 +1,15 @@
 # Independent shared event-storage consumer
 
 This small native EF executable uses the package-free EventSourcing core and its native EF adapter.
-It has no modules, tenancy, actor, codec/history library, DI container or messaging dependency.
+It has no modules, tenancy, actor, codec registration, DI container or messaging dependency.
+The EF adapter now reuses Events.History integrity checks transitively; the consumer's direct
+project references remain the EventSourcing core and EF adapter.
 Counter/note facts are standalone consumer data, not Wholesale business rules. The authored
 mapping fixtures are retained alongside a separate bounded counter command journey.
+
+[CounterHistoryReader](CounterHistoryReader.cs) supplies direct JSON decoding to the provided
+bounded EF reader. [CounterStore](CounterStore.cs) delegates ordered prefix loading and validation
+to it while retaining historical evolution and its InvalidDataException-facing error policy.
 
 ```sh
 export EVENT_STORAGE_DEMO_CONNECTION_STRING='<disposable PostgreSQL connection string>'
@@ -48,7 +54,7 @@ IEventStore GetForWritingAsync/AppendAsync protocol through the provided EventSt
 with direct JSON and no tenant,
 codec, DI or required inline view. CounterAggregate owns eligibility and delegates pure evolution
 to the same reducer as history loading. A configured TimeProvider supplies the batch clock;
-the appender owns GUIDs and contiguous positions. Domain facts/state contain no JSON.
+the store owns GUIDs and contiguous positions. Domain facts/state contain no JSON.
 Every operation explicitly starts its native transaction, saves, commits/rolls back and
 disposes. Proposed results become durable only after commit. After faults/rollback, use a
 fresh context to load and decide again. Sequential reruns skip completed demo work; they
@@ -62,8 +68,7 @@ Tests use disposable PostgreSQL 18.6 Testcontainers and actual native migrations
 this executable, verify mixed-type storage/customization, physical identity/relationship
 boundaries and a stale native header update. Four focused model cases exercise safe key-shape
 rejection and acceptance of differently named ownership prefixes; they require no connection.
-The [append suite](../EventStorageDemo.Tests/AppendTests.cs) exercises the public preparation/
-staging contract, state-dependent rejection, captured-head races, competing creation/append,
+The [append suite](../EventStorageDemo.Tests/AppendTests.cs) exercises the supported direct-store contract, state-dependent rejection, captured-head races, competing creation/append,
 transaction rollback/fresh recovery, JSON lifetime and scoped-key isolation on PostgreSQL.
 The provided-store tests additionally cover version capture without a command expectation,
 superseded roots and invalid reconstitution without tracking. JSONB round-trip coverage disposes

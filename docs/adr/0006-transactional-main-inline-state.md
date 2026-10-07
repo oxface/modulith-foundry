@@ -23,8 +23,8 @@ therefore do not establish universal library enforcement.
 For streams registered for aggregate writes, require one main inline state carrying the
 version it represents. Accepted events, stream header and that state advance to the same
 version in one explicit consumer-owned native EF transaction. A participant failure must
-roll back all of them. Additional required synchronous views join that transaction; optional
-asynchronous projections have a separate future consistency contract.
+roll back all of them. The owner-approved ES2 reduction limits active library orchestration to
+that one aggregate state; secondary inline/async projections need a future reviewed contract.
 
 Explicit raw streams remain permitted without main inline state. Implementing the aggregate
 bookkeeping interface alone does not register a stream for the stronger consistency guarantee.
@@ -41,7 +41,9 @@ Ordinary reads can use native EF against current persisted main state. Aggregate
 pay for synchronous state maintenance and reject broken required state under the consumer's
 documented policy. Raw streams keep independent adoption without an implicit projection.
 
-The provided store declares main and required secondary participants explicitly. Native model
+The provided store declares one required aggregate state explicitly. The earlier ES1
+secondary-view contract is historical checkpoint evidence, superseded by the
+[reviewed ES2 reduction](../plans/es2-aggregate-only-reduction.md). Native model
 registration and validation in both consumer save overrides check the active transaction,
 header, complete inserted event range and required state metadata before SQL. New omission,
 corruption, rollback and recovery proofs appear in [the follow-up report](../reports/es1-library-write-store.md).

@@ -1,7 +1,8 @@
-# Native event-history, append and inline-view consumer
+# Native event-history, append and inline-aggregate consumer
 
-This executable uses the independent Events.Serialization and Events.History libraries in
-module-owned native EF readers and explicit command writers. Inventory reconstructs stock
+This executable uses Events.Serialization and the provided EventSourcing EF history reader in
+module-owned live reads and explicit command writers. The EF reader reuses Events.History
+integrity checks. Inventory reconstructs stock
 positions and stages receipts/issues; Purchasing reconstructs orders and stages line changes.
 Both use tenant-discriminated rows in separate schemas of one PostgreSQL
 connection, with separate native migration histories. No messaging registration is needed.
@@ -36,6 +37,8 @@ inventory inline: committed-version=3, on-hand=13.000
 purchasing inline: committed-version=3, total=62.50
 purchasing summary: committed-version=3, lines=1, total=62.50
 inventory issues: committed-version=5, on-hand=6.000, rejected=7
+inventory rebuilt: version=1
+purchasing rebuilt: version=1
 ```
 
 Setup skips already-present streams for an ordinary sequential rerun. It has no concurrent
@@ -52,7 +55,7 @@ for explicit replay, not for command loading. Open/draft
 requires expected version 0; receipts/line changes require a positive expected version and a
 nonempty valid batch. The established tenant supplies ownership; DTOs carry no tenant or actor.
 
-`StageIssuesAsync(IssueStock, ...)` validates all positive quantities, loads the required
+`IssueAsync(IssueStock, ...)` validates all positive quantities, loads the required
 inline state at the requested version and accepts only a complete batch whose sum fits
 current OnHand. InsufficientStock carries Available/Requested and leaves no staged rows.
 Inventory owns this rule: stock leaving one position, with no reservation, catalog mutation
@@ -63,11 +66,11 @@ Both modules inject `IEventStore<TAggregate>` and configure the provided EventSt
 Handlers use GetForWritingAsync, domain Create/operations and AppendAsync; bindings no longer
 repeat lookup/family/version/transaction orchestration. The library owns those validations,
 identities, positions, one batch clock sample and aggregate bookkeeping.
-Domain decisions, pure reducers, codec registration, required views and native completion
+Domain decisions, pure reducers, codec registration, aggregate state and native completion
 remain explicit consumer code. [StockIssueJourney](StockIssueJourney.cs) uses a separate stream:
 load 13 at version 3, issue 4 and 3 to reach 6 at version 5, then reject issue 7 in a fresh scope.
 
-Commands return Staged, NotFound or Conflict; issues also return InsufficientStock. Staged contains proposed business state, not
+Commands return Changed, NotFound or Conflict; issues also return InsufficientStock. Changed contains proposed business state, not
 durable success. A competitor can still win before saving. Native EF preserves the original
 header version in its UPDATE predicate; owned stream keys arbitrate competing creation.
 Native composition helpers classify only stream/required-view concurrency and the known PostgreSQL
@@ -83,33 +86,35 @@ entire context/proposal; a retry requires a fresh scope and an explicit new deci
 commit error does not establish rollback or safe retry. Caller-controlled commit is the success
 boundary. [AppendJourneys](AppendJourneys.cs) makes that ownership visible.
 
-## Inline state and required views
+## Inline aggregate state and native read shapes
 
 Register `AddStockPositionQueries()` / `AddPurchaseOrderQueries()` explicitly to read committed
-inline state. Inventory owns stock_position_current. Purchasing owns purchase_order_current
-and purchase_order_summary, whose per-item amounts evolve independently from accepted events.
-The caller's append transaction saves headers, events and all required views together.
-Explicit model declarations and both native save overrides validate required tracked
-participants/metadata/event ranges; a detached required row cannot silently leave events alone.
+inline state. Inventory owns stock_position_current; Purchasing owns purchase_order_current.
+ReadSummaryAsync derives its current result from checked PurchaseOrder state. The legacy
+purchase_order_summary table, mapping, migrations and seeded rows remain historical data;
+ordinary commands do not maintain it and current queries ignore it. The caller's append
+transaction saves headers, events and the one aggregate state together. Explicit model
+declarations and both native save overrides validate tracked state/metadata/event ranges;
+a detached required state cannot silently leave events alone.
 This contract excludes bypass SQL/bulk saves and does not validate a manually altered state body.
 ReadAvailableAsync uses StockPositionFilters over mapped onHand state and scoped native joins,
 with server-side filtering rather than historical payload replay.
 The availability catalog remains a separate state-stored demonstration.
 
-Commands read module-internal decision state from the inline write view and check every required
-view against the observed header. Missing/behind views or mismatched timestamps fail before
+Commands read module-internal decision state from the inline aggregate and check that state
+against the observed header. Missing/behind views or mismatched timestamps fail before
 staging; append never repairs them. A view ahead of the header observed earlier is a concurrency
 outcome, since a competitor can commit between reads. Command loading returns Conflict;
 view queries throw native DbUpdateConcurrencyException. Queries do not silently retry or promise
 a database snapshot across their separate reads.
 
-Complete candidate evolution, arithmetic validation, event encoding and view payload preparation
+Complete domain evolution, arithmetic validation, event encoding and state payload preparation
 finish before tracked rows change. Purchasing validates its final total after the complete batch;
-its summary applies the batch to its own committed amounts. The aggregate base collects only
+its current summary is derived from that state. The aggregate base collects only
 new accepted facts; historical reconstruction collects none. Existing pure reducers are shared
 within each module. No discovered projector registry is added.
 
-Inline commands validate their decision state and required view positions, rather than certifying
+Inline commands validate their decision state and captured version, rather than certifying
 all historical facts on each edit. Privileged historical corruption can therefore leave an inline
 command usable while explicit replay fails. Stop affected writes and investigate known corruption;
 this slice adds no automatic corruption discovery or repair. Consumers retain that admission policy.
@@ -122,14 +127,16 @@ null. Current reads capture a positive committed header version; at-version read
 positive version within that head. Before-first time reads return null; time means recorded
 time rather than event occurrence or commit order.
 
-Native queries select the maximum qualifying version for an intermediate cutoff, then fetch
+Consumer native queries select the maximum qualifying version for an intermediate cutoff, then
+the provided reader fetches
 its complete ordered prefix. A cutoff at/after header update time targets the full captured
 head so a missing tail cannot appear as an earlier state. Selection, ordering and ownership
 predicates execute in PostgreSQL before materialization. Equal recorded timestamps preserve
 version order.
 
-The reader explicitly validates positions, checks header/event timestamp consistency, decodes
-and evolves consumer-owned state. It saves nothing and has no publisher, event handler or
+The provided reader validates positions and stream/event timestamp consistency using the complete
+mapped key and parameterized SQL. Each module supplies decoding and evolves consumer-owned state.
+It saves nothing and has no publisher, event handler or
 pending-event collection. Purchasing results wrap reconstructed lines in a read-only collection.
 
 Error boundaries remain visible: argument errors for invalid versions, EventHistoryException
@@ -141,7 +148,7 @@ These are consumer error policies, not a new Foundry error protocol or HTTP resp
 ## Scope and proofs
 
 [The read suite](../EventPersistenceDemo.Tests/HistoryReadTests.cs) runs actual migrations,
-launches this executable and checks all ten output lines. Native EF command
+launches this executable and checks all twelve output lines. Native EF command
 interception observes SQL and coordinates a commit between header capture and event selection;
 no production test hook is present. A later append is excluded from that captured read and
 included by a fresh read. [The append suite](../EventPersistenceDemo.Tests/AppendTests.cs)
@@ -151,16 +158,17 @@ prepare both writers at the same head before saving the winner; no timing sleeps
 Cancellation proof is before commit dispatch, not recovery from an ambiguous in-flight commit.
 
 [Inline-view proofs](../EventPersistenceDemo.Tests/AppendTests.InlineViews.cs) deny actual PostgreSQL
-event SELECT permission while allowing editing, check independent two-item totals/replacement,
-reject missing/lagging/mistimed views, coordinate a commit between header/view reads and reject
-invalid/overflowing batches before tracking. The existing append matrix also observes committed
-views and fails each new view participant. This is consumer protocol coverage, not another EF
+event SELECT permission while allowing editing, check derived two-item totals/replacement,
+reject missing/lagging/mistimed aggregate state, coordinate a commit between header/state reads
+and reject invalid/overflowing batches before tracking. The append matrix
+also checks committed aggregate state and SQL failures of header/events/state. This is consumer protocol coverage, not another EF
 feature matrix.
 
 [State-dependent proofs](../EventPersistenceDemo.Tests/AppendTests.StateDependent.cs) check
 whole-batch issue eligibility, zero-stock completion, isolated tenants, stale/damaged/ahead
 observations, competing eligible decisions, required-view/event faults and fresh-context
-redecision. The existing E5/E6 matrices retain all original assertions through shared append.
+redecision. Historical E6 secondary-view assertions were replaced by the reviewed aggregate-only
+contract; earlier successful multi-view executions remain historical checkpoint evidence.
 
 Ordinary read consistency assumes atomically committed, append-only histories. Arbitrary
 privileged updates/deletes can invalidate that assumption; selected-range success does not
@@ -168,10 +176,10 @@ certify excluded rows. Full replay is unbounded in history length and no snapsho
 claim is made. The as-of query's index/performance needs depend on actual workloads.
 
 The availability catalog remains a separate state-stored Inventory demonstration. This
-increment does not make it an event projection. Required inline views are now implemented;
-bounded repair remains E6.2, audit and reliable messaging remain later participants. The new
-migrations create empty views; they do not automatically populate them for existing streams.
-The finite seed now prepares matching main/summary state from the unchanged literals and
+increment does not make it an event projection. One required inline aggregate and explicit
+bounded repair are implemented; audit and reliable messaging remain deferred. The retained E6
+migrations create empty state tables; they do not automatically populate them for existing streams.
+The finite seed now adds matching main state from the unchanged literals and
 saves each module in its own explicit native transaction. Command-created streams establish
 state through the provided store. Historical reconstruction remains available separately. Provider-specific jsonb mapping is sample code; other DBMSs are unproven.
 
@@ -181,3 +189,28 @@ state through the provided store. Historical reconstruction remains available se
 See [the store report](../../../docs/reports/es1-library-write-store.md) for fresh save-boundary
 omission/corruption, preparation-conflict, query translation and recovery proofs. T1 already
 provides an event-free generated composition; event template presets remain deferred.
+
+## Explicit single-stream maintenance
+
+[RebuildJourney](RebuildJourney.cs) is now part of the executable. A trusted local host selects
+AddStockPositionRebuilding/AddPurchaseOrderRebuilding, establishes admitted tenancy, invokes
+aggregate-specific maintenance Contracts in fresh explicit transactions, saves/commits and
+uses a fresh context for the next command. Existing demos/fixtures remain intact. There is no
+HTTP admin endpoint, permission model or automatic repair during ordinary reads.
+
+Inventory and Purchasing each reconstruct one main JSONB aggregate state. Purchasing summaries
+are native query projections of that state; the dormant summary entity/table is removed by a new
+migration. Writing and maintenance are independent implementations and registrations. The store
+binds only state/event mappings; the rebuilder injects the module's provided-reader implementation
+and retains pure evolution.
+The library validates the captured prefix, applies one state replacement and checks exact native
+save participation. Appends and repair both change a header concurrency stamp. A stale writer or
+repair loses at native SaveChanges; operations do not block before loading. Repair preserves event
+version and timestamps and never rewrites retained facts. Roll back/dispose and reload after a
+fault. These guarantees rely on the explicit native transaction and both save guards, not arbitrary
+SQL or external writers. Module ownership, authorization and final completion remain consumer policy.
+
+[Library contract](../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md)
+records setup, native errors and recovery limits. A maintenance worker remains planned and needed
+eventually; consumers can host reconciliation now and own scheduling, scaling and locking/windows.
+Ordinary reads/writes remain strict; no silent repair, snapshot catch-up or automatic retry.

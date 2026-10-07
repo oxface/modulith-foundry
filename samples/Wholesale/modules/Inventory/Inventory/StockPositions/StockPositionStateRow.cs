@@ -3,7 +3,7 @@ using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
-internal sealed class StockPositionCurrentRow : IInlineStateRecord
+internal sealed class StockPositionStateRow : IInlineStateRecord
 {
     private static readonly JsonSerializerOptions StateJson = new(JsonSerializerDefaults.Web)
     {
@@ -32,10 +32,10 @@ internal sealed class StockPositionCurrentRow : IInlineStateRecord
         return state;
     }
 
-    internal static StockPositionCurrentRow PrepareCandidate(StockPositionState state) =>
+    internal static StockPositionStateRow FromState(StockPositionState state) =>
         new() { State = JsonSerializer.SerializeToElement(state, StateJson) };
 
-    internal static StockPositionCurrentRow Prepare(
+    internal static StockPositionStateRow FromState(
         string owner,
         Guid id,
         long version,

@@ -8,6 +8,8 @@ public sealed class EventStreamRecord : IEventStreamRecord
     public Guid Id { get; set; }
     public string StreamType { get; set; } = null!;
     public long Version { get; set; }
+    public Guid ConcurrencyStamp { get; set; } = Guid.NewGuid();
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? Description { get; set; }

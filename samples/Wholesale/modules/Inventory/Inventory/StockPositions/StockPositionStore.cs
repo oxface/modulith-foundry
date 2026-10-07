@@ -8,22 +8,12 @@ internal sealed class StockPositionStore
     private readonly InventoryDbContext database;
 
     public StockPositionStore(InventoryDbContext database, TimeProvider timeProvider)
-        : base(database, new StockPositionEventRecordAdapter(), timeProvider)
+        : base(database, new StockPositionEventRecordMapping(), timeProvider)
     {
         this.database = database;
-        ConfigureMainState(new MainState());
+        ConfigureInlineState(new StockPositionStateMapping());
     }
 
     protected override EventStream CreateStream(Guid id) =>
         new() { OrganizationKey = database.RequiredOrganizationKey };
-
-    private sealed class MainState
-        : InlineAggregateAdapter<StockPositionAggregate, StockPositionCurrentRow>
-    {
-        public override StockPositionAggregate Restore(StockPositionCurrentRow state) =>
-            StockPositionAggregate.FromState(state.StreamId, state.Version, state.ReadState());
-
-        public override StockPositionCurrentRow CreateRecord(StockPositionAggregate aggregate) =>
-            StockPositionCurrentRow.PrepareCandidate(aggregate.State!);
-    }
 }

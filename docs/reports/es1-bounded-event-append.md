@@ -1,5 +1,9 @@
 # ES1: aggregate-based bounded event append
 
+Historical design/execution record. The active interface is superseded by
+[the owner-approved native EF replacement](../plans/es2-native-ef-simplification.md).
+Renamed-source links lead to current replacements; removed mechanisms link to their replacement scope.
+
 The later [provided-store revision](es1-library-write-store.md) adds shared write loading/
 validation and explicit required-state native-save integration. Its execution results are
 reported separately; counts and local-store descriptions below record the earlier surface.
@@ -204,9 +208,9 @@ rerun here. No new template or archive runtime mechanism is claimed.
 
 Start with [aggregate core](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/EventSourcedAggregate.cs),
 [write contract](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/IEventSourcedAggregate.cs),
-[configured appender](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventAppender.cs),
-[record adapter](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventRecordAdapter.cs)
-and [prepared batch](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/PreparedEventAppend.cs).
+[former configured appender](../plans/es2-native-ef-simplification.md),
+[record adapter](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventRecordMapping.cs)
+and [former prepared batch](../plans/es2-native-ef-simplification.md).
 Then review [Inventory store](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionStore.cs),
 [commands](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionCommands.cs),
 [Purchasing store](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderStore.cs)

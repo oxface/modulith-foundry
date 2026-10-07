@@ -65,6 +65,11 @@ public static class EventSourcingStorageExtensions
             .HasColumnName("version")
             .IsConcurrencyToken()
             .ValueGeneratedNever();
+        stream
+            .Property(row => row.ConcurrencyStamp)
+            .HasColumnName("concurrency_stamp")
+            .IsConcurrencyToken()
+            .ValueGeneratedNever();
         stream.Property(row => row.CreatedAt).HasColumnName("created_at");
         stream.Property(row => row.UpdatedAt).HasColumnName("updated_at");
 

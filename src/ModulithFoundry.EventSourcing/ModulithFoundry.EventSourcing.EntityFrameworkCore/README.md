@@ -1,261 +1,192 @@
-# Explicit EF event-sourcing storage
+# Native EF event stores and aggregate rebuilding
 
-Opt-in model registration for consumer-owned stream/header and durable envelope rows.
-The package references EF Core Relational and the package-free EventSourcing aggregate core.
-It requires no Npgsql, actor, tenant, codec, hosting or messaging registration.
+The package references the package-free EventSourcing core, Events.History integrity checks,
+EF Core Relational and DI abstractions. It does not reference a database provider, tenancy, business Contracts or
+an event codec. PostgreSQL is the verified runtime; other relational providers are not certified.
 
-[Current capabilities and deferred directions](docs/capabilities.md) live in this package,
-including provider-specific adapter candidates and projection rebuild/async/multi-stream limits.
-Root plans and reports are supplementary review/evidence records.
+## Model and save boundary
 
-Implement IEventStreamRecord on your header. For envelopes, use the supplied sealed
-StoredEventRecord or your own IStoredEventRecord implementation, then call
-the utility from your DbContext's OnModelCreating:
+Implement IEventStreamRecord on the header, including its application-managed Guid
+ConcurrencyStamp. Use the supplied StoredEventRecord or your own IStoredEventRecord envelope.
+ConfigureEventSourcingStorage<TStreamRecord,TStoredEventRecord>() maps headers, envelopes, the complete
+PK/FK, unique per-stream positions and native Version/ConcurrencyStamp concurrency tokens.
+An overload accepts native composite key expressions for tenant-owned rows. Configure payload
+as JSONB in your PostgreSQL consumer. JsonElement is the durable envelope payload, not the
+shape of a domain event: heterogeneous concrete event types serialize into separate envelopes.
+The library clones payloads before tracking; consumers select aliases, schemas and decoding.
 
-```csharp
-modelBuilder.ConfigureEventSourcingStorage<EventStreamRecord, StoredEventRecord>(
-    new EventSourcingStorageOptions
-    {
-        Schema = "journal",
-        StreamsTable = "streams",
-        EventsTable = "facts"
-    });
+Map one IInlineStateRecord row per complete stream key, its Version as a native concurrency
+token, and its RecordedAt. ConfigureRequiredInlineState<TStreamRecord,TStoredEventRecord,TInlineStateRecord>(streamType)
+registers the required aggregate. Call ValidateEventStreamChanges() in **both** native
+SaveChanges(bool) and SaveChangesAsync(bool,CancellationToken) overrides before calling base.
+It validates complete event/state/header participation before SQL. It does not install itself
+or protect raw SQL, bulk updates, external writers or consumers which omit the save guard.
+DbSet properties and context markers are unnecessary; native Set<T>() and Entry(instance) work.
+Use ordinary independent single-table rows with mapped unconverted CLR keys.
 
-// Provider mapping is deliberately visible in this PostgreSQL consumer.
-modelBuilder.Entity<StoredEventRecord>().Property(row => row.Payload).HasColumnType("jsonb");
-```
+## Writing
 
-The simple overload selects Id/EventId primary keys and a StreamId reference without tenancy.
-The default StoredEventRecord supplies common envelope properties without ownership or extra
-fields. Its payload can represent different event classes; durable name/schema determines
-decoding. Provider JSON mapping and selected codec/direct JSON stay explicit. A custom row
-remains appropriate for composite ownership or added fields.
+Derive a typed module store from EventStore<TAggregate,TEvent,TStreamRecord,TStoredEventRecord>.
+Its constructor passes the module's concrete DbContext, EventRecordMapping and TimeProvider.
+ConfigureInlineState(new AggregateStateMappingImplementation()) binds that aggregate's state.
+CreateStream supplies ownership and consumer-specific fields; the library assigns identity,
+stream type, event positions, GUIDs, UTC batch time, version and concurrency stamp.
+The state mapping converts row to aggregate and aggregate to a fresh detached row. The library
+fills its complete key/version/time. It preserves EF's original header and state tokens.
 
-Options default to event_streams/events and the context's native default schema. One pair of
-tables supports different StreamType values; this is application metadata, not EF inheritance
-or automatic event-family registration. Identical stream identities cannot be reused merely
-by selecting a different type.
-
-For scoped identities, use the native key-expression overload:
-
-```csharp
-modelBuilder.ConfigureEventSourcingStorage<EventStreamRecord, StoredEventRecord>(
-    streamKey: row => new { row.AccountKey, row.Id },
-    eventKey: row => new { row.AccountKey, row.EventId },
-    eventStreamKey: row => new { row.AccountKey, row.StreamId });
-```
-
-Configure your ownership properties/column names yourself. Apply filters and any write guards
-explicitly, using native EF or the separate ownership utility. The registration does not
-interpret AccountKey as a tenant, resolve it, stamp it or grant access. Corresponding ownership
-prefixes may use different names on stream and event rows; their types/order must match, and
-the event primary key and stream reference must use the same prefix on the event row.
-
-Registration maps common snake_case columns, 100/200 stream-type/event-name limits, explicitly
-supplied GUID identities, the header version concurrency token, positive version constraints,
-a restrictive relationship to the selected header primary key and a unique foreign-key-plus-
-StreamVersion index. Foreign references or duplicate positions fail through native database
-exceptions. Header update races use native EF concurrency, not a library error protocol.
-
-Supported keys end in Id/EventId/StreamId, optionally preceded by matching unconverted CLR
-ownership properties. Unsupported/mismatched identities fail during model construction.
-Consumer row types remain independent ordinary entities. Inheritance, owned/shared rows,
-table splitting, converted keys, arbitrary identity/payload types and type-scoped keys are
-outside the initial supported shape.
-
-Native builders remain available for extra columns/indexes or replacing defaults. A checked
-column rename requires updating its native check-constraint SQL. Replacing keys, concurrency
-or relationships changes the documented guarantee; it is consumer policy. A new table/constraint
-name also requires corresponding updates to consumer constraint-specific error classification.
-
-The caller owns provider/context registration, migrations, consumer fields, serialization,
-stream-type queries, decisions, transactions, saving, commit/rollback, retry and disposal.
-Registration neither collects events nor loads histories or
-coordinates required views by itself. The opt-in write store below adds native coordination;
-no DbContext base, ambient transaction, generated runtime code or publishing worker is added.
-
-PostgreSQL **18.6**, EF **10.0.12** and Npgsql EF **10.0.3** are the proven consumer configuration.
-No other DBMS or provider-neutral compatibility is claimed. Check SQL uses the default column
-names; payload/provider mapping remains consumer code. Registration cannot protect histories
-from privileged SQL updates/deletes, prove business-key uniqueness or resolve ambiguous commits.
-
-## Provided aggregate write store
-
-Handlers depend on `IEventStore<TAggregate>`. The provided
-`EventStore<TAggregate, TEvent, TStream, TStoredEvent>` captures stream version internally,
-validates family/state metadata and coordinates prepared event/header/required-state changes.
-It requires the caller's native transaction and never calls SaveChanges or commit:
-
-```csharp
+~~~csharp
 await using var transaction = await database.Database.BeginTransactionAsync(token);
-var aggregate = await store.GetForWritingAsync(request.Id, request.ExpectedVersion, token);
+var aggregate = await store.GetForWritingAsync(id, expectedVersion, token);
 aggregate ??= PurchaseOrderAggregate.Create(request);
 aggregate.SetLines(lines);
-var staged = await store.AppendAsync(aggregate, token);
+await store.AppendAsync(aggregate, token);
 await database.SaveChangesAsync(token);
 await transaction.CommitAsync(token);
-```
+~~~
 
-Omit expectedVersion to protect the fetched version without a separate command expectation.
-A missing stream returns null with a version-zero observation. Domain Create emits its opening
-fact immediately. An update can instead report NotFound. EventAppendResult gives staged version
-and recorded time, not durability. Empty/rejected decisions need no append. Refetch supersedes
-an earlier root; append once per observed stream/context, then discard the operation after
-rollback/fault. No pending-event clearing, automatic retry or tracker repair.
+GetForWritingAsync captures a filtered header and matching inline state. Missing streams return
+null; existing required state must exactly match the head and recorded time. No automatic
+catch-up or replay happens on this path. Eligibility, reducers, accepted events and business
+validation stay in the aggregate/consumer. AppendAsync encodes the entire batch and state before
+changing tracked rows, then advances the header and adds envelopes with the updated aggregate.
+One append per observation/context is supported. Empty/rejected decisions need no append.
+Final SaveChanges, commit/rollback and error classification are consumer-owned.
 
-A derived binding supplies trusted new-stream ownership through CreateStream. It configures
-`InlineAggregateAdapter<TAggregate, TRow>` once for main state: Restore decodes the committed
-row and returns an effect-free aggregate; CreateRecord returns a fresh detached state candidate.
-The store sets complete foreign keys, version and recorded time. Additional required views use
-`InlineEventProjection<TEvent, TRow>` to evolve their own committed state into fresh candidates.
-It prepares all participants before tracking events/header/state. Main state is already evolved
-by domain operations; the store encodes it without applying pending facts a second time.
+Raw streams omit required state and override LoadAggregateAsync with their existing captured
+history loading path. They can use the provided bounded history reader described below.
+This package does not provide a projection engine.
+InlineStateReader<TStreamRecord,TInlineStateRecord>.ReadAsync supports filtered state lookup; Validate checks an
+already fetched row without another query. Consumers build Queries/Filters with native LINQ,
+including mapped predicates and joins. Read queries never repair stored state.
 
-Implement `IInlineStateRecord` and map each ordinary row with complete-stream-key PK/FK,
-Version as a native concurrency token and RecordedAt. Register main state after native mapping:
+## Bounded event history
 
-```csharp
-model.ConfigureRequiredInlineState<EventStream, StoredEvent, PurchaseOrderCurrentRow>(family);
-model.ConfigureRequiredInlineState<EventStream, StoredEvent, PurchaseOrderSummaryRow>(
-    family, isMainState: false);
-```
+EventHistoryReader<TEvent,TStreamRecord,TStoredEventRecord> implements
+IEventHistoryReader<TEvent,TStreamRecord>. Derive a module reader and pass its concrete DbContext
+and expected stream type to the constructor. Implement DecodeEvent(record) using your event
+codec or direct JSON. TEvent may be an interface spanning heterogeneous concrete event payloads;
+TStoredEventRecord is their common persistence envelope. No decoder adapter or mandatory codec
+package is required. Native scoped DI can alias the concrete reader through the interface.
 
-Use one main and distinct inline row types per family/participant. The explicit declarations
-must accompany validation in **both** native save overrides:
+~~~csharp
+var events = await historyReader.ReadAsync(observedStream, cancellationToken: token);
+var earlier = await historyReader.ReadAsync(observedStream, throughVersion: 2, cancellationToken: token);
+~~~
 
-```csharp
-public override int SaveChanges(bool acceptAllChangesOnSuccess)
-{
-    this.ValidateEventStreamChanges();
-    return base.SaveChanges(acceptAllChangesOnSuccess);
-}
+The caller selects the stream first. ReadAsync never reloads it: the default bound is its
+observed version, and an explicit bound must be between 1 and that version. Selection uses the
+complete native PK/FK, including ownership components; native query filters remain active.
+Ordering and the upper bound execute in SQL. Missing first/middle/tail positions, time regression,
+non-UTC metadata and inconsistent stream endpoints fail before any payload is decoded. An earlier
+prefix validates its creation endpoint and selected metadata, not excluded history.
+An explicit version may fall inside an append batch and reconstruct intermediate state that was
+never served as a committed inline aggregate. Recorded timestamps are not unique batch identities.
 
-public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
-    CancellationToken cancellationToken = default)
-{
-    this.ValidateEventStreamChanges();
-    return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-}
-```
+Results retain each event's version and recorded time. The reader tracks/saves nothing and
+requires no transaction for ordinary reads. Missing streams, recorded-time cutoff selection,
+tenant admission and live-view evolution remain consumer policy. Rebuilding uses the same scoped
+module context and its explicit transaction. A later committed append is excluded from an already
+observed prefix; only a fresh stream observation discovers it.
 
-Retain any consumer tenant checks alongside this guard. It detects omitted/altered required
-metadata, independent state changes, missing advancing headers/event positions and envelope
-mutation/deletion before SQL. It requires an explicit active transaction for registered writes.
-Annotations alone do not enforce saving; raw SQL, bulk updates/deletes, external writers,
-bypassed overrides and semantic state-body tampering are outside the guarantee.
+Argument errors and unsupported native mappings propagate as native argument/operation exceptions.
+Range gaps/order/time regression use EventHistoryException from Events.History. Invalid stream,
+UTC or endpoint metadata uses InvalidDataException. Decoder/EF/provider faults and cancellation
+propagate. There is no retry, streaming/page limit, global ordering, upcasting, catch-up or repair.
+The entire selected prefix is materialized; no capacity/performance guarantee is made.
 
-`InlineProjectionStorage<TStream, TRow>` loads through native global filters using complete FK metadata
-and validates captured version/time. Missing/behind state fails with InvalidDataException;
-ahead state throws DbUpdateConcurrencyException. Validate also checks a row selected by an
-existing native joined query without extra I/O. No general history reader or projector engine.
+## Encoding and EF tracking
 
-Raw streams remain supported: override LoadAggregateAsync with the existing captured-history
-reader and omit inline registration. The independent counter demonstrates that path with direct
-JSON and no tenant/codec/DI dependency. A family can contain multiple registered fact types in
-one envelope type and maintain several separately configured projections. Neither TStoredEvent
-nor JsonElement appears in the handler interface. JSONB provider mapping and durable codec
-registrations remain consumer configuration.
+AggregateStateMapping explicitly restores a domain aggregate from its persistence record and
+encodes its evolved state into a fresh detached record. EventRecordMapping encodes each concrete
+event into its envelope. These mappings keep domain construction, payload codecs and consumer
+ownership fields explicit. They do not create objects through inferred constructors.
 
-See the [Inventory binding](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionStore.cs),
-[Purchasing binding](../../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderStore.cs)
-and [raw counter binding](../../../samples/EventStorageDemo/CounterStore.cs).
-[The exact scope/errors](../../../docs/plans/es1-library-write-store.md) and
-[store proof report](../../../docs/reports/es1-library-write-store.md) accompany owner review.
+The domain aggregate and tracked EF state record are separate objects. Command decisions evolve
+the aggregate first. The library validates all event/state encodings before tracking anything,
+then attaches the observed record to preserve its original concurrency values and copies the
+encoded values into it. Missing state is added instead. No save or commit happens in this step.
+JsonElement.Clone gives an envelope payload an independent JSON document lifetime; it does not
+control EF tracking or make JSON mutable. One append per loaded aggregate is supported: pending
+facts remain on the aggregate, so a second append through the same observation is rejected even
+after SaveChanges. Discard the context and aggregate after rollback or faults.
 
-## Lower-level prepared append
+## Executable examples
 
-`EventAppender<TEvent, TStream, TStoredEvent>` remains the technical batch mechanism inside
-the store, configured with the native DbContext, EventRecordAdapter and TimeProvider.
-The adapter returns a fresh detached row with durable event identity/schema, payload,
-ownership and extra fields. The appender owns event identity/position/time and payload lifetime.
-Consumers needing the lower-level path can use Prepare/Stage explicitly; configured native
-save checks still require declared inline participants.
+- Aggregate writes: [StockPositionCommands](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionCommands.cs)
+  shows load/create, state-dependent decisions and append; [StockIssueJourney](../../../samples/Wholesale/EventPersistenceDemo/StockIssueJourney.cs)
+  supplies explicit transactions, save/commit and rollback.
+- Required inline aggregate: [StockPositionStateMapping](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionStateMapping.cs)
+  converts domain/persistence state; [StockPositionQueries](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionQueries.cs)
+  filters and joins that stored state with native EF. This is the single required aggregate,
+  not an additional persisted read projection. Additional inline views remain deferred.
+- Explicit rebuild: [StockPositionRebuilder](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionRebuilder.cs)
+  delegates history loading and evolution; [RebuildJourney](../../../samples/Wholesale/EventPersistenceDemo/RebuildJourney.cs)
+  registers maintenance independently and executes replay, save/commit and a subsequent command.
+- Minimal consumer without tenant or codec setup: [Ledger consumer](../tests/EventSourcingPostgresTests/RebuildConsumer.cs)
+  and [executable rebuild tests](../tests/EventSourcingPostgresTests/RebuildTests.cs).
 
-The appender requires IEventSourcedAggregate, checks its captured version/identity/pending
-count against the observed detached header, and prepares the complete batch without tracking
-or changing that header. It generates nonempty distinct GUIDs, assigns contiguous positions
-in accepted order, samples GetUtcNow once, clones payloads and validates the complete mapped
-foreign key including ownership. Source JsonDocuments may be disposed after Prepare.
-Encoding remains the adapter's responsibility; fresh rows, nonblank names (up to 200), positive
-schemas and nonnull/defined JSON are required. Adapter errors propagate unchanged.
+Run the complete Wholesale executable using the PostgreSQL connection and command in its
+[README](../../../samples/Wholesale/EventPersistenceDemo/README.md). The examples use the same
+consumer-owned completion boundary as the snippets above.
 
-PreparedEventAppend is a single-use prepared batch bound to the aggregate, header, context
-and original transaction. It carries concrete encoded rows privately, not just an identifier
-or domain-event handle. Its public outputs are ExpectedVersion, NextVersion and RecordedAt.
-Stage verifies the aggregate's version and pending references, header/key and transaction are
-unchanged, preserves the observed EF original version, advances the header and adds all rows.
-It neither saves nor commits nor stages views. Consumer adapters must not mutate the context,
-header or returned rows; arbitrary side effects and mutable facts are unsupported.
+## Independent maintenance
 
-The application caller completes the operation explicitly:
+Derive AggregateRebuilder<TAggregate,TEvent,TStreamRecord,TInlineStateRecord>, supplying the typed context,
+stream type, state mapping and IEventHistoryReader<TEvent,TStreamRecord>. Implement Rehydrate using
+effect-free historical evolution, without producing pending events or re-running eligibility.
+The rebuilder requests the complete observed prefix from the reader. It retains its input
+validation for independently implemented readers. It does not inject IEventStore: that interface
+owns writing, and maintenance can be registered without command writing. StockPositionRebuilder
+passes its existing module reader directly to the base constructor.
 
-```csharp
+~~~csharp
 await using var transaction = await database.Database.BeginTransactionAsync(token);
-try
-{
-    var result = await commands.StageIssuesAsync(request, token);
-    if (result is StockPositionChangeResult.Staged)
-    {
-        await database.SaveChangesAsync(token);
-        await transaction.CommitAsync(token);
-    }
-    else
-        await transaction.RollbackAsync(token);
-}
-catch
-{
-    await transaction.RollbackAsync(CancellationToken.None);
-    throw;
-}
-```
+var result = await rebuilder.RebuildAsync(id, token);
+await database.SaveChangesAsync(token);
+await transaction.CommitAsync(token);
+~~~
 
-The provided store associates the loaded aggregate with its observation and transaction.
-Raw history decoding/folding and domain admission remain consumer code.
-For creation, supply a detached version-zero header template with consumer extra fields.
-There is no implicit start-or-append, history read, projector discovery or transaction creation.
+Use a fresh context for one terminal rebuild. It returns null for a missing filtered stream.
+It validates prefix length/order/UTC endpoints and reconstructed identity/version/no pending
+facts, then inserts missing state or copies encoded values into the observed row. It can repair
+an unreadable body without decoding it. Ahead state rejects repair. Healthy state need not be
+rewritten. Repair preserves facts, event version and recorded times, changing only the header's
+technical stamp. A private exact write association lets the native save guard accept this
+state replacement; it is not a public bypass or maintenance scheduling framework.
 
-Empty append/negative expectation/malformed identity or metadata is an argument error.
-Inconsistent aggregate count, changed observation, missing/replaced transaction, repeated stage
-or already-tracked key is InvalidOperationException. Version mismatch is native
-DbUpdateConcurrencyException, without synthetic Entries. Invalid observed timestamps are
-InvalidDataException; non-UTC or regressing clock values are argument errors. Overflow,
-cancellation and codec/adapter exceptions retain their native meaning. Equal recorded times
-are allowed; the library does not invent a later time.
+Every append and repair generates a new stamp. A stale writer can decide from pre-repair state,
+but its native header UPDATE loses after repair commits. An append can likewise invalidate an
+already captured rebuild. Two repairs compete through the same token. This is optimistic online
+maintenance: operations can overlap and fail at save; they do not block before loading. Repair
+cannot undo a bad command already committed before capture. Consumers may add operational
+exclusion, retries from fresh loads or maintenance windows as their policy requires.
 
-Stage once per complete stream key per context, including after save. Supported key/model
-shapes remain those above, with the native Version token. Converted/shadow keys, manual tracker
-clearing/detaching and concurrent context use are unsupported. Different stream keys may share
-a native transaction; there is no cross-module transaction guarantee. Model constraints and
-consumer save guards remain active. Tracking failures are not an in-memory rollback boundary.
+## Registration, errors and recovery
 
-Competing writers fail natively at the observed header predicate or exact creation/position
-constraints. EF may execute the position insert before the header update. Consumers classify
-only their actual known constraints/concurrency entries; event-ID collisions and unrelated
-constraints must not become version conflicts. PostgreSQL is the proved provider.
+AddEventStore<TAggregate,TStore>() registers writing only. AddAggregateRebuilder<TAggregate,
+TRebuilder>() registers maintenance only. AddEventStore<TAggregate,TStore,TRebuilder>() composes
+both. Each role is scoped and aliases its concrete implementation through ordinary TryAdd DI
+semantics; repeated registration keeps existing bindings. Native overrides remain possible.
+The writing helper supplies TimeProvider.System if absent. Separate role constructors choose
+explicit typed contexts, so a common scope never resolves an ambiguous bare DbContext. Writing
+requires no history registration; maintenance requires no writer registration.
 
-Discard context and aggregate after persistence failure or rollback; reload and decide again.
-No retry/rebase, pending clear, repair, snapshots, async processing, global ordering, ambiguous
-commit recovery, messaging or audit integration is included. Required-view selection and final save/commit remain consumer policy; the provided store
-coordinates declared participants and native save guards enforce their tracked inclusion.
+Malformed caller input and envelope metadata use native argument errors. Unsupported models,
+missing/replaced transactions, invalid observations, empty or repeated append and clock regression
+use InvalidOperationException. Invalid persisted state/history uses InvalidDataException; an
+advanced state observed between reads and expected-version mismatch use DbUpdateConcurrencyException.
+SQL conflicts use native EF/provider errors, including possible per-stream position/creation
+constraint failures before the header UPDATE. Codec errors, overflow and cancellation propagate.
+Do not classify unrelated constraints as stream conflicts. Equal UTC recorded times are allowed.
 
-[Standalone adoption](../../../samples/EventStorageDemo/README.md),
-[tenant-owned store](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionStore.cs),
+Dispose the whole transaction/context and aggregate after faults or rollback; reload and decide
+again. There is no automatic retry, tracker rollback, concurrent context use, ambiguous-commit
+recovery or fencing of uncooperative writers. Complete key/tenant admission and final completion
+remain consumer-owned. PostgreSQL tests exercise actual native SQL, rollback and fresh recovery.
+
+See [current capabilities and deferred directions](docs/capabilities.md),
 [aggregate core](../ModulithFoundry.EventSourcing/README.md),
-[reviewed scope](../../../docs/plans/es1-bounded-event-append.md),
-[proof report](../../../docs/reports/es1-bounded-event-append.md).
-
-## Store vocabulary and projection scope
-
-The store's aggregateState binding restores and encodes the command aggregate's persisted
-state. requiredProjections includes that state and every declared secondary inline view.
-loadedStreams captures the observed header, root, required rows and native transaction.
-ProjectionBinding and LoadedStream are internal coordination details, not domain entities.
-All required views advance in the same save/transaction. Several views of one stream are
-supported; asynchronous or multi-stream projections and rebuilding/catch-up remain deferred
-in [the local capability record](docs/capabilities.md).
-
-Native mapping does not require DbSet properties or a DbContext marker. Use Set<T>() for
-queries/additions and Entry(instance) for tracking. Concrete store constructors take their
-module's typed context and pass it to the shared base; a common DI scope does not select the
-context again. Dependency isolation remains explicit consumer composition and architecture
-policy, not a separate module container supplied by this library.
+[standalone raw adoption](../../../samples/EventStorageDemo/README.md),
+[tenant-owned adoption](../../../samples/Wholesale/EventPersistenceDemo/README.md),
+[reviewed replacement](../../../docs/plans/es2-native-ef-simplification.md) and
+[dated ES2 evidence](../../../docs/reports/es2-rebuild-design.md).

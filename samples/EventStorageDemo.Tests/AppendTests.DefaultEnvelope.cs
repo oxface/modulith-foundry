@@ -85,11 +85,11 @@ public sealed partial class AppendTests
     }
 
     private sealed class DefaultEnvelopeAdapter
-        : EventRecordAdapter<object, EventStreamRecord, DefaultEnvelope>
+        : EventRecordMapping<object, EventStreamRecord, DefaultEnvelope>
     {
         public override string StreamType => "proof.default-envelope";
 
-        public override DefaultEnvelope CreateRecord(object fact, EventStreamRecord stream) =>
+        public override DefaultEnvelope ToRow(object fact, EventStreamRecord stream) =>
             new()
             {
                 EventName = fact switch

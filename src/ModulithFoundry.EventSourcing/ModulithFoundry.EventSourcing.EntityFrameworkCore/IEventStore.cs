@@ -16,5 +16,5 @@ public interface IEventStore<TAggregate>
     );
 }
 
-/// <summary>Metadata of a staged batch, not confirmation of a commit.</summary>
+/// <summary>Version and recorded time of a batch added to the native unit of work. Commit remains caller-owned.</summary>
 public sealed record EventAppendResult(long Version, DateTimeOffset RecordedAt);

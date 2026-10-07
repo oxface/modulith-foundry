@@ -10,7 +10,7 @@ public static class PurchasingAppendFailures
     public static bool IsVersionConflict(DbUpdateException failure) =>
         failure is DbUpdateConcurrencyException { Entries.Count: > 0 } concurrency
             && concurrency.Entries.All(entry =>
-                entry.Entity is EventStream or PurchaseOrderCurrentRow or PurchaseOrderSummaryRow
+                entry.Entity is EventStream or PurchaseOrderStateRow
             )
         || failure.InnerException
             is PostgresException

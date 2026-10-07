@@ -10,7 +10,7 @@ public static class InventoryAppendFailures
     public static bool IsVersionConflict(DbUpdateException failure) =>
         failure is DbUpdateConcurrencyException { Entries.Count: > 0 } concurrency
             && concurrency.Entries.All(entry =>
-                entry.Entity is EventStream or StockPositionCurrentRow
+                entry.Entity is EventStream or StockPositionStateRow
             )
         || failure.InnerException
             is PostgresException

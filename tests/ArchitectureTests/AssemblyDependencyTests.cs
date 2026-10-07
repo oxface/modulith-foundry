@@ -170,7 +170,7 @@ public sealed class AssemblyDependencyTests
     }
 
     [Fact]
-    public void EventStorageUsesNoOtherSegmentsOrConsumerTypes()
+    public void EventStorageAllowsHistoryIntegrityButNoOtherSegmentsOrConsumers()
     {
         foreach (
             string forbidden in new[]
@@ -181,7 +181,6 @@ public sealed class AssemblyDependencyTests
                 TenancyHttp,
                 Persistence,
                 EventSerialization,
-                History,
                 ContextSample,
                 PersistenceSample,
                 HttpSample,
@@ -194,7 +193,7 @@ public sealed class AssemblyDependencyTests
     }
 
     [Fact]
-    public void IndependentStorageConsumerUsesNoOtherSegmentsOrSampleApplications()
+    public void IndependentStorageConsumerAllowsHistoryErrorsButNoOtherSegmentsOrSamples()
     {
         foreach (
             string forbidden in new[]
@@ -205,7 +204,6 @@ public sealed class AssemblyDependencyTests
                 TenancyHttp,
                 Persistence,
                 EventSerialization,
-                History,
                 ContextSample,
                 PersistenceSample,
                 HttpSample,

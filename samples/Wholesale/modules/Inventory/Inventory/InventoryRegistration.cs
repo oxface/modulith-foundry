@@ -12,19 +12,43 @@ public static class InventoryRegistration
         services.AddScoped<IStockCatalog, StockCatalog>();
 
     public static IServiceCollection AddStockPositionHistory(this IServiceCollection services) =>
-        services.AddScoped<IStockPositionHistory, StockPositionHistoryReader>();
+        RegisterHistory(services);
+
+    private static IServiceCollection RegisterHistory(IServiceCollection services)
+    {
+        services.TryAddScoped<StockPositionHistoryReader>();
+        services.TryAddScoped<IStockPositionHistory>(provider =>
+            provider.GetRequiredService<StockPositionHistoryReader>()
+        );
+        return services;
+    }
+
+    private static void RegisterStore(IServiceCollection services)
+    {
+        services.AddEventStore<StockPositionAggregate, StockPositionStore>();
+    }
+
+    public static IServiceCollection AddStockPositionRebuilding(this IServiceCollection services)
+    {
+        RegisterHistory(services);
+        services.AddAggregateRebuilder<StockPositionAggregate, StockPositionRebuilder>();
+        return services.AddScoped<IStockPositionRebuilding, StockPositionRebuilding>();
+    }
 
     public static IServiceCollection AddStockPositionCommands(this IServiceCollection services)
     {
-        services.TryAddSingleton(TimeProvider.System);
-        services.TryAddScoped<IEventStore<StockPositionAggregate>, StockPositionStore>();
-        services.TryAddScoped<StockPositionInlineProjection>();
+        RegisterStore(services);
+        services.TryAddScoped(provider => new InlineStateReader<EventStream, StockPositionStateRow>(
+            provider.GetRequiredService<InventoryDbContext>()
+        ));
         return services.AddScoped<IStockPositionCommands, StockPositionCommands>();
     }
 
     public static IServiceCollection AddStockPositionQueries(this IServiceCollection services)
     {
-        services.TryAddScoped<StockPositionInlineProjection>();
+        services.TryAddScoped(provider => new InlineStateReader<EventStream, StockPositionStateRow>(
+            provider.GetRequiredService<InventoryDbContext>()
+        ));
         return services.AddScoped<IStockPositionQueries, StockPositionQueries>();
     }
 }

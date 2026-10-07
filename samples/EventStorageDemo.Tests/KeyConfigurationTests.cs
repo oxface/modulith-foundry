@@ -80,6 +80,8 @@ public sealed class KeyConfigurationTests
         public Guid Id { get; set; }
         public string StreamType { get; set; } = null!;
         public long Version { get; set; }
+        public Guid ConcurrencyStamp { get; set; } = Guid.NewGuid();
+
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
     }

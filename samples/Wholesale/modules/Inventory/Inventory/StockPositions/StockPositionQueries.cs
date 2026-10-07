@@ -6,7 +6,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
 internal sealed class StockPositionQueries(
     InventoryDbContext database,
-    StockPositionInlineProjection projection
+    InlineStateReader<EventStream, StockPositionStateRow> stateReader
 ) : IStockPositionQueries
 {
     public async Task<IReadOnlyList<StockPositionHistory>> ReadAvailableAsync(
@@ -28,7 +28,7 @@ internal sealed class StockPositionQueries(
             )
             .OrderBy(row => row.State.StreamId)
             .ToArrayAsync(cancellationToken);
-        var mapping = new InlineProjectionStorage<EventStream, StockPositionCurrentRow>(database);
+        var mapping = new InlineStateReader<EventStream, StockPositionStateRow>(database);
         return rows.Select(row =>
             {
                 mapping.Validate(row.Stream, row.State);
@@ -53,7 +53,7 @@ internal sealed class StockPositionQueries(
             );
         if (stream is null)
             return null;
-        var current = await projection.LoadAsync(stream, cancellationToken);
+        var current = await stateReader.ReadAsync(stream, cancellationToken);
         return current.ReadState().ToHistory(id, current.Version, current.RecordedAt);
     }
 }

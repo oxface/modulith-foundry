@@ -45,6 +45,9 @@ pre-commit:
     - name: event-history-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-restore
+    - name: event-rebuilding-postgres-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-restore
     - name: architecture-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore

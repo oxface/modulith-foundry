@@ -3,12 +3,12 @@ using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.EventStorageDemo;
 
-internal sealed class CounterEventRecordAdapter
-    : EventRecordAdapter<CounterEvent, EventStreamRecord, StoredEventRecord>
+internal sealed class CounterEventRecordMapping
+    : EventRecordMapping<CounterEvent, EventStreamRecord, StoredEventRecord>
 {
     public override string StreamType => "proof.counter";
 
-    public override StoredEventRecord CreateRecord(CounterEvent @event, EventStreamRecord stream) =>
+    public override StoredEventRecord ToRow(CounterEvent @event, EventStreamRecord stream) =>
         @event switch
         {
             CounterStarted started => new()

@@ -357,7 +357,8 @@ endorsed IEventStore<TAggregate> and authorized implementing the concrete provid
 review. [Its exact surface and change map](plans/es1-library-write-store.md) concentrate scoped
 stream lookup, family/version validation, observation/transaction binding, validated main-state
 loading and configured required-state staging. Consumer bindings supply ownership, state
-encoding/reconstitution and secondary evolution; handlers pass the aggregate only.
+encoding/reconstitution; handlers pass the aggregate only. Earlier secondary-view support
+was replaced by the owner-reviewed ES2 aggregate-only reduction below.
 
 Domain operations, pure reducers, eligibility, business Contracts, tenant admission and native
 save/commit remain consumer-owned. Create produces an opening fact immediately. ApplyChanges
@@ -369,7 +370,7 @@ and direct JSON without required inline state. T1's event-free composition remai
 [ADR 0006](adr/0006-transactional-main-inline-state.md) requires main state for registered
 aggregate writes and permits raw streams. Explicit native model declarations plus validation
 in both save overrides enforce tracked participation/version/time/complete event range for
-main and configured required secondary rows. This does not enforce arbitrary SQL or validate
+the one required aggregate state. This does not enforce arbitrary SQL or validate
 semantic equivalence of manually changed state bodies. Native module Queries and Filters
 remain the read side; a PostgreSQL availability query demonstrates the mapped-state boundary.
 
@@ -383,11 +384,29 @@ The owner requests self-sufficient documentation alongside each library. Local R
 capability records define current behavior, dependencies, limits and deferred context; root
 plans/ADRs/reports record review and historical executions. The
 [event-store capability record](../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
-now carries projection lifecycle gaps and future provider-specific adapter candidates. A
-possible EventSourcing.Postgres package would depend on a demonstrated shared seam; no locking
-abstraction/provider implementation is selected now. Family project/docs/test grouping is a
-separate recorded relocation proposal. [The refinement report](reports/es1-envelope-and-library-docs.md)
-records default-envelope adoption and documentation/naming changes.
+carries the supported write-only store, independent full-replay rebuilder and native header
+Version/ConcurrencyStamp contract. [ADR 0008](adr/0008-native-optimistic-aggregate-rebuilding.md)
+replaces [the historical pre-read gate](adr/0007-pre-read-admission-for-inline-rebuilding.md).
+Repair preserves facts/head/time and changes the technical stamp; stale decisions and competing
+repairs lose through native save predicates. Writing requires no history or maintenance binding.
+Final save/commit, typed contexts, tenant admission, reducers and scheduling remain consumer-owned.
+
+The owner-approved [bounded history reader](plans/event-history-reader-extraction.md) now provides
+complete-key, parameterized ordered-prefix queries, captured-version bounds and integrity checks
+inside the EF adapter. It reuses the existing Events.History utility; that dependency is explicit
+and the utility stays independently adoptable. Consumers supply payload decoding, temporal target
+selection and pure evolution. The independent rebuilder injects a reader rather than exposing a
+history-loading override. No serialization/provider dependency or automatic read repair is added.
+
+[The reviewed replacement](plans/es2-native-ef-simplification.md) removes public prepared handles,
+admission bookkeeping, the provider package and dormant Purchasing summary storage. Previous
+migrations remain; new migrations add header stamps and remove that active legacy table. Queries
+and summaries use native EF projections/filters over the one current inline aggregate. Consumers
+may reconstruct live views on access through existing readers/reducers. No automatic repair or
+catch-up occurs in ordinary loads. Secondary/async/multi-stream projections remain deferred until
+native query shapes are insufficient. A maintenance worker is still needed eventually, deferred
+to keep this change focused; consumers can host reconciliation and own locking/windows, retry,
+scheduling and scaling. Family grouping remains checkpointed as 39c1ab3; T1 stays event-free.
 
 Use options for supported variations, and explicit registration or dependencies for larger
 policy changes. Document how a setting changes a guarantee. Schema names, transport routes,

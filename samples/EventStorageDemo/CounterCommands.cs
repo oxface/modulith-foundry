@@ -20,7 +20,7 @@ public sealed class CounterCommands(StorageDbContext database, TimeProvider time
             _ = await store.GetForWritingAsync(id, 0, cancellationToken);
             var aggregate = CounterAggregate.Create(id, value);
             var time = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new CounterChangeResult.Staged(
+            return new CounterChangeResult.Changed(
                 new(id, aggregate.Version, aggregate.State!.Value, time)
             );
         }
@@ -52,7 +52,7 @@ public sealed class CounterCommands(StorageDbContext database, TimeProvider time
             if (!aggregate.TryIncrease(batch, out int requested))
                 return new CounterChangeResult.LimitExceeded(aggregate.State!.Value, requested);
             var time = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new CounterChangeResult.Staged(
+            return new CounterChangeResult.Changed(
                 new(id, aggregate.Version, aggregate.State!.Value, time)
             );
         }
@@ -70,7 +70,7 @@ public sealed record CounterState(Guid Id, long Version, int Value, DateTimeOffs
 
 public abstract record CounterChangeResult
 {
-    public sealed record Staged(CounterState Proposed) : CounterChangeResult;
+    public sealed record Changed(CounterState Proposed) : CounterChangeResult;
 
     public sealed record LimitExceeded(int Value, int Requested) : CounterChangeResult;
 

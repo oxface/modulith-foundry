@@ -142,6 +142,8 @@ jobs:
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
       - name: Test independent shared event-storage registration
         run: dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj --no-restore
+      - name: Test single-stream rebuilding and provider admission
+        run: dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-restore
       - name: Test native event-history reads and append transactions
         run: dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-restore
       - name: Test persisted admission, isolated business operations and native telemetry through HTTP

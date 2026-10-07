@@ -7,7 +7,7 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 internal sealed class PurchaseOrderCommands(IEventStore<PurchaseOrderAggregate> store)
     : IPurchaseOrderCommands
 {
-    public async Task<PurchaseOrderChangeResult> StageDraftAsync(
+    public async Task<PurchaseOrderChangeResult> DraftAsync(
         DraftPurchaseOrder request,
         CancellationToken cancellationToken
     )
@@ -22,7 +22,7 @@ internal sealed class PurchaseOrderCommands(IEventStore<PurchaseOrderAggregate> 
             );
             aggregate ??= PurchaseOrderAggregate.Create(request);
             var recordedAt = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new PurchaseOrderChangeResult.Staged(
+            return new PurchaseOrderChangeResult.Changed(
                 aggregate.State!.ToHistory(aggregate.Id, aggregate.Version, recordedAt)
             );
         }
@@ -32,7 +32,7 @@ internal sealed class PurchaseOrderCommands(IEventStore<PurchaseOrderAggregate> 
         }
     }
 
-    public async Task<PurchaseOrderChangeResult> StageLinesAsync(
+    public async Task<PurchaseOrderChangeResult> ChangeLinesAsync(
         ChangePurchaseOrderLines request,
         CancellationToken cancellationToken
     )
@@ -49,7 +49,7 @@ internal sealed class PurchaseOrderCommands(IEventStore<PurchaseOrderAggregate> 
                 return new PurchaseOrderChangeResult.NotFound();
             aggregate.SetLines(items);
             var recordedAt = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
-            return new PurchaseOrderChangeResult.Staged(
+            return new PurchaseOrderChangeResult.Changed(
                 aggregate.State!.ToHistory(aggregate.Id, aggregate.Version, recordedAt)
             );
         }

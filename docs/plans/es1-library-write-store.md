@@ -1,5 +1,13 @@
 # ES1: library-provided aggregate write store
 
+Historical design/execution record. The active interface is superseded by
+[the owner-approved native EF replacement](es2-native-ef-simplification.md).
+Renamed-source links lead to current replacements; removed mechanisms link to their replacement scope.
+
+Historical ES1 checkpoint surface: secondary-view orchestration and its registration flag below
+were superseded by the owner-approved [ES2 aggregate-only reduction](es2-aggregate-only-reduction.md).
+Use the current library-local README for supported setup.
+
 Status: implemented for owner review, 2026-10-07. The owner approved the IEventStore direction
 and explicitly authorized starting changes to assess a concrete implementation. This replaces
 the earlier narrow [appender proposal](es1-inline-state-enforcement.md). The owner also requested the default StoredEventRecord, clearer projection/store names and

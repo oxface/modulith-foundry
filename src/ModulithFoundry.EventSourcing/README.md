@@ -1,6 +1,6 @@
 # EventSourcing family
 
-Aggregate proposal/bookkeeping and optional native EF write coordination for one stream timeline.
+Aggregate bookkeeping, optional native EF writes, bounded event history and explicit single-stream rebuilding.
 
 This directory groups source, documentation and library tests. Each package retains its own
 public contract and dependencies; the family is not an umbrella runtime package.
@@ -8,7 +8,7 @@ public contract and dependencies; the family is not an umbrella runtime package.
 | Package | Responsibility and dependencies |
 | --- | --- |
 | [ModulithFoundry.EventSourcing](ModulithFoundry.EventSourcing/README.md) | Package-free aggregate contract and optional immutable state/pending-event base. |
-| [ModulithFoundry.EventSourcing.EntityFrameworkCore](ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md) | References the core and EF Core Relational; provided IEventStore, stream/envelope mapping, ordered append and required inline projection/save validation. |
+| [ModulithFoundry.EventSourcing.EntityFrameworkCore](ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md) | References the core, Events.History, EF Core Relational and DI abstractions; provided IEventStore, bounded EventHistoryReader, independent AggregateRebuilder, scoped role registration, stream/envelope mapping, ordered append and one required inline aggregate state/save validation. |
 
 [Current capabilities, consumer obligations and deferred context](docs/capabilities.md)
 explain composition. Follow the selected package's README for explicit setup and errors.
@@ -17,6 +17,7 @@ The [executable consumer](../../samples/Wholesale/EventPersistenceDemo/README.md
 Library tests:
 
 - [EventSourcingTests](tests/EventSourcingTests/EventSourcingTests.csproj)
+- [EventSourcingPostgresTests](tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj) (real PostgreSQL 18.6, standalone direct JSON consumer)
 
 PostgreSQL adoption proofs also live with [Wholesale](../../samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj) and the [independent raw counter](../../samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj).
 

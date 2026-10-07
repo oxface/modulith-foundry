@@ -63,7 +63,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
     [InlineData(false, false)]
     [InlineData(true, true)]
     [InlineData(false, true)]
-    public async Task CompetingPreparedWritersCommitOneCompleteWinner(bool inventory, bool creation)
+    public async Task CompetingWritersCommitOneCompleteWinner(bool inventory, bool creation)
     {
         string connection = creation ? await DatabaseAsync() : await SeedAsync(inventory);
         var observation = new QueryObservation(Schema(inventory));
@@ -169,7 +169,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
     [InlineData(false, "regression")]
     [InlineData(true, "non-utc")]
     [InlineData(false, "non-utc")]
-    public async Task InvalidPreparationCannotStageChanges(bool inventory, string fault)
+    public async Task InvalidWriteCannotTrackChanges(bool inventory, string fault)
     {
         string connection = await SeedAsync(inventory);
         await using var provider = Provider(connection);
@@ -199,7 +199,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
                 );
         if (fault == "tenantless")
             await Assert.ThrowsAsync<TenantRequiredException>(action);
-        else if (fault is "missing" or "transaction")
+        else if (fault is "missing" or "transaction" or "regression" or "non-utc")
             await Assert.ThrowsAsync<InvalidOperationException>(action);
         else
             await Assert.ThrowsAnyAsync<ArgumentException>(action);
@@ -258,7 +258,6 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
     [InlineData(false, "position")]
     [InlineData(true, "current")]
     [InlineData(false, "current")]
-    [InlineData(false, "summary")]
     public async Task WriteFaultsRollBackTheWholeBatchAndClassificationIsNarrow(
         bool inventory,
         string fault
@@ -298,8 +297,6 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
                     ? $"ALTER TABLE {schema}.events DROP CONSTRAINT test_event_fault"
                 : fault == "current"
                     ? $"ALTER TABLE {schema}.{CurrentTable(inventory)} DROP CONSTRAINT test_view_fault"
-                : fault == "summary"
-                    ? "ALTER TABLE purchasing.purchase_order_summary DROP CONSTRAINT test_view_fault"
                 : $"DROP TRIGGER test_fault ON {schema}.events; DROP FUNCTION {schema}.test_fault()"
         );
         await using var fresh = Scope(provider, Alpha);
@@ -486,7 +483,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
             return await scope
                 .ServiceProvider.WithClock(Opened)
                 .GetRequiredService<IStockPositionCommands>()
-                .StageOpenAsync(
+                .OpenAsync(
                     new OpenStockPosition(
                         streamId,
                         Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -499,7 +496,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
         return await scope
             .ServiceProvider.WithClock(Opened)
             .GetRequiredService<IPurchaseOrderCommands>()
-            .StageDraftAsync(
+            .DraftAsync(
                 new DraftPurchaseOrder(streamId, "APPEND-1", "SUP-1", "EUR", expected),
                 Token
             );
@@ -517,7 +514,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
             return await scope
                 .ServiceProvider.WithClock(time ?? Changed)
                 .GetRequiredService<IStockPositionCommands>()
-                .StageReceiptsAsync(
+                .ReceiveAsync(
                     new ReceiveStock(
                         Id,
                         expected,
@@ -528,7 +525,7 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
         return await scope
             .ServiceProvider.WithClock(time ?? Changed)
             .GetRequiredService<IPurchaseOrderCommands>()
-            .StageLinesAsync(
+            .ChangeLinesAsync(
                 new ChangePurchaseOrderLines(
                     Id,
                     expected,
@@ -543,11 +540,11 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
     private static (long Version, decimal Amount) Proposed(object result) =>
         result switch
         {
-            StockPositionChangeResult.Staged staged => (
+            StockPositionChangeResult.Changed staged => (
                 staged.Proposed.Version,
                 staged.Proposed.OnHand
             ),
-            PurchaseOrderChangeResult.Staged staged => (
+            PurchaseOrderChangeResult.Changed staged => (
                 staged.Proposed.Version,
                 staged.Proposed.Total
             ),
@@ -630,8 +627,6 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
         {
             "current" =>
                 $"ALTER TABLE {schema}.{CurrentTable(inventory)} ADD CONSTRAINT test_view_fault CHECK (version <= 3)",
-            "summary" =>
-                "ALTER TABLE purchasing.purchase_order_summary ADD CONSTRAINT test_view_fault CHECK (version <= 3)",
             "header" =>
                 $"ALTER TABLE {schema}.event_streams ADD CONSTRAINT test_header_fault CHECK (version <= 3)",
             "first-event" =>

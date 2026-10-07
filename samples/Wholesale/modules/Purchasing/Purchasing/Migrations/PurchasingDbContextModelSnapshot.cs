@@ -36,6 +36,11 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.Migrations
 
                     b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("concurrency_stamp");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -67,6 +72,15 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.Migrations
                     );
 
                     b.HasAnnotation(
+                            "ModulithFoundry:RequiredInlineState:main:purchasing.purchase-order",
+                            new[]
+                            {
+                                "purchasing.purchase-order",
+                                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.StoredEvent",
+                                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderStateRow",
+                            }
+                        )
+                        .HasAnnotation(
                             "ModulithFoundry:TenantContextMember",
                             "ModulithFoundry.Samples.Wholesale.Purchasing.PurchasingDbContext, Purchasing, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
                         )
@@ -79,7 +93,7 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.Migrations
             );
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderCurrentRow",
+                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderStateRow",
                 b =>
                 {
                     b.Property<string>("OrganizationKey")
@@ -110,78 +124,6 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.Migrations
                         {
                             t.HasCheckConstraint(
                                 "ck_purchase_order_current_version",
-                                "version > 0"
-                            );
-                        }
-                    );
-
-                    b.HasAnnotation(
-                            "ModulithFoundry:TenantContextMember",
-                            "ModulithFoundry.Samples.Wholesale.Purchasing.PurchasingDbContext, Purchasing, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
-                        )
-                        .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
-                        .HasAnnotation(
-                            "ModulithFoundry:TenantOwnershipProperty",
-                            "OrganizationKey"
-                        );
-                }
-            );
-
-            modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderSummaryRow",
-                b =>
-                {
-                    b.Property<string>("OrganizationKey")
-                        .IsConcurrencyToken()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("organization_key");
-
-                    b.Property<Guid>("StreamId").HasColumnType("uuid").HasColumnName("stream_id");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("code");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("currency");
-
-                    b.Property<JsonElement>("LineAmounts")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("line_amounts");
-
-                    b.Property<int>("LineCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("line_count");
-
-                    b.Property<DateTimeOffset>("RecordedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("recorded_at");
-
-                    b.Property<decimal>("Total").HasColumnType("numeric").HasColumnName("total");
-
-                    b.Property<long>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint")
-                        .HasColumnName("version");
-
-                    b.HasKey("OrganizationKey", "StreamId");
-
-                    b.ToTable(
-                        "purchase_order_summary",
-                        "purchasing",
-                        t =>
-                        {
-                            t.HasCheckConstraint(
-                                "ck_purchase_order_summary_amounts",
-                                "line_count >= 0 AND total >= 0"
-                            );
-
-                            t.HasCheckConstraint(
-                                "ck_purchase_order_summary_version",
                                 "version > 0"
                             );
                         }
@@ -263,22 +205,7 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.Migrations
             );
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderCurrentRow",
-                b =>
-                {
-                    b.HasOne(
-                            "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.EventStream",
-                            null
-                        )
-                        .WithMany()
-                        .HasForeignKey("OrganizationKey", "StreamId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                }
-            );
-
-            modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderSummaryRow",
+                "ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders.PurchaseOrderStateRow",
                 b =>
                 {
                     b.HasOne(

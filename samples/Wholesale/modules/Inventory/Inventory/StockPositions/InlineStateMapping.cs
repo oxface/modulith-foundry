@@ -5,14 +5,14 @@ using ModulithFoundry.Persistence.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
-internal static class InlineViewMapping
+internal static class InlineStateMapping
 {
     internal static void Configure(
         ModelBuilder model,
         Expression<Func<string>> requiredOrganization
     )
     {
-        var current = model.Entity<StockPositionCurrentRow>();
+        var current = model.Entity<StockPositionStateRow>();
         current.ToTable(
             "stock_position_current",
             table => table.HasCheckConstraint("ck_stock_position_current_version", "version > 0")
@@ -35,7 +35,7 @@ internal static class InlineViewMapping
             .WithMany()
             .HasForeignKey(row => new { row.OrganizationKey, row.StreamId })
             .OnDelete(DeleteBehavior.Restrict);
-        model.ConfigureRequiredInlineState<EventStream, StoredEvent, StockPositionCurrentRow>(
+        model.ConfigureRequiredInlineState<EventStream, StoredEvent, StockPositionStateRow>(
             StockPositionHistoryReader.StreamType
         );
         current.HasTenantOwnership(

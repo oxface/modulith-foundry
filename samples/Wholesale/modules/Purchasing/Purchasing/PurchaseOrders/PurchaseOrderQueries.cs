@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
 internal sealed class PurchaseOrderQueries(
     PurchasingDbContext database,
-    PurchaseOrderInlineProjection projection
+    InlineStateReader<EventStream, PurchaseOrderStateRow> stateReader
 ) : IPurchaseOrderQueries
 {
     public async Task<PurchaseOrderHistory?> ReadCurrentAsync(
@@ -13,9 +14,9 @@ internal sealed class PurchaseOrderQueries(
         CancellationToken cancellationToken
     )
     {
-        var views = await ReadAsync(id, cancellationToken);
-        return views is { } rows
-            ? rows.Current.ReadState().ToHistory(id, rows.Current.Version, rows.Current.RecordedAt)
+        var current = await ReadAsync(id, cancellationToken);
+        return current is not null
+            ? current.ReadState().ToHistory(id, current.Version, current.RecordedAt)
             : null;
     }
 
@@ -24,14 +25,25 @@ internal sealed class PurchaseOrderQueries(
         CancellationToken cancellationToken
     )
     {
-        var views = await ReadAsync(id, cancellationToken);
-        return views?.Summary.ToContract();
+        var current = await ReadAsync(id, cancellationToken);
+        if (current is null)
+            return null;
+        var state = current.ReadState();
+        return new(
+            id,
+            current.Version,
+            current.RecordedAt,
+            state.Code,
+            state.Currency,
+            state.Lines.Count,
+            state.Total
+        );
     }
 
-    private async Task<(
-        PurchaseOrderCurrentRow Current,
-        PurchaseOrderSummaryRow Summary
-    )?> ReadAsync(Guid id, CancellationToken cancellationToken)
+    private async Task<PurchaseOrderStateRow?> ReadAsync(
+        Guid id,
+        CancellationToken cancellationToken
+    )
     {
         _ = database.RequiredOrganizationKey;
         var stream = await database
@@ -40,6 +52,6 @@ internal sealed class PurchaseOrderQueries(
                 row => row.Id == id && row.StreamType == PurchaseOrderHistoryReader.StreamType,
                 cancellationToken
             );
-        return stream is null ? null : await projection.LoadAsync(stream, cancellationToken);
+        return stream is null ? null : await stateReader.ReadAsync(stream, cancellationToken);
     }
 }

@@ -426,12 +426,12 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
             await inventoryDatabase.Database.BeginTransactionAsync(Token);
         await using var purchasingTransaction =
             await purchasingDatabase.Database.BeginTransactionAsync(Token);
-        InventoryHistorySeed.Stage(
+        InventoryHistorySeed.Add(
             inventoryDatabase,
             FixtureHistories.StreamId,
             FixtureHistories.Inventory(Fixtures)
         );
-        PurchasingHistorySeed.Stage(
+        PurchasingHistorySeed.Add(
             purchasingDatabase,
             FixtureHistories.StreamId,
             FixtureHistories.Purchasing(Fixtures)
@@ -477,6 +477,8 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
             "purchasing inline: committed-version=3, total=62.50",
             "purchasing summary: committed-version=3, lines=1, total=62.50",
             "inventory issues: committed-version=5, on-hand=6.000, rejected=7",
+            "inventory rebuilt: version=1",
+            "purchasing rebuilt: version=1",
         ];
         Assert.Equal(
             expected,
@@ -504,7 +506,7 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
             await using var inventoryTransaction = await inventory.Database.BeginTransactionAsync(
                 Token
             );
-            InventoryHistorySeed.Stage(
+            InventoryHistorySeed.Add(
                 inventory,
                 FixtureHistories.StreamId,
                 FixtureHistories.Inventory(Fixtures, factor)
@@ -515,7 +517,7 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
             await using var purchasingTransaction = await purchasing.Database.BeginTransactionAsync(
                 Token
             );
-            PurchasingHistorySeed.Stage(
+            PurchasingHistorySeed.Add(
                 purchasing,
                 FixtureHistories.StreamId,
                 FixtureHistories.Purchasing(Fixtures, factor)

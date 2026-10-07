@@ -7,7 +7,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory;
 // This is not an expected-version append implementation.
 public static class InventoryHistorySeed
 {
-    public static void Stage(
+    public static void Add(
         InventoryDbContext database,
         Guid id,
         IReadOnlyList<(SerializedEvent Event, DateTimeOffset RecordedAt)> history
@@ -28,7 +28,7 @@ public static class InventoryHistorySeed
             )
             .ToArray();
         var state = StockPositionEvolution.Evolve(null, facts);
-        var main = StockPositionCurrentRow.Prepare(
+        var main = StockPositionStateRow.FromState(
             owner,
             id,
             history.Count,

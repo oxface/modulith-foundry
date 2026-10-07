@@ -64,23 +64,19 @@ public sealed partial class AppendTests
     }
 
     [Theory]
-    [InlineData(true, false, "missing")]
-    [InlineData(true, false, "behind")]
-    [InlineData(true, false, "timestamp")]
-    [InlineData(false, false, "missing")]
-    [InlineData(false, false, "behind")]
-    [InlineData(false, false, "timestamp")]
-    [InlineData(false, true, "missing")]
-    [InlineData(false, true, "behind")]
-    [InlineData(false, true, "timestamp")]
-    public async Task RequiredViewDamageRejectsStagingAndQueriesWithoutRepair(
+    [InlineData(true, "missing")]
+    [InlineData(true, "behind")]
+    [InlineData(true, "timestamp")]
+    [InlineData(false, "missing")]
+    [InlineData(false, "behind")]
+    [InlineData(false, "timestamp")]
+    public async Task AggregateStateDamageRejectsStagingAndQueriesWithoutRepair(
         bool inventory,
-        bool summary,
         string damage
     )
     {
         string connection = await SeedAsync(inventory);
-        string table = summary ? "purchase_order_summary" : CurrentTable(inventory);
+        string table = CurrentTable(inventory);
         string target = $"{Schema(inventory)}.{table}";
         await ExecuteAsync(
             connection,
@@ -209,7 +205,7 @@ public sealed partial class AppendTests
                     scope
                         .ServiceProvider.WithClock(Changed)
                         .GetRequiredService<IPurchaseOrderCommands>()
-                        .StageLinesAsync(
+                        .ChangeLinesAsync(
                             new ChangePurchaseOrderLines(
                                 Id,
                                 3,
@@ -244,7 +240,7 @@ public sealed partial class AppendTests
             var result = await scope
                 .ServiceProvider.WithClock(Changed)
                 .GetRequiredService<IPurchaseOrderCommands>()
-                .StageLinesAsync(
+                .ChangeLinesAsync(
                     new ChangePurchaseOrderLines(
                         Id,
                         3,
@@ -271,7 +267,7 @@ public sealed partial class AppendTests
     }
 
     [Fact]
-    public async Task IndependentSummaryReplacesOnlyTheTargetLine()
+    public async Task DerivedSummaryReflectsOnlyTheTargetLineReplacement()
     {
         string connection = await SeedAsync(false);
         await using var provider = Provider(connection);
@@ -285,7 +281,7 @@ public sealed partial class AppendTests
                     await scope
                         .ServiceProvider.WithClock(Changed)
                         .GetRequiredService<IPurchaseOrderCommands>()
-                        .StageLinesAsync(
+                        .ChangeLinesAsync(
                             new ChangePurchaseOrderLines(
                                 Id,
                                 3,

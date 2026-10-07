@@ -32,7 +32,7 @@ public static class CounterAppendJourney
                         create,
                         new CounterClock()
                     ).StageStartAsync(Id, 10, cancellationToken);
-                    if (result is not CounterChangeResult.Staged)
+                    if (result is not CounterChangeResult.Changed)
                         throw new InvalidOperationException("Counter creation did not stage.");
                     await create.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
@@ -61,7 +61,7 @@ public static class CounterAppendJourney
                         [7, 5],
                         cancellationToken
                     );
-                    if (result is not CounterChangeResult.Staged)
+                    if (result is not CounterChangeResult.Changed)
                         throw new InvalidOperationException("Counter increases did not stage.");
                     await edit.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);

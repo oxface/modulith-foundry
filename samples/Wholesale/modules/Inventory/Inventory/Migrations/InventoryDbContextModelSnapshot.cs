@@ -36,6 +36,11 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
 
                     b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
 
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("concurrency_stamp");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -67,6 +72,15 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                     );
 
                     b.HasAnnotation(
+                            "ModulithFoundry:RequiredInlineState:main:inventory.stock-position",
+                            new[]
+                            {
+                                "inventory.stock-position",
+                                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StoredEvent",
+                                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionStateRow",
+                            }
+                        )
+                        .HasAnnotation(
                             "ModulithFoundry:TenantContextMember",
                             "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
                         )
@@ -79,7 +93,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionCurrentRow",
+                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionStateRow",
                 b =>
                 {
                     b.Property<string>("OrganizationKey")
@@ -232,7 +246,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
-                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionCurrentRow",
+                "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionStateRow",
                 b =>
                 {
                     b.HasOne(

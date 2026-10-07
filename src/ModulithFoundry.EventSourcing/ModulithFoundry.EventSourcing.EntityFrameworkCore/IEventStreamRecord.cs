@@ -1,11 +1,14 @@
 namespace ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
-/// <summary>Consumer-populated stream header fields, without ownership or domain state.</summary>
+/// <summary>Technical header metadata. Ownership and domain fields remain consumer-owned.</summary>
 public interface IEventStreamRecord
 {
     Guid Id { get; set; }
     string StreamType { get; set; }
     long Version { get; set; }
+
+    /// <summary>Changes on append and rebuild, including repair at the same event version.</summary>
+    Guid ConcurrencyStamp { get; set; }
     DateTimeOffset CreatedAt { get; set; }
     DateTimeOffset UpdatedAt { get; set; }
 }

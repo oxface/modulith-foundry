@@ -12,8 +12,7 @@ public static class RequiredInlineStateExtensions
 
     public static ModelBuilder ConfigureRequiredInlineState<TStream, TStoredEvent, TState>(
         this ModelBuilder model,
-        string streamType,
-        bool isMainState = true
+        string streamType
     )
         where TStream : class, IEventStreamRecord
         where TStoredEvent : class, IStoredEventRecord
@@ -31,7 +30,7 @@ public static class RequiredInlineStateExtensions
         var state =
             model.Model.FindEntityType(typeof(TState))
             ?? throw new InvalidOperationException("Map the inline row first.");
-        _ = InlineProjectionModel.Reference(model.Model, typeof(TStream), typeof(TState));
+        _ = InlineStateMetadata.StreamForeignKey(model.Model, typeof(TStream), typeof(TState));
         if (
             events
                 .GetForeignKeys()
@@ -43,16 +42,11 @@ public static class RequiredInlineStateExtensions
             );
         if (
             stream.FindProperty(nameof(IEventStreamRecord.Version))
-            is not { IsConcurrencyToken: true, ValueGenerated: ValueGenerated.Never }
+                is not { IsConcurrencyToken: true, ValueGenerated: ValueGenerated.Never }
+            || stream.FindProperty(nameof(IEventStreamRecord.ConcurrencyStamp))
+                is not { IsConcurrencyToken: true, ValueGenerated: ValueGenerated.Never }
         )
             throw new InvalidOperationException("Use the native stream version concurrency token.");
-        if (
-            !isMainState
-            && stream.FindAnnotation(AnnotationName(streamType, state.Name, true)) is null
-        )
-            throw new InvalidOperationException(
-                "Register main state before additional required projections."
-            );
         if (
             stream
                 .GetAnnotations()
@@ -65,7 +59,7 @@ public static class RequiredInlineStateExtensions
             throw new InvalidOperationException(
                 "Use a distinct inline row type per registered aggregate family."
             );
-        string annotation = AnnotationName(streamType, state.Name, isMainState);
+        string annotation = AnnotationName(streamType);
         if (stream.FindAnnotation(annotation) is not null)
             throw new InvalidOperationException(
                 "This required inline state is already registered."
@@ -79,23 +73,23 @@ public static class RequiredInlineStateExtensions
         Type stream,
         Type events,
         Type state,
-        string family,
-        bool isMainState = true
+        string family
     ) =>
-        model
-            .FindEntityType(stream)
-            ?.FindAnnotation(
-                AnnotationName(family, model.FindEntityType(state)?.Name ?? "", isMainState)
-            )
-            ?.Value
+        model.FindEntityType(stream)?.FindAnnotation(AnnotationName(family))?.Value
             is string[] registration
         && registration.SequenceEqual(
             new[] { family, model.FindEntityType(events)?.Name, model.FindEntityType(state)?.Name }
         );
 
-    private static string AnnotationName(string family, string state, bool main) =>
-        Prefix
-        + (main ? "main:" + family : "projection:" + family.Length + ":" + family + ":" + state);
+    internal static bool HasRegistration(IModel model, Type stream, string family) =>
+        model.FindEntityType(stream)?.FindAnnotation(AnnotationName(family)) is not null;
+
+    internal static bool IsStateRegistered(IModel model, Type stream, Type state, string family) =>
+        model.FindEntityType(stream)?.FindAnnotation(AnnotationName(family))?.Value
+            is string[] types
+        && types[2] == model.FindEntityType(state)?.Name;
+
+    private static string AnnotationName(string family) => Prefix + "main:" + family;
 
     /// <summary>Call from both native save override paths. Validates tracked writes before issuing SQL.</summary>
     public static void ValidateEventStreamChanges(this DbContext database)
@@ -103,6 +97,8 @@ public static class RequiredInlineStateExtensions
         ArgumentNullException.ThrowIfNull(database);
         database.ChangeTracker.DetectChanges();
         EntityEntry[] entries = database.ChangeTracker.Entries().ToArray();
+        if (ValidateMaintenanceWrite(database, entries))
+            return;
         foreach (var streamModel in database.Model.GetEntityTypes())
         {
             foreach (
@@ -145,7 +141,7 @@ public static class RequiredInlineStateExtensions
                         stateReference,
                         family
                     );
-                ValidateProjectionWrites(headers, states, streamKey, stateReference, family);
+                ValidateStateWrites(headers, states, streamKey, stateReference, family);
             }
         }
     }
@@ -161,9 +157,9 @@ public static class RequiredInlineStateExtensions
         {
             if (fact.State != EntityState.Added)
                 Fail("Configured event envelopes are append-only.");
-            var key = InlineProjectionModel.Values(fact, eventReference.Properties);
+            var key = InlineStateMetadata.Values(fact, eventReference.Properties);
             var header = headers.SingleOrDefault(entry =>
-                key.SequenceEqual(InlineProjectionModel.Values(entry, streamKey.Properties))
+                key.SequenceEqual(InlineStateMetadata.Values(entry, streamKey.Properties))
             );
             if (header is null || header.State is not (EntityState.Added or EntityState.Modified))
                 Fail("An inserted event requires its tracked advancing stream header.");
@@ -197,6 +193,20 @@ public static class RequiredInlineStateExtensions
             Fail("Registered aggregate streams cannot change family or be deleted.");
         if (database.Database.CurrentTransaction is null)
             Fail("Registered aggregate writes require an explicit native transaction.");
+        if (
+            stream.ConcurrencyStamp == Guid.Empty
+            || (
+                header.State == EntityState.Modified
+                && (
+                    !header.Property(nameof(IEventStreamRecord.ConcurrencyStamp)).IsModified
+                    || Equals(
+                        header.Property(nameof(IEventStreamRecord.ConcurrencyStamp)).OriginalValue,
+                        stream.ConcurrencyStamp
+                    )
+                )
+            )
+        )
+            Fail("Every append must advance the native header concurrency stamp.");
         long previous =
             header.State == EntityState.Added
                 ? 0
@@ -214,9 +224,9 @@ public static class RequiredInlineStateExtensions
             header.State == EntityState.Modified
             && (
                 !header.Property(nameof(IEventStreamRecord.Version)).IsModified
-                || !InlineProjectionModel
+                || !InlineStateMetadata
                     .Values(header, streamKey.Properties, true)
-                    .SequenceEqual(InlineProjectionModel.Values(header, streamKey.Properties))
+                    .SequenceEqual(InlineStateMetadata.Values(header, streamKey.Properties))
                 || !stream.CreatedAt.EqualsExact(
                     (DateTimeOffset)
                         header.Property(nameof(IEventStreamRecord.CreatedAt)).OriginalValue!
@@ -224,12 +234,12 @@ public static class RequiredInlineStateExtensions
             )
         )
             Fail("Preserve the stream key, creation time and original version token.");
-        object?[] key = InlineProjectionModel.Values(header, streamKey.Properties);
-        ValidateRequiredProjection(header, stream, previous, key, states, stateReference);
+        object?[] key = InlineStateMetadata.Values(header, streamKey.Properties);
+        ValidateRequiredState(header, stream, previous, key, states, stateReference);
         ValidateEventRange(header, stream, previous, key, events, eventReference);
     }
 
-    private static void ValidateRequiredProjection(
+    private static void ValidateRequiredState(
         EntityEntry header,
         IEventStreamRecord stream,
         long previous,
@@ -239,21 +249,19 @@ public static class RequiredInlineStateExtensions
     )
     {
         var state = states.SingleOrDefault(entry =>
-            key.SequenceEqual(InlineProjectionModel.Values(entry, stateReference.Properties))
+            key.SequenceEqual(InlineStateMetadata.Values(entry, stateReference.Properties))
         );
         if (state is null || state.State != header.State)
-            Fail("Every registered append requires matching changed required inline projection.");
+            Fail("Every registered append requires matching changed aggregate state.");
         var row = (IInlineStateRecord)state!.Entity;
         if (row.Version != stream.Version || !row.RecordedAt.EqualsExact(stream.UpdatedAt))
-            Fail(
-                "Required inline projections must represent the advanced stream version and recorded time."
-            );
+            Fail("Aggregate state must represent the advanced stream version and recorded time.");
         if (
             state.State == EntityState.Modified
             && (
                 (long)state.Property(nameof(IInlineStateRecord.Version)).OriginalValue! != previous
                 || !state.Property(nameof(IInlineStateRecord.Version)).IsModified
-                || !InlineProjectionModel
+                || !InlineStateMetadata
                     .Values(state, stateReference.Properties, true)
                     .SequenceEqual(key)
             )
@@ -272,7 +280,7 @@ public static class RequiredInlineStateExtensions
     {
         var batch = events
             .Where(entry =>
-                key.SequenceEqual(InlineProjectionModel.Values(entry, eventReference.Properties))
+                key.SequenceEqual(InlineStateMetadata.Values(entry, eventReference.Properties))
             )
             .Select(entry => (IStoredEventRecord)entry.Entity)
             .OrderBy(row => row.StreamVersion)
@@ -304,7 +312,7 @@ public static class RequiredInlineStateExtensions
             Fail("Event range endpoints must match stream timestamps.");
     }
 
-    private static void ValidateProjectionWrites(
+    private static void ValidateStateWrites(
         EntityEntry[] headers,
         EntityEntry[] states,
         IKey streamKey,
@@ -314,21 +322,128 @@ public static class RequiredInlineStateExtensions
     {
         foreach (var state in states)
         {
-            var key = InlineProjectionModel.Values(state, stateReference.Properties);
+            var key = InlineStateMetadata.Values(state, stateReference.Properties);
             var header = headers.SingleOrDefault(entry =>
-                key.SequenceEqual(InlineProjectionModel.Values(entry, streamKey.Properties))
+                key.SequenceEqual(InlineStateMetadata.Values(entry, streamKey.Properties))
             );
             if (
                 header is null
                 || header.State is not (EntityState.Added or EntityState.Modified)
                 || ((IEventStreamRecord)header.Entity).StreamType != family
             )
-                Fail(
-                    "Required inline projections cannot change independently of its registered append."
-                );
+                Fail("Aggregate state cannot change independently of its registered append.");
         }
     }
 
     [DoesNotReturn]
     private static void Fail(string message) => throw new InvalidOperationException(message);
+
+    // Only library replay may replace state without appending facts. Remember its exact native write
+    // for the caller's save guard; scheduling, retries and completion remain outside this record.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+        DbContext,
+        MaintenanceWrite
+    > MaintenanceWrites = new();
+
+    internal static bool HasMaintenanceWrite(DbContext database) =>
+        MaintenanceWrites.TryGetValue(database, out _);
+
+    internal static void RecordMaintenanceWrite(
+        DbContext database,
+        IEventStreamRecord header,
+        IInlineStateRecord state,
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction
+    )
+    {
+        database.ChangeTracker.DetectChanges();
+        MaintenanceWrites.Add(
+            database,
+            new(database.Entry(header), database.Entry(state), transaction)
+        );
+    }
+
+    private static bool ValidateMaintenanceWrite(DbContext database, EntityEntry[] entries)
+    {
+        if (!MaintenanceWrites.TryGetValue(database, out var repair))
+            return false;
+        if (
+            !ReferenceEquals(repair.Transaction, database.Database.CurrentTransaction)
+            || entries.Length != 2
+            || !entries.Any(entry => ReferenceEquals(entry.Entity, repair.Header.Entity))
+            || !entries.Any(entry => ReferenceEquals(entry.Entity, repair.State.Entity))
+        )
+            Fail("Save the exact maintenance header/state in its original transaction.");
+        foreach (var entry in entries)
+        {
+            var expected = ReferenceEquals(entry.Entity, repair.Header.Entity)
+                ? repair.HeaderValues
+                : repair.StateValues;
+            if (
+                entry.State
+                    is not (EntityState.Added or EntityState.Modified or EntityState.Unchanged)
+                || !expected.Properties.All(property =>
+                    expected[property] is DateTimeOffset recordedTime
+                        ? entry.Property(property.Name).CurrentValue is DateTimeOffset currentTime
+                            && recordedTime.EqualsExact(currentTime)
+                        : Equals(expected[property], entry.Property(property.Name).CurrentValue)
+                )
+            )
+                Fail("The maintenance replacement changed after reconstruction.");
+        }
+        var header = repair.Header;
+        var state = repair.State;
+        if (
+            header.State == EntityState.Modified
+            && (
+                header.Properties.Any(property =>
+                    property.IsModified
+                    && property.Metadata.Name != nameof(IEventStreamRecord.ConcurrencyStamp)
+                )
+                || !Equals(
+                    header.Property(nameof(IEventStreamRecord.ConcurrencyStamp)).OriginalValue,
+                    repair.OriginalStamp
+                )
+            )
+        )
+            Fail(
+                "Repair changes only the concurrency stamp, preserving its observed original token."
+            );
+        if (
+            state.State == EntityState.Modified
+            && (
+                !Equals(
+                    state.Property(nameof(IInlineStateRecord.Version)).OriginalValue,
+                    repair.OriginalStateVersion
+                )
+                || !InlineStateMetadata
+                    .Values(state, state.Metadata.FindPrimaryKey()!.Properties, true)
+                    .SequenceEqual(
+                        InlineStateMetadata.Values(
+                            state,
+                            state.Metadata.FindPrimaryKey()!.Properties
+                        )
+                    )
+            )
+        )
+            Fail("Preserve the observed maintenance state key/version.");
+        return true;
+    }
+
+    private sealed class MaintenanceWrite(
+        EntityEntry header,
+        EntityEntry state,
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction
+    )
+    {
+        internal EntityEntry Header { get; } = header;
+        internal EntityEntry State { get; } = state;
+        internal PropertyValues HeaderValues { get; } = header.CurrentValues.Clone();
+        internal PropertyValues StateValues { get; } = state.CurrentValues.Clone();
+        internal object? OriginalStamp { get; } =
+            header.Property(nameof(IEventStreamRecord.ConcurrencyStamp)).OriginalValue;
+        internal object? OriginalStateVersion { get; } =
+            state.Property(nameof(IInlineStateRecord.Version)).OriginalValue;
+        internal Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction Transaction { get; } =
+            transaction;
+    }
 }

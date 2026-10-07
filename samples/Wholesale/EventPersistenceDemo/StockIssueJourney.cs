@@ -31,7 +31,7 @@ public static class StockIssueJourney
                     provider,
                     FixtureHistories.OpenedAt,
                     commands =>
-                        commands.StageOpenAsync(
+                        commands.OpenAsync(
                             new OpenStockPosition(
                                 Id,
                                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -55,7 +55,7 @@ public static class StockIssueJourney
                     provider,
                     FixtureHistories.FirstChangeAt,
                     commands =>
-                        commands.StageReceiptsAsync(
+                        commands.ReceiveAsync(
                             new ReceiveStock(
                                 Id,
                                 current.Version,
@@ -78,7 +78,7 @@ public static class StockIssueJourney
                     provider,
                     FixtureHistories.LastStockChangeAt,
                     commands =>
-                        commands.StageIssuesAsync(
+                        commands.IssueAsync(
                             new IssueStock(
                                 Id,
                                 current.Version,
@@ -110,7 +110,7 @@ public static class StockIssueJourney
         var result = await final
             .ServiceProvider.WithClock(FixtureHistories.LastStockChangeAt)
             .GetRequiredService<IStockPositionCommands>()
-            .StageIssuesAsync(
+            .IssueAsync(
                 new IssueStock(Id, committed.Version, [new StockIssue(7)]),
                 cancellationToken
             );
@@ -148,7 +148,7 @@ public static class StockIssueJourney
                         .ServiceProvider.WithClock(time)
                         .GetRequiredService<IStockPositionCommands>()
                 )
-                is not StockPositionChangeResult.Staged
+                is not StockPositionChangeResult.Changed
             )
                 throw new InvalidOperationException("The stock-issue journey did not stage.");
             await database.SaveChangesAsync(cancellationToken);

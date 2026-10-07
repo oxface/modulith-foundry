@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.Events.History;
 using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.EventStorageDemo;
@@ -6,11 +7,15 @@ namespace ModulithFoundry.Samples.EventStorageDemo;
 internal sealed class CounterStore
     : EventStore<CounterAggregate, CounterEvent, EventStreamRecord, StoredEventRecord>
 {
-    private const string StreamType = "proof.counter";
     private readonly StorageDbContext database;
+    private readonly CounterHistoryReader historyReader;
 
     internal CounterStore(StorageDbContext database, TimeProvider timeProvider)
-        : base(database, new CounterEventRecordAdapter(), timeProvider) => this.database = database;
+        : base(database, new CounterEventRecordMapping(), timeProvider)
+    {
+        this.database = database;
+        historyReader = new(database);
+    }
 
     protected override EventStreamRecord CreateStream(Guid id) =>
         new() { Description = "Append counter" };
@@ -45,52 +50,22 @@ internal sealed class CounterStore
         CancellationToken cancellationToken
     )
     {
-        Guid id = stream.Id;
-        if (
-            stream.StreamType != StreamType
-            || stream.Version < 1
-            || stream.CreatedAt > stream.UpdatedAt
-        )
-            throw new InvalidDataException("The counter header is invalid.");
-        // Capture once, then load only the ordered prefix through that observed head.
-        var rows = await database
-            .Events.AsNoTracking()
-            .Where(row => row.StreamId == id && row.StreamVersion <= stream.Version)
-            .OrderBy(row => row.StreamVersion)
-            .ToArrayAsync(cancellationToken);
-        if (
-            rows.LongLength != stream.Version
-            || rows[0].RecordedAt != stream.CreatedAt
-            || rows[^1].RecordedAt != stream.UpdatedAt
-        )
-            throw new InvalidDataException("The counter prefix differs from the captured header.");
-        var facts = new CounterEvent[rows.Length];
-        for (int index = 0; index < rows.Length; index++)
+        IReadOnlyList<ReplayedEvent<CounterEvent>> events;
+        try
         {
-            var row = rows[index];
-            if (
-                row.StreamVersion != index + 1L
-                || row.SchemaVersion != 1
-                || row.RecordedAt.Offset != TimeSpan.Zero
-                || (index > 0 && row.RecordedAt < rows[index - 1].RecordedAt)
-            )
-                throw new InvalidDataException("The counter prefix metadata is invalid.");
-            facts[index] = row.EventName switch
-            {
-                "proof.counter-started" when index == 0 => new CounterStarted(
-                    row.Payload.GetProperty("value").GetInt32()
-                ),
-                "proof.counter-increased" when index > 0 => new CounterIncreased(
-                    row.Payload.GetProperty("amount").GetInt32()
-                ),
-                _ => throw new InvalidDataException("The counter fact sequence is invalid."),
-            };
+            events = await historyReader.ReadAsync(stream, cancellationToken: cancellationToken);
         }
+        catch (EventHistoryException exception)
+        {
+            // Keep the counter's established public corruption classification.
+            throw new InvalidDataException("The counter prefix is invalid.", exception);
+        }
+
         // Historical facts do not re-run today's ceiling policy.
         return new CounterState(
-            id,
+            stream.Id,
             stream.Version,
-            CounterEvolution.Evolve(null, facts).Value,
+            CounterEvolution.Evolve(null, events.Select(item => item.Event).ToArray()).Value,
             stream.UpdatedAt
         );
     }

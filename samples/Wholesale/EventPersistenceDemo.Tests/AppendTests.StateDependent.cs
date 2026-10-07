@@ -259,7 +259,7 @@ public sealed partial class AppendTests
         operation
             .ServiceProvider.WithClock(Changed)
             .GetRequiredService<IStockPositionCommands>()
-            .StageIssuesAsync(
+            .IssueAsync(
                 new IssueStock(
                     Id,
                     expected,

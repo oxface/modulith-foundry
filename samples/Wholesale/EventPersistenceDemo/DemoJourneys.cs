@@ -47,7 +47,7 @@ public static class DemoJourneys
                 await using var transaction = await database.Database.BeginTransactionAsync(
                     cancellationToken
                 );
-                InventoryHistorySeed.Stage(
+                InventoryHistorySeed.Add(
                     database,
                     FixtureHistories.StreamId,
                     FixtureHistories.Inventory(fixtures, multiplier)
@@ -61,7 +61,7 @@ public static class DemoJourneys
                 await using var transaction = await database.Database.BeginTransactionAsync(
                     cancellationToken
                 );
-                PurchasingHistorySeed.Stage(
+                PurchasingHistorySeed.Add(
                     database,
                     FixtureHistories.StreamId,
                     FixtureHistories.Purchasing(fixtures, multiplier)

@@ -47,7 +47,8 @@ transaction abstraction, pending reset/rebase, automatic persistence or messagin
 Encapsulated aggregate reducers and separately reusable pure evolution are consumer choices.
 Generic lifecycle extensions require a real caller and failure/recovery proof before selection.
 
-Projection rebuild/catch-up, snapshot-plus-tail, async/subscription processing, multi-stream
+The optional EF package implements independent full replay into its one inline aggregate.
+Catch-up, snapshot-plus-tail, async/subscription processing, secondary/multi-stream
 projections, upcasting, command idempotency and ambiguous-commit recovery remain deferred.
 They concern persisted versions, compatibility and progress guarantees beyond this in-memory
 contract; their current context is in the EF capability record. A projected summary and the

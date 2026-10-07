@@ -13,16 +13,14 @@ public sealed class PurchasingDbContext(
 {
     internal DbSet<EventStream> EventStreams => Set<EventStream>();
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();
-    internal DbSet<PurchaseOrderCurrentRow> PurchaseOrders => Set<PurchaseOrderCurrentRow>();
-    internal DbSet<PurchaseOrderSummaryRow> PurchaseOrderSummaries =>
-        Set<PurchaseOrderSummaryRow>();
+    internal DbSet<PurchaseOrderStateRow> PurchaseOrders => Set<PurchaseOrderStateRow>();
     internal string RequiredOrganizationKey => tenancy.Current.RequireTenant().Value;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("purchasing");
         HistoryMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
-        InlineViewMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
+        InlineStateMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

@@ -1,49 +1,52 @@
-# EventSourcing composition and capabilities
+# Current capabilities and deferred work
 
-Current scope, 2026-10-07. This family guide and the package-local contracts travel with
-the source. Root plans/reports retain cross-cutting review and dated execution evidence.
+The supported model is append-only per-stream events plus one required transactionally updated
+inline command aggregate. Domain evolution and event encoding are consumer mappings. Native EF
+save validation enforces tracked header/event/state participation; the consumer must call it
+from both native save overrides and own the transaction and final save/commit.
 
-## Supported composition
+Full replay is a separate explicit maintenance lane. The rebuilder inserts missing state or
+replaces state without decoding an old corrupt body, preserving retained facts/version/times.
+Appends and rebuilds change a native header concurrency stamp. Same-version repair invalidates
+stale decisions at save. This optimistic contract permits overlap and native conflicts; it
+provides no pre-read exclusion. Dispose and reload after failure. Read access never saves repairs.
+The EF adapter contains no Npgsql dependency; PostgreSQL is the runtime proved by family and
+consumer integration tests. No portability certification or pessimistic provider seam is claimed.
 
-The aggregate core carries captured/proposed versions and ordered heterogeneous facts. The EF store
-requires the consumer's explicit transaction, loads state at a captured stream version, validates
-family/version/root association and stages the accepted event batch plus registered required inline
-state. Explicit native save validation enforces tracked event/header/main-state/required-view
-participation. Registered aggregate writes require one main inline state; raw history-backed streams
-remain permitted.
+Consumers can reconstruct live views on access with the provided bounded EF history reader and
+their own decoders/reducers. The reader uses complete mapped keys, captured version bounds, native
+filters and ordered range/UTC endpoint validation, without tracking or saving. The EF adapter
+reuses Events.History integrity checks but has no serialization dependency. Temporal cutoff
+selection and initial stream lookup remain consumer-owned. Rebuilders inject this independent
+reader; writing requires no history registration. Native
+Queries/Filters can filter and join stored aggregate state without persisting secondary views.
+Secondary inline and multi-stream projections are deferred until a concrete query/storage need
+justifies them. Main aggregate state must remain current within every successful append transaction.
 
-Select only the packages needed by the consumer:
+## Planned capabilities and their proof obligations
 
-- [ModulithFoundry.EventSourcing](../ModulithFoundry.EventSourcing/README.md)
-- [ModulithFoundry.EventSourcing.EntityFrameworkCore](../ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md)
+- Maintenance worker: still needed eventually; deferred to keep this change focused. Consumers
+  can host reconciliation now, owning scheduling, locking/windows, authorization, retries and
+  scaling. Future jobs must prove crash recovery, idempotence and safe coordination with writers.
+- Upcasting/versioned event transformations: important next maintenance-related direction;
+  stable aliases and schema dispatch exist, upcasters do not. Prove retained historical payloads,
+  transformation order, lossless evolution and reconstruction before treating them as supported.
+- Async projections and durable checkpoints: prove ordering, duplicate handling, rollback,
+  restart and fault recovery. Not just an implementation exercise.
+- Multi-stream projections and extra inline views: reassess native EF joins/filter translation
+  first. Shared-row updates require real cross-stream concurrency and deadlock proofs; these
+  belong before a general projection maintenance engine.
+- Snapshot plus delta catch-up: deferred. Current inline state is required at the exact head;
+  ordinary fetch does not repair or apply missing events. Full replay repairs data explicitly.
+- Projection backfill/rebuild orchestration: new views need an explicit population step, not
+  automatic read repair. Prove serving behavior, cutover and concurrency before adding workers.
+- Stream lifecycle/deletion, branching, global ordering, pessimistic write modes, subscriptions,
+  event metadata/correlation/causation, retention/archiving, import/export and ambiguous-commit
+  reconciliation: unsupported. Add bounded concrete obligations before introducing machinery.
+- Messaging/outbox, audit integration, cross-module transactions and template event presets:
+  excluded from this capability. T1 remains event-free.
+- Provider-specific locking (for example SELECT FOR UPDATE): if a real future obligation needs
+  it, consider a separate *.Postgres package and discover the abstraction then. The earlier
+  advisory-gate package was removed; its proof document is retained as historical evidence.
 
-## Consumer obligations
-
-Consumers own domain eligibility, event schemas/encoding, reducers, native query filters, tenant
-admission/ownership, typed module DbContexts, migrations and final SaveChanges/commit. One stored
-envelope shape supports different payload types; optional StoredEventRecord uses JsonElement, with
-JSONB configured in the PostgreSQL consumer. Additional inline views are projections of the stream
-rather than command aggregates. Events.Serialization/History remain optional utilities.
-
-The package READMEs specify public types, explicit integration steps, errors and unsupported
-configuration. Copying or referencing one package does not automatically install another
-family's context or policy. Consumers keep DI lifetimes, host wiring and native dependency
-selection visible.
-
-## Deferred context
-
-No catch-up/rebuild engine, async or multi-stream projections, snapshot-plus-tail, upcasting,
-messaging, audit participation, cross-module transaction contract, automatic retry or
-ambiguous-commit recovery is supplied. PostgreSQL is the only proven provider; other providers are
-not deliberately rejected or certified. Pessimistic locks and a possible EventSourcing.Postgres
-adapter remain candidates requiring a concrete portable seam and provider proofs.
-
-Deferred features need executable contract proofs before support can be claimed. No future
-package or interface is implemented by this repository relocation.
-
-The detailed local records retain the full supported contract and future proof obligations:
-
-- [Aggregate core capabilities](../ModulithFoundry.EventSourcing/docs/capabilities.md)
-- [EF store capabilities and deferred catalog](../ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
-
-The Events family remains separate: [Serialization](../../ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md) and [History](../../ModulithFoundry.Events/ModulithFoundry.Events.History/README.md) are used by Wholesale, while the independent counter needs neither. There is no Postgres project until a concrete provider capability earns its own reviewed interface.
+[EF setup, public API, errors and limitations](../ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md) is the consumer contract.

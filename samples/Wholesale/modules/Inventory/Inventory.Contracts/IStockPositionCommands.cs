@@ -3,15 +3,15 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 // Staging changes the caller's native context only. Staged is not committed success.
 public interface IStockPositionCommands
 {
-    Task<StockPositionChangeResult> StageOpenAsync(
+    Task<StockPositionChangeResult> OpenAsync(
         OpenStockPosition request,
         CancellationToken cancellationToken
     );
-    Task<StockPositionChangeResult> StageReceiptsAsync(
+    Task<StockPositionChangeResult> ReceiveAsync(
         ReceiveStock request,
         CancellationToken cancellationToken
     );
-    Task<StockPositionChangeResult> StageIssuesAsync(
+    Task<StockPositionChangeResult> IssueAsync(
         IssueStock request,
         CancellationToken cancellationToken
     );
@@ -39,7 +39,7 @@ public sealed record IssueStock(Guid Id, long ExpectedVersion, IReadOnlyList<Sto
 
 public abstract record StockPositionChangeResult
 {
-    public sealed record Staged(StockPositionHistory Proposed) : StockPositionChangeResult;
+    public sealed record Changed(StockPositionHistory Proposed) : StockPositionChangeResult;
 
     public sealed record NotFound : StockPositionChangeResult;
 

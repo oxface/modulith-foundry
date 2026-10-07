@@ -9,7 +9,7 @@ consumer-owned sample/template projects, not reusable technical libraries.
 | Access | Global application users, exact external identities, canonical Organizations and current-membership admission. | Schema `access`, native AccessDbContext, separate migration history; queries run before tenancy exists. |
 | Sales | Versioned customer profile edits and one demonstration address per customer. | Schema `sales`, native SalesDbContext, separate history; explicit tenant ownership and native transactions. |
 | Inventory | Availability reads, stock-position history and inline state, opening and receipt commands within the selected Organization. | Schema `inventory`, native InventoryDbContext, separate history; ordinary queries use the registered E2 ownership filter. |
-| Purchasing | Purchase-order history, inline state and independent summary, drafting and line replacement. | Schema `purchasing`, native PurchasingDbContext, separate history; explicit tenant ownership. |
+| Purchasing | Purchase-order history, inline aggregate state and query-derived summary, drafting and line replacement. | Schema `purchasing`, native PurchasingDbContext, separate history; explicit tenant ownership. |
 
 Each implementation references its own Contracts. None references a peer implementation
 or the HTTP host. Contracts contain domain keys, query/command interfaces and immutable results;
@@ -97,7 +97,7 @@ IPurchaseOrderCommands drafts an order and stages line batches. Their DTOs conta
 stream identity, business values and expected version, without tenant/actor or EF types.
 Consumers register commands explicitly alongside history queries and native contexts.
 
-Staged is proposed state only. The caller must start the module's native transaction before
+Changed is proposed state only. The caller must start the module's native transaction before
 command preparation, save and commit explicitly, and handle both preflight NotFound/Conflict
 and save-time failures. Internal decisions deliberately produce typed events, load checked inline
 decision state, evolve the complete candidate and encode all required rows before tracking. Native
@@ -138,7 +138,7 @@ record the new proofs and remaining extraction candidates.
 ## ES1 bounded accepted-batch append
 
 Inventory also owns **stock issue**: positive quantities leave a selected stock position in
-its base unit, and a complete requested batch must fit the loaded OnHand. StageIssuesAsync
+its base unit, and a complete requested batch must fit the loaded OnHand. IssueAsync
 loads the required inline state at the observed header version before deciding eligibility.
 InsufficientStock reports Available/Requested without staging any proposal. The issued v1
 fact evolves historical state by subtraction; replay does not reapply current command rules.
@@ -154,3 +154,26 @@ native mappings/migrations, historical fixtures and explicit loading paths are p
 The independent EventStorageDemo counter uses that same append interface with captured-history
 state, direct JSON and no required view or tenancy. T1's generated state-stored composition
 does not acquire event sourcing. See [the reviewed ES1 scope](../../../docs/plans/es1-bounded-event-append.md).
+
+## Current ES2 native EF model
+
+The owner-approved replacement keeps one inline aggregate state per registered stream and
+an independent explicit full-replay rebuilder. Purchasing summaries derive from that mapped state;
+the dormant summary entity/table is removed by a new migration. Earlier E6 secondary-view
+sections above record historical behavior, not another current projection/storage requirement.
+Prior migrations and literal fixtures remain unchanged.
+
+Each concrete command store takes its module's typed DbContext, event mapping and clock and
+configures the shared aggregate-state mapping. It has no history reader or maintenance binding.
+Separate StockPositionRebuilder/PurchaseOrderRebuilder implementations use the existing history
+reader and effect-free reducer. Explicit role registrations retain the module context boundary.
+Query services use InlineStateReader directly and native mapped-state filters/joins; no wrapper
+projection class or additional stored summary is required. Changed results describe changes in
+the unit of work; the caller's explicit native SaveChanges/commit establishes durability.
+
+Appends and repair change the header ConcurrencyStamp. A stale writer/repair fails natively at
+save and must roll back/dispose/reload. Repair preserves facts, event version and recorded times.
+There is no pre-read admission gate, silent catch-up, scheduler or worker. A maintenance worker
+remains planned; consumers can host reconciliation and own authorization, windows/locks, retries,
+scheduling and scaling. [The current library contract](../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md)
+provides self-sufficient setup, errors and limits.

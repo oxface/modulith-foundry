@@ -39,7 +39,7 @@ public static class AppendJourneys
                 {
                     var commands =
                         scope.ServiceProvider.GetRequiredService<IStockPositionCommands>();
-                    var result = await commands.StageOpenAsync(
+                    var result = await commands.OpenAsync(
                         new OpenStockPosition(
                             CommandStreamId,
                             Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -48,7 +48,7 @@ public static class AppendJourneys
                         ),
                         cancellationToken
                     );
-                    if (result is not StockPositionChangeResult.Staged)
+                    if (result is not StockPositionChangeResult.Changed)
                         throw new InvalidOperationException("Opening did not stage.");
                     await database.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
@@ -78,7 +78,7 @@ public static class AppendJourneys
                     var result = await scope
                         .ServiceProvider.WithClock(FixtureHistories.FirstChangeAt)
                         .GetRequiredService<IStockPositionCommands>()
-                        .StageReceiptsAsync(
+                        .ReceiveAsync(
                             new ReceiveStock(
                                 CommandStreamId,
                                 1,
@@ -86,7 +86,7 @@ public static class AppendJourneys
                             ),
                             cancellationToken
                         );
-                    if (result is not StockPositionChangeResult.Staged)
+                    if (result is not StockPositionChangeResult.Changed)
                         throw new InvalidOperationException("Receipts did not stage.");
                     await database.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
@@ -116,11 +116,11 @@ public static class AppendJourneys
                     var result = await scope
                         .ServiceProvider.WithClock(FixtureHistories.OpenedAt)
                         .GetRequiredService<IPurchaseOrderCommands>()
-                        .StageDraftAsync(
+                        .DraftAsync(
                             new DraftPurchaseOrder(CommandStreamId, "COMMAND-1", "SUP-1", "EUR"),
                             cancellationToken
                         );
-                    if (result is not PurchaseOrderChangeResult.Staged)
+                    if (result is not PurchaseOrderChangeResult.Changed)
                         throw new InvalidOperationException("Draft did not stage.");
                     await database.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
@@ -150,7 +150,7 @@ public static class AppendJourneys
                     var result = await scope
                         .ServiceProvider.WithClock(FixtureHistories.FirstChangeAt)
                         .GetRequiredService<IPurchaseOrderCommands>()
-                        .StageLinesAsync(
+                        .ChangeLinesAsync(
                             new ChangePurchaseOrderLines(
                                 CommandStreamId,
                                 1,
@@ -161,7 +161,7 @@ public static class AppendJourneys
                             ),
                             cancellationToken
                         );
-                    if (result is not PurchaseOrderChangeResult.Staged)
+                    if (result is not PurchaseOrderChangeResult.Changed)
                         throw new InvalidOperationException("Lines did not stage.");
                     await database.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);

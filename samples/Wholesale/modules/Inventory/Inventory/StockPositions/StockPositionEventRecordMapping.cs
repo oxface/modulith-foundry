@@ -3,13 +3,13 @@ using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
-internal sealed class StockPositionEventRecordAdapter
-    : EventRecordAdapter<IStockPositionEvent, EventStream, StoredEvent>
+internal sealed class StockPositionEventRecordMapping
+    : EventRecordMapping<IStockPositionEvent, EventStream, StoredEvent>
 {
     private readonly JsonEventCodec<IStockPositionEvent> codec = StockPositionCodec.CreateCodec();
     public override string StreamType => StockPositionHistoryReader.StreamType;
 
-    public override StoredEvent CreateRecord(IStockPositionEvent @event, EventStream stream)
+    public override StoredEvent ToRow(IStockPositionEvent @event, EventStream stream)
     {
         var encoded = codec.Serialize(@event);
         return new StoredEvent

@@ -57,7 +57,7 @@ public sealed class AdoptionDependencyTests
     }
 
     [Fact]
-    public void EventAppendAdapterDeclaresOnlyAggregateCoreAndNativeEf()
+    public void EventAdapterDeclaresAggregateCoreHistoryIntegrityNativeEfAndDiAbstractions()
     {
         XDocument declaration = XDocument.Load(
             Path.Combine(
@@ -67,7 +67,7 @@ public sealed class AdoptionDependencyTests
             )
         );
         Assert.Equal(
-            ["ModulithFoundry.EventSourcing"],
+            ["ModulithFoundry.EventSourcing", "ModulithFoundry.Events.History"],
             declaration
                 .Descendants("ProjectReference")
                 .Select(reference =>
@@ -75,7 +75,10 @@ public sealed class AdoptionDependencyTests
                 )
         );
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Relational"],
+            [
+                "Microsoft.EntityFrameworkCore.Relational",
+                "Microsoft.Extensions.DependencyInjection.Abstractions",
+            ],
             declaration
                 .Descendants("PackageReference")
                 .Select(reference => (string)reference.Attribute("Include")!)
@@ -105,5 +108,36 @@ public sealed class AdoptionDependencyTests
                 .Order(StringComparer.Ordinal)
         );
         Assert.Empty(declaration.Descendants("FrameworkReference"));
+    }
+
+    [Fact]
+    public void StandalonePostgresConsumerDeclaresOnlyItsSelectedDependencies()
+    {
+        var consumer = XDocument.Load(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "ProjectDeclarations",
+                "EventSourcingPostgresTests.csproj"
+            )
+        );
+        Assert.Equal(
+            ["ModulithFoundry.EventSourcing.EntityFrameworkCore"],
+            consumer
+                .Descendants("ProjectReference")
+                .Select(reference =>
+                    Path.GetFileNameWithoutExtension((string)reference.Attribute("Include")!)
+                )
+        );
+        Assert.Equal(
+            [
+                "Npgsql.EntityFrameworkCore.PostgreSQL",
+                "Testcontainers.PostgreSql",
+                "xunit.v3.mtp-v2",
+            ],
+            consumer
+                .Descendants("PackageReference")
+                .Select(reference => (string)reference.Attribute("Include")!)
+                .Order(StringComparer.Ordinal)
+        );
     }
 }

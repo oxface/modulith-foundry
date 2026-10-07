@@ -1,5 +1,9 @@
 # E6.1 inline decision state and required views
 
+Historical design/execution record. The active interface is superseded by
+[the owner-approved native EF replacement](../plans/es2-native-ef-simplification.md).
+Renamed-source links lead to current replacements; removed mechanisms link to their replacement scope.
+
 2026-10-06. The owner-approved [scope](../plans/e6-1-inline-decision-state.md) is implemented
 following checkpoint `abcd370` (E5.2.2 and E5.3), and was checkpointed separately as `1ae13d4`.
 The results below are the original local executions, not remote CI or fresh runs for this
@@ -159,16 +163,16 @@ Read the domain state/evolution, detached preparation and required-view protocol
 
 - Inventory [state](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionState.cs),
   [commands](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionCommands.cs),
-  [projector](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionInlineProjection.cs)
+  [former projector](../plans/es2-native-ef-simplification.md)
   and [queries Contract](../../samples/Wholesale/modules/Inventory/Inventory.Contracts/IStockPositionQueries.cs).
 - Purchasing [state](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderState.cs),
   [commands](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderCommands.cs),
-  [projector](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderInlineProjection.cs),
-  [summary](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderSummaryRow.cs)
+  [former projector](../plans/es2-native-ef-simplification.md),
+  [former summary](../plans/es2-native-ef-simplification.md)
   and [queries Contract](../../samples/Wholesale/modules/Purchasing/Purchasing.Contracts/IPurchaseOrderQueries.cs).
-- Native [Inventory mapping](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/InlineViewMapping.cs)
+- Native [Inventory mapping](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/InlineStateMapping.cs)
   and [migration](../../samples/Wholesale/modules/Inventory/Inventory/Migrations/20261006135521_AddStockPositionCurrent.cs),
-  [Purchasing mapping](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/InlineViewMapping.cs)
+  [Purchasing mapping](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/InlineStateMapping.cs)
   and [migration](../../samples/Wholesale/modules/Purchasing/Purchasing/Migrations/20261006135521_AddPurchaseOrderViews.cs).
 - [Focused proofs](../../samples/Wholesale/EventPersistenceDemo.Tests/AppendTests.InlineViews.cs),
   [extended append proofs](../../samples/Wholesale/EventPersistenceDemo.Tests/AppendTests.cs),

@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.Events.History;
 using ModulithFoundry.Events.Serialization;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
 internal sealed class PurchaseOrderHistoryReader(PurchasingDbContext database)
-    : IPurchaseOrderHistory
+    : EventHistoryReader<IPurchaseOrderEvent, EventStream, StoredEvent>(database, StreamType),
+        IPurchaseOrderHistory
 {
     internal const string StreamType = "purchasing.purchase-order";
     private static readonly JsonEventCodec<IPurchaseOrderEvent> Codec =
@@ -77,28 +78,15 @@ internal sealed class PurchaseOrderHistoryReader(PurchasingDbContext database)
             if (target == 0)
                 throw new InvalidDataException("The purchase order creation event is missing.");
         }
-        StoredEvent[] rows = await database
-            .Events.AsNoTracking()
-            .Where(row => row.StreamId == id && row.StreamVersion <= target)
-            .OrderBy(row => row.StreamVersion)
-            .ToArrayAsync(cancellationToken);
-        EventHistory.ValidateRange(
-            rows.Select(row => new HistoryPosition(row.StreamVersion, row.RecordedAt)),
-            0,
-            target
-        );
-        if (
-            rows[0].RecordedAt != stream.CreatedAt
-            || (target == stream.Version && rows[^1].RecordedAt != stream.UpdatedAt)
-        )
-            throw new InvalidDataException(
-                "The purchase order header and event timestamps disagree."
-            );
+        var events = await base.ReadAsync(stream, target, cancellationToken);
         return PurchaseOrderEvolution.Rehydrate(
             id,
             target,
-            rows[^1].RecordedAt,
-            rows.Select(row => Codec.Deserialize(row.EventName, row.SchemaVersion, row.Payload))
+            events[^1].RecordedAt,
+            events.Select(item => item.Event)
         );
     }
+
+    protected override IPurchaseOrderEvent DecodeEvent(StoredEvent record) =>
+        Codec.Deserialize(record.EventName, record.SchemaVersion, record.Payload);
 }

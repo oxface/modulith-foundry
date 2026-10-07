@@ -27,6 +27,13 @@
   </ItemGroup>
   <ItemGroup>
     <None
+      Include="../../src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj"
+      Link="ProjectDeclarations/EventSourcingPostgresTests.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+  </ItemGroup>
+  <ItemGroup>
+    <None
       Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj"
       Link="ProjectDeclarations/ModulithFoundry.EventSourcing.csproj"
       CopyToOutputDirectory="PreserveNewest"

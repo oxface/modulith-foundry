@@ -14,14 +14,14 @@ public sealed class InventoryDbContext(
     internal DbSet<EventStream> EventStreams => Set<EventStream>();
     internal DbSet<StoredEvent> Events => Set<StoredEvent>();
     internal DbSet<StockRow> Stock => Set<StockRow>();
-    internal DbSet<StockPositionCurrentRow> StockPositions => Set<StockPositionCurrentRow>();
+    internal DbSet<StockPositionStateRow> StockPositions => Set<StockPositionStateRow>();
     internal string RequiredOrganizationKey => tenancy.Current.RequireTenant().Value;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("inventory");
         HistoryMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
-        InlineViewMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
+        InlineStateMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
         var stock = modelBuilder.Entity<StockRow>();
         stock.ToTable("stock_availability");
         stock.HasKey(row => row.Id);

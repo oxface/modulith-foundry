@@ -7,7 +7,7 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing;
 // This is not an expected-version append implementation.
 public static class PurchasingHistorySeed
 {
-    public static void Stage(
+    public static void Add(
         PurchasingDbContext database,
         Guid id,
         IReadOnlyList<(SerializedEvent Event, DateTimeOffset RecordedAt)> history
@@ -28,20 +28,12 @@ public static class PurchasingHistorySeed
             )
             .ToArray();
         var state = PurchaseOrderEvolution.Evolve(null, facts);
-        var main = PurchaseOrderCurrentRow.Prepare(
+        var main = PurchaseOrderStateRow.FromState(
             owner,
             id,
             history.Count,
             history[^1].RecordedAt,
             state
-        );
-        var summary = PurchaseOrderSummaryRow.Prepare(
-            null,
-            owner,
-            id,
-            history.Count,
-            history[^1].RecordedAt,
-            facts
         );
         database.Add(
             new EventStream
@@ -70,6 +62,5 @@ public static class PurchasingHistorySeed
                 }
             );
         database.Add(main);
-        database.Add(summary);
     }
 }

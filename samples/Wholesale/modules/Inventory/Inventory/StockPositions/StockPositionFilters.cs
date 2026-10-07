@@ -2,8 +2,8 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
 internal static class StockPositionFilters
 {
-    internal static IQueryable<StockPositionCurrentRow> WithOnHandAtLeast(
-        this IQueryable<StockPositionCurrentRow> rows,
+    internal static IQueryable<StockPositionStateRow> WithOnHandAtLeast(
+        this IQueryable<StockPositionStateRow> rows,
         decimal quantity
     )
     {

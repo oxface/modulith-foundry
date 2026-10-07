@@ -20,9 +20,9 @@ public sealed partial class AppendTests
     [InlineData(false, "token", false)]
     [InlineData(false, "event", true)]
     [InlineData(false, "header", false)]
-    [InlineData(false, "summary", false)]
-    [InlineData(false, "summary", true)]
-    public async Task SaveRejectsIncompleteOrChangedRequiredParticipantsAndFreshContextRecovers(
+    [InlineData(true, "stamp", true)]
+    [InlineData(false, "stamp", false)]
+    public async Task SaveRejectsIncompleteOrChangedAggregateAppendAndFreshContextRecovers(
         bool inventory,
         string fault,
         bool synchronous
@@ -65,16 +65,18 @@ public sealed partial class AppendTests
                         .First(entry => entry.Entity is IStoredEventRecord)
                         .State = EntityState.Detached;
                     break;
+                case "stamp":
+                    var header = database
+                        .ChangeTracker.Entries()
+                        .Single(entry => entry.Entity is IEventStreamRecord);
+                    header.Property("ConcurrencyStamp").CurrentValue = header
+                        .Property("ConcurrencyStamp")
+                        .OriginalValue;
+                    break;
                 case "header":
                     database
                         .ChangeTracker.Entries()
                         .Single(entry => entry.Entity is IEventStreamRecord)
-                        .State = EntityState.Detached;
-                    break;
-                case "summary":
-                    database
-                        .ChangeTracker.Entries()
-                        .Single(entry => entry.Metadata.GetTableName() == "purchase_order_summary")
                         .State = EntityState.Detached;
                     break;
             }

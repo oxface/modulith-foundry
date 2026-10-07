@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.Events.History;
 using ModulithFoundry.Events.Serialization;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
 internal sealed class StockPositionHistoryReader(InventoryDbContext database)
-    : IStockPositionHistory
+    : EventHistoryReader<IStockPositionEvent, EventStream, StoredEvent>(database, StreamType),
+        IStockPositionHistory
 {
     internal const string StreamType = "inventory.stock-position";
     private static readonly JsonEventCodec<IStockPositionEvent> Codec =
@@ -77,28 +78,15 @@ internal sealed class StockPositionHistoryReader(InventoryDbContext database)
             if (target == 0)
                 throw new InvalidDataException("The stock position creation event is missing.");
         }
-        StoredEvent[] rows = await database
-            .Events.AsNoTracking()
-            .Where(row => row.StreamId == id && row.StreamVersion <= target)
-            .OrderBy(row => row.StreamVersion)
-            .ToArrayAsync(cancellationToken);
-        EventHistory.ValidateRange(
-            rows.Select(row => new HistoryPosition(row.StreamVersion, row.RecordedAt)),
-            0,
-            target
-        );
-        if (
-            rows[0].RecordedAt != stream.CreatedAt
-            || (target == stream.Version && rows[^1].RecordedAt != stream.UpdatedAt)
-        )
-            throw new InvalidDataException(
-                "The stock position header and event timestamps disagree."
-            );
+        var events = await base.ReadAsync(stream, target, cancellationToken);
         return StockPositionEvolution.Rehydrate(
             id,
             target,
-            rows[^1].RecordedAt,
-            rows.Select(row => Codec.Deserialize(row.EventName, row.SchemaVersion, row.Payload))
+            events[^1].RecordedAt,
+            events.Select(item => item.Event)
         );
     }
+
+    protected override IStockPositionEvent DecodeEvent(StoredEvent record) =>
+        Codec.Deserialize(record.EventName, record.SchemaVersion, record.Payload);
 }

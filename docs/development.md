@@ -6,7 +6,7 @@ remain under `tests/`. The active solution, hooks and CI use the family paths be
 See [the layout scope](plans/library-family-layout.md).
 
 
-`ModulithFoundry.slnx` contains 42 active projects: independent ActorIdentity and Tenancy
+`ModulithFoundry.slnx` contains 43 active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, the event codec and
 ordered-range validation, package-free aggregate core and EF event-storage utilities, five finite console
 samples, an HTTP identity/Organization host, eight populated Access/Inventory/Sales/Purchasing module projects and
@@ -95,7 +95,8 @@ These checks require no containers, identity provider or personal credentials. T
 architecture suite uses ArchUnitNET for compiled type dependencies. Declaration tests read
 copied project files with native XML APIs: foundation cores, event codec/history and aggregate
 core allow no package/project/extra-framework references. EF ownership allows only its native
-EF Relational package; EF event storage additionally references the aggregate core. HTTP
+EF Relational package; EF event storage additionally references the aggregate core and DI
+abstractions for its optional scoped aggregate registration helper. HTTP
 adapters permit their corresponding core and the native ASP.NET Core framework. The independent
 event adopter declares just aggregate core/EF storage plus its native provider/design packages.
 No restored-graph parser or exact transitive-package whitelist is maintained. These checks
@@ -259,6 +260,28 @@ For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
 Keep this container test outside commit hooks. CI has a separate Active Aspire runtime
 composition lane. External provider, proxy/subdomain and production trust/session guarantees
 remain outside these local proofs.
+
+## Single-stream rebuilding proofs
+
+Family-local tests exercise native stamp conflicts between writers and independent rebuilders,
+aggregate-state-only maintenance saves, cancellation, rollback and fresh recovery on PostgreSQL
+18.6. Wholesale exercises both module maintenance Contracts and the executable journey. A local
+supported Docker/Podman runtime is required; absence is a failure, not a skipped proof.
+CI's active persistence lane and pre-commit's event-rebuilding-postgres-tests job run this suite.
+
+~~~sh
+dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-build --no-restore
+dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-build --no-restore
+~~~
+
+For rootless Podman set DOCKER_HOST=unix:///run/user/1000/podman/podman.sock and
+TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/user/1000/podman/podman.sock.
+The retained TypeScript diagnostic
+[node proof](../src/ModulithFoundry.EventSourcing/docs/proofs/es2-coordination.ts) uses Node
+24.21+ and rootless Podman to replay **historical gate design** observations in a disposable
+container. It is not a current library regression test and supplies no stamp-concurrency claim.
+Current executable coverage lives in the family/consumer test projects above. See
+[the supported EF contract](../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md).
 
 ## Archived backend
 

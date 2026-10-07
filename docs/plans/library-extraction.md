@@ -12,7 +12,10 @@ forward from E10; that rehearsal is now complete and owner-approved.
 | E4–E5 event utilities and native consumers | Retained checkpointed mechanisms and experiments; no replacement dependency selected. |
 | E6.1 inline decision state | Checkpointed separately as `1ae13d4`; an experiment, not justification to proceed automatically to repair. |
 | T1 state-stored template rehearsal | Owner-approved checkpoint `8ccf4c8`; two generated consumer proofs, event/messaging omission and bounded initial creation. |
-| ES1 bounded event append | Owner-reviewed aggregate/store replacement implemented. [Concrete interface/scope](es1-bounded-event-append.md#concrete-aggregate-based-replacement-for-interface-review) and [new proofs](../reports/es1-bounded-event-append.md) accompany line-by-line implementation review. |
+| ES1 bounded event append | Owner-reviewed and checkpointed as `ab85ec9`; retained native store/append and consumer proofs. |
+| Library family grouping | Owner-approved checkpoint `39c1ab3`; local docs/tests and preserved external template adoption. |
+| ES2 single-stream rebuilding | Owner-approved [native EF replacement](es2-native-ef-simplification.md) is implemented and verified: write-only store, independent full replay and native header stamps. [Current proofs](../reports/es2-single-stream-rebuilding.md#native-ef-replacement-2026-10-07) cover 495 active tests plus 10 external T1 tests. Existing index entries are preserved; new changes are unstaged. |
+| Bounded event-history reader | Owner-approved interface/scope; shared native prefix loading and consumer adoption implemented. [Reader report](../reports/event-history-reader-extraction.md) records fresh checks independently of earlier ES2 evidence. |
 
 T1 implements one fixed event-free Catalog/console composition with configurable application
 name/root namespace, local library source snapshots and TypeScript/npm creation tooling around
@@ -34,8 +37,8 @@ an aggregate-oriented journey. The package-free aggregate core and configured EF
 are now implemented; [ADR 0005](../adr/0005-aggregate-write-contract-and-native-append.md)
 records the required write contract and optional inheritance. Pure reducers remain in modules
 and are shared with existing historical reconstruction. The revised report records actual
-verification separately from the initial surface. No generic reader/projector engine, repair
-or subsequent event slice is authorized.
+verification separately from the initial surface. No generic reader/projector engine or subsequent event slice follows from ES1 approval;
+ES2 now has its own explicit owner-reviewed scope.
 
 The [owner follow-up and deferred capability catalog](event-sourcing-capabilities.md) records
 transactional main-state consistency, native query/filter naming, event registry/JSONB findings
@@ -49,14 +52,316 @@ checks tracked required participants; no generated persistence or hidden save/co
 
 The owner-approved default envelope and projection/store terminology refinements are now
 implemented. [Library-local capability records](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
-retain the supported contract, missing rebuilding/async/multi-stream context and provider
+retain the supported contract, bounded rebuilding/remaining async/multi-stream context and provider
 adapter investigation. Other packages retain their own local setup/limits/deferred directions.
 The default-envelope refinement did not move projects; see [its proof and scope report](../reports/es1-envelope-and-library-docs.md).
 The subsequent owner-authorized [family relocation](library-family-layout.md) groups all five
-library families with local documentation and tests. No Postgres locking package is implemented.
+library families with local documentation and tests. ES2 adds the separately reviewed optional Postgres adapter.
 
-Stop after this reviewable ES1 capability. The E0–E10 sections below preserve
-the original sequence and evidence; they are not an instruction to begin E6.2 or E7.
+ES1 and the family relocation are now owner-approved checkpoints. The current bounded implementation
+is [ES2 single-stream rebuilding](es2-single-stream-rebuilding.md), corresponding to part of
+the deferred E6.2 direction. The owner reviewed its interfaces/provider dependency/behavior/file map
+and authorized implementation; the complete changes await review. Follow-up edits remain
+unstaged and existing index entries are preserved. The E0–E10 sections below preserve the original
+sequence and evidence; they do not authorize broader repair, async processing or E7.
+
+## Bounded event-history reader (owner-approved)
+
+The owner asked to see the extracted implementation rather than defer it indefinitely.
+[The concrete reader proposal](event-history-reader-extraction.md) includes its public types,
+native EF implementation, complete-key/version guarantees, consumer adoption and exact file map.
+It concentrates duplicated prefix queries, range/endpoints checks and decoded-event loading from
+Inventory, Purchasing and the tenant-free raw counter. Temporal selection, aggregate evolution,
+payload decoding, tenant admission and final save/commit remain consumer-owned.
+
+The owner approved the interface and exact scope. The implementation adds one dependency on
+existing Events.History integrity checks and reader injection for the independently registered
+rebuilder. It adds no serialization/provider dependency, projector engine or automatic catch-up.
+[The slice report](../reports/event-history-reader-extraction.md) records new verification and the
+consumer complexity removed, separately from historical ES2 evidence. New edits remain unstaged.
+
+## Current ES2: reviewed native EF replacement
+
+The owner approved [the exact interface/file/behavior scope](es2-native-ef-simplification.md)
+on 2026-10-07. Writing and maintenance are separate implementations, using native header
+Version/ConcurrencyStamp concurrency. Remove public Prepare/Stage handles, mandatory write-side
+history bindings, cooperative gates, the provider package and dormant summary storage.
+State/event encoding finishes before tracked changes; native save/commit remains caller-owned.
+The main inline aggregate stays at the head. Native Queries/Filters and consumer live views are
+the read side. Catch-up, other persisted views and maintenance workers remain deferred.
+
+The sections below preserve earlier review history, not additional current configuration or
+public surfaces. [ADR 0008](../adr/0008-native-optimistic-aggregate-rebuilding.md) records the
+settled choice; [the ES2 report](../reports/es2-single-stream-rebuilding.md) records new versus
+historical execution evidence. Leave new changes unstaged and preserve the existing index;
+exact complete commit approval remains separate.
+
+## ES2 owner-review follow-up (historical refinement)
+
+Status: owner-authorized refinement, implemented and verified, 2026-10-07.
+The owner reviewed the proposal below and instructed fixing the obvious review comments.
+Shared aggregate registration and default rebuilding are now implemented; the full changes
+remain available for line-by-line review. The retained SQL diagnostic
+has separately been translated to TypeScript and verified, and the repository workflow records
+the owner's scripting preference. The refinement simplifies setup for the existing mechanism;
+it introduces no additional repair algorithm or background processing.
+
+The concrete consumer setup is:
+
+```csharp
+// Module DI: one scoped instance exposes both library roles.
+services.AddEventStore<StockPositionAggregate, StockPositionStore>();
+
+// Native model: registering main state also requires safe rebuilding.
+model.ConfigureRequiredInlineState<EventStream, StoredEvent, StockPositionCurrentRow>(family);
+```
+
+Reviewed new public surface in the existing EF adapter:
+
+```csharp
+public static class EventStoreServiceCollectionExtensions
+{
+    public static IServiceCollection AddEventStore<TAggregate, TStore>(
+        this IServiceCollection services)
+        where TAggregate : class
+        where TStore : class, IEventStore<TAggregate>, IInlineProjectionRebuilder<TAggregate>;
+}
+```
+
+This helper registers the concrete scoped store and aliases both interfaces to that instance.
+It supplies TimeProvider.System only if the consumer has not supplied a clock. Repeat identical
+registration is idempotent; an incompatible existing aggregate binding is a configuration error,
+rather than silently selecting a different store/rebuilder. Explicit constructors continue to
+select InventoryDbContext/PurchasingDbContext; the helper never resolves a bare DbContext.
+Gate/replay currently are constructed by each typed store, so registering providers separately
+or discovering hypothetical future services would add machinery without a current obligation.
+Module codec/history setup and business entry points remain module-owned.
+
+Main inline-state registration includes the rebuild-enabled model contract. Every provided
+registered aggregate store must configure replay and a compatible gate before its first write.
+Secondary views remain explicit; raw history-only streams remain permitted. The existing explicit
+ConfigureInlineProjectionRebuilding method remains idempotent for compatibility, while samples
+no longer repeat it after main registration. This default changes write admission and supported
+isolation requirements, not just syntax: participating writers must obtain pre-read admission and
+the selected Postgres adapter requires ReadCommitted. Native save guards still require explicit
+installation. EF metadata cannot infer domain evolution, durable decoding or the provider.
+
+IAggregateRebuilder<TAggregate> now supplies out-of-the-box technical rebuilding.
+IStockPositionRebuilding/IPurchaseOrderRebuilding are optional consumer boundaries: external
+hosts cannot name the modules' internal aggregates, and their public Contracts remain independent
+of technical library types. Inside a module or ordinary application, call the generic rebuilder
+directly. Keep these two facades for the existing external demo host; do not add a public domain
+interface, aggregate-discovery catalog or global maintenance framework to the library.
+
+The guarantees are identical scoped role instances, explicit module context selection,
+early rejection of incompatible registrations or missing rebuild configuration, and the existing
+online repair safety. This proposal does not install authorization, open transactions, save or
+commit. DI setup needs an explicit Microsoft.Extensions.DependencyInjection.Abstractions reference
+in the EF project, centrally pinned to the repository's selected Extensions version (10.0.12).
+No umbrella/provider/codec dependency is introduced into the core or T1.
+
+Exact refinement file/behavior map:
+
+| Files | Change |
+| --- | --- |
+| `src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStoreServiceCollectionExtensions.cs` (new) | Scoped concrete/role registration, default clock, idempotence and binding errors. |
+| Same project's `ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj`; `Directory.Packages.props` | Explicit DI abstractions dependency and central version pin. |
+| Same project's `RequiredInlineStateExtensions.cs`, `EventStore.cs` | Main registration enables rebuilding; validate gate/replay before writes; retain explicit helper compatibility and raw stream behavior. |
+| `samples/Wholesale/modules/{Inventory/Inventory/InventoryRegistration.cs,Purchasing/Purchasing/PurchasingRegistration.cs}` | Replace repeated technical store aliases/default clock with the aggregate helper; retain native history and module Contract registrations. |
+| Both modules' `{StockPositions,PurchaseOrders}/InlineViewMapping.cs` | Remove redundant explicit rebuild opt-in after main registration; preserve table/key/concurrency/JSONB mapping and secondary view declarations. |
+| `src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/{RegistrationTests.cs,GuardTests.cs,RebuildConsumer.cs}` | Prove same scoped instance, different scopes, compatible repeats/conflicting bindings, clock override, typed-context isolation and mandatory registered-store configuration. Update standalone setup to demonstrate the default; preserve raw adoption. |
+| EF/family/Postgres READMEs and local capability records; design/ADR 0007; ES2 brief/report; architecture dependency checks | Document default requirements and optional module facades, update allow-list for explicit DI dependency and record new verification separately. |
+
+Existing history readers, seed StageAsync, module maintenance Contracts, reducers, fixtures,
+migrations and archive need no replacement for this refinement. Existing concurrency,
+transaction and independent-adoption proofs remain. New execution results are recorded in the
+[slice report](../reports/es2-single-stream-rebuilding.md#owner-review-follow-up-2026-10-07).
+
+Historical schema reading/upcasting is a priority for the next capability proposal after ES2
+review/refinement. Start from actual retained old event fixtures and explicit deterministic
+read-time transformations into current domain facts, preserve stored payloads, and reject missing
+paths/future versions. The optional Events.Serialization registry is the natural candidate;
+independent direct-JSON stores remain valid. Rebuilding consumes upgraded facts through replay;
+projection-meaning changes need a rollout plan, while shape-only upgrades need not force rebuilding.
+No upcaster, event v2 fixture, background job or broader rebuilding capability is authorized here.
+The [library-local catalog](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+retains this priority and proof context beside the package.
+
+## ES2 lane separation follow-up (superseded proposal)
+
+Latest review proposal: [aggregate-only reduction](es2-aggregate-only-reduction.md). It gives
+the narrowed public surface, explicit Purchasing replacement, retained guarantees and exact
+file map. The discussion below preserves how the direction evolved; no broader projection,
+catch-up or worker interface follows from it. C# removal/replacement awaits owner review.
+
+Status: design follow-up for owner review, 2026-10-07. The owner initially requested both
+explicit delta catch-up and full replay, and endorsed separating normal append from maintenance.
+The subsequent priority discussion recommends deferring catch-up for the always-current
+inline contract; the earlier two-operation proposal below is retained as design history.
+Only full replay is currently implemented. No new public catch-up interface is approved.
+
+Keep normal reads free of repair writes and normal GetForWritingAsync strict about required
+inline state. Main and required secondary projections should already represent the observed
+head under the supported transactional append contract. Unexpected lag is an integrity
+failure to investigate, rather than a reason to silently repair every load.
+
+The recommended maintenance operations both stage projection updates for the consumer's
+explicit native SaveChanges/commit:
+
+| Operation | Assumption and behavior |
+| --- | --- |
+| Explicit catch-up | Trust each existing readable projection at its own saved version; apply only its missing event suffix through one captured stream head. A current row needs no evolution. Missing, unreadable or ahead state fails; use full replay for missing/unreadable state. A wrong body already at the head cannot be diagnosed or repaired by this operation. |
+| Explicit full rebuild | Ignore old projection bodies and reconstruct all required views from the complete captured history. Repair wrong same-version, missing or unreadable state; retain the existing ahead-state rejection. |
+
+Both operations preserve events/header metadata, prepare every candidate before changing
+tracking, and use the exclusive maintenance admission for persisted updates. Keep them
+explicit and terminal in a fresh context. Do not combine command execution with maintenance
+in that context. Catch-up must establish an effect-free aggregate at the captured head,
+without turning historical facts into pending command events. Each secondary reducer uses
+its own saved version, rather than assuming all damaged rows share one offset.
+
+An in-memory catch-up primitive can later support an explicitly chosen checkpoint-plus-tail
+write loader. It is not sufficient to change only the main root today: other required views
+must also catch up, the existing save guard requires each original projection version to
+equal the original stream head, and a decision producing no events would not persist the
+repair. Do not weaken that guard or introduce automatic repair until a real consumer needs
+this different loading contract. Pure consumer evolution remains reusable independently.
+
+Online and offline maintenance need no separate algorithms or mode flag. Retain the existing
+tested shared-before-load writer admission and exclusive maintenance admission. Consumers
+may run the same maintenance operation while writers continue, or during an operational
+pause. An offline pause must also drain writers that already loaded state. A repair-only
+row lock cannot make those old observations safe when repair preserves the event version.
+The current PostgreSQL advisory lock excludes cooperating writes to the logical stream;
+it does not fence arbitrary external SQL. Safe online maintenance is a selected maintenance
+guarantee, not a prerequisite for basic event appending.
+
+The immediate implementation simplification should preserve the reviewed public surface
+while changing internal ownership:
+
+| EF adapter files | Proposed internal change |
+| --- | --- |
+| EventStore.cs; dedicated internal maintenance implementation (new) | Move full replay orchestration out of the append implementation. Retain a small forwarding method for the existing rebuilder interface/registration, and share configured projection bindings without introducing a public configuration framework. |
+| InlineProjectionStorage.cs; dedicated internal maintenance preparation (new) | Share native row lookup/key mapping. Separate append preparation from replacement preparation and validation; remove rebuilding booleans and repair-only fields from normal prepared append rows. Preserve all-candidate preparation before tracking and native original concurrency values. |
+| EventStreamRebuildState.cs; EventStreamWriteGate.cs; RequiredInlineStateExtensions.cs | Separate writer admission bookkeeping from the exact private prepared maintenance save association. Keep the ordinary append validator and the narrow maintenance validator explicit; preserve provider coordination and consumer save ownership. |
+| Existing family PostgreSQL/consumer tests and local documentation | Preserve existing append/online repair proofs; update ownership explanations. Add catch-up proofs only with a reviewed concrete public/adapter proposal. |
+
+Catch-up needs a reviewed consumer evolution adapter as well as an operation name: the
+current aggregate contract exposes pending facts and versions, not a generic historical
+Apply method. Do not infer evolution through reflection or require public aggregate internals.
+Its exact public types, errors and consumer usage remain to be presented before C# changes.
+No new provider dependency, schema migration, fixtures, archive change, scheduler, lease,
+discovery engine or revision cutover belongs to this simplification.
+
+Maintenance remains useful after a reducer correction, a changed projection definition,
+or deliberate restoration/import of retained history without its derived views. Adding a
+projection also needs backfill; discovery and rollout are separate deferred obligations.
+Transactions and save validation establish atomic participation and metadata consistency,
+not the semantic correctness of consumer-derived state. Shape-only event upgrades do not
+automatically require rebuilding; changes to derived meaning may do so.
+
+### Model clarification and worker direction under review
+
+The owner's subsequent model discussion considers concentrating active support on one
+mandatory inline aggregate state, using native EF query projections for ordinary read DTOs,
+and deferring additional persisted and live projection machinery. This is not approval to
+remove the existing Purchasing secondary view or its library support. That view participates
+in queries, append validation, seeds, migrations and existing demonstrations; any replacement
+must preserve those artifacts and have an explicit reviewed file/behavior scope.
+
+Inline means applying newly appended facts during their transaction. It does not mean
+automatic history backfill on reads or registration. Live means reconstructing in memory
+on demand. For the same reducer, definition and captured event prefix, reconstruction and
+persisted inline state should agree semantically, although they are different object instances.
+Different read models deliberately have different shapes. Unexpected disagreement at the
+same version is an integrity or evolution problem; observing different versions alone is
+not evidence of corruption.
+
+Marten's [projection lifecycles](https://martendb.io/events/projections/) distinguish inline,
+live and asynchronous execution. Its [FetchLatest behavior](https://martendb.io/events/projections/read-aggregates)
+loads inline state directly, rebuilds live state from events, and advances an asynchronous
+snapshot in memory from its missing event suffix. That last behavior provides the useful
+checkpoint-plus-tail reference; it is not implicit repair of an always-current inline row.
+Our ordinary store remains strict. Adding a persisted view for existing streams requires
+backfill and a rollout policy before claiming that it is current for all those streams.
+
+Marten [rebuilds persisted projections through its daemon](https://martendb.io/events/projections/rebuilding)
+and documents side-by-side versioned projections for online deployment. Its
+[Solo daemon mode](https://martendb.io/events/projections/async-daemon.html) assumes one process;
+HotCold adds leadership coordination. Useful directions here are separating maintenance
+hosting from replay and starting with an explicit single-worker deployment contract. These
+references do not establish a portable locking recipe or mixed-reducer deployment support
+for our existing per-stream repair.
+
+A queued single-stream rebuild worker is a candidate follow-up after the maintenance lane
+is simplified. A minimal durable request identifies the owning family/tenant and stream;
+processing opens a fresh owning context/scope, invokes explicit rebuild, saves/commits and
+records completion. A crash after repair commits but before completion is recorded can
+cause replay again. Define at-least-once processing and effect-free replay, failed requests,
+retry and restart behavior before claiming durable support. One worker does not require
+a distributed lease engine; the stream gate alone does not provide queue ownership.
+The library may supply reusable execution mechanics while the consumer supplies hosting,
+tenant admission, typed context and native transaction/save ownership. No job table,
+BackgroundService, discovery loop or worker dependency is implemented or approved here.
+
+Live and asynchronous multi-stream views remain deferred. Their source grouping, ordering
+and progress contract is different from this aggregate's single-stream version. EF Select
+over inline aggregate state can supply ordinary read shapes now, but cannot recreate
+historical information deliberately absent from that state.
+
+### Native query assessment and revised work order
+
+The owner clarified that the main command aggregate is inline, endorsed explicit maintenance
+backfill, and prioritized inline/multi-stream view design before a maintenance worker. Assess
+native EF queries first; if they meet actual view needs, defer a projection engine until after
+the first library extraction set, while retaining multi-stream projection work before claiming
+the projection capabilities are complete. This does not authorize replacing existing views.
+
+DDD aggregate write boundaries do not prohibit joins in read queries. EF can translate
+joins and supported grouping/aggregate forms over mapped state in one owning query context;
+see [Microsoft's query operator documentation](https://learn.microsoft.com/en-us/ef/core/querying/complex-query-operators)
+and [query shaping guidance](https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying).
+The concrete current Inventory query is StockPositionQueries.ReadAvailableAsync: it joins
+owned inline state to the header on the complete owner/stream key and filters JSONB onHand
+before materialization. Its existing PostgreSQL proof was rerun on 2026-10-07: one test passed,
+zero failed/skipped. It verifies results, tenant isolation and absence of event-history reads.
+This is renewed evidence for the existing native query, not a new multi-aggregate proof,
+query-plan benchmark, projection engine or library mechanism.
+
+| View need | Native-query assessment and boundary |
+| --- | --- |
+| Current DTOs and filters over one aggregate | Native EF selection/filtering over inline state is already exercised. No new event-derived view is necessary merely to shape a DTO. |
+| Join or totals over several aggregates owned by one module | Feasible using one native context and supported mapped expressions. Prove the concrete join/grouping, tenant scope and paging on PostgreSQL before claiming its support; current availability/header proof is narrower. |
+| Purchasing's existing current summary | Code/currency/line count/total are derivable from PurchaseOrderState. Replacing its independently maintained row with query-time derivation is a candidate, not an approved replacement; server translation of the current JSON line collection and preservation of demonstrations remain obligations. |
+| Inventory/Purchasing combined result | Existing internal rows and separate module Contracts/contexts do not expose a shared query provider. Use bounded separate Contract queries and application composition, or review an explicit reporting read model/context. Do not expose peer rows/IQueryable or bypass module ownership for a convenient join. Separate reads do not establish one common database snapshot. |
+| Historical metrics absent from current state | Native current-state joins cannot recover discarded history. This can justify a concrete event-derived projection. |
+
+The proposed order is query assessment and concrete view selection, a bounded projection
+proposal only where native reads are insufficient, then worker/backfill orchestration that
+covers the supported projection shapes. The existing repair primitive and pending internal
+lane separation remain available; defer adding a job table/worker rather than discard ES2.
+Keep reconstruction/replacement bookkeeping out of ordinary loading/appending. Existing
+secondary inline support is retained pending an exact replacement decision.
+
+Multi-stream inline projection maintenance will need its own state identity and concurrency
+contract: two writers for different streams may update the same projection row. That row's
+progress cannot be treated as one stream version. Cross-module inline projection writes also
+require an explicitly reviewed transaction/ownership model; they do not follow from same-module
+multi-stream support or from native read joins. A queue around today's single-stream rebuilder
+does not supply those guarantees.
+
+The current catch-up recommendation is defer: registered aggregate state and required inline
+views advance atomically with events; ordinary fetches never repair them. Missing/behind or
+wrong state is handled through explicit full rebuild/backfill. Normal load validation rejects
+missing/version-inconsistent state, but cannot identify every semantically wrong body at the
+correct version. Revisit in-memory suffix evolution with a concrete snapshot/async projection
+contract; it remains distinct from saving repaired state and from multi-stream progress.
+This supersedes the earlier recommendation to add persisted catch-up to the current ES2 scope.
+
+The native query rerun proves no new reusable mechanism. Other earlier proof totals are
+historical executions and were not rerun in this discussion. Existing staged changes are
+preserved; this design follow-up is unstaged. The retained SQL diagnostic remains design
+evidence until its unique unsafe counterexample has equivalent family test coverage.
 
 ## Checkpoint history
 
@@ -112,7 +417,9 @@ views and no new reusable mechanism.
 [T1](t1-template-rehearsal.md) was owner-approved and checkpointed as `8ccf4c8` after review
 corrections; [its report](../reports/t1-template-rehearsal.md) records creation and adoption
 proofs, with no new reusable runtime mechanism. The ES1 interface/scope was then owner-approved
-on 2026-10-06; its implementation remains unstaged for review, with no commit authorized.
+on 2026-10-06; the final owner-reviewed store/envelope refinement was checkpointed as `ab85ec9`.
+The family relocation was then approved and checkpointed as `39c1ab3`. ES2 then received owner interface/scope review and implementation authorization.
+No earlier approval or implementation authorization approves a later commit.
 
 ## Delivery model
 
@@ -573,7 +880,8 @@ atomic event/header/view updates on PostgreSQL. No new reusable mechanism was pr
 immutable candidates suffice, and concrete view checks/staging do not yet justify a generic
 projector interface. Explicit Contracts, mappings and orchestration are editable template
 recipes; T1 materializes an event-free composition, not these event recipes. Bounded repair
-requires a separate E6.2 scope and is not the next slice.
+was deferred during ES1. The reviewed [ES2 scope](es2-single-stream-rebuilding.md) selects
+single-stream rebuilding only; wider E6.2 capabilities remain deferred.
 
 The broader E6 objectives below remain the gate for subsequent increments.
 

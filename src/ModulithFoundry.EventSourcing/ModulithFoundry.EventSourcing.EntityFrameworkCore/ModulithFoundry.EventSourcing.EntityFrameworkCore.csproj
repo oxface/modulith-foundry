@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
+    <ProjectReference Include="../../ModulithFoundry.Events/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 </Project>
