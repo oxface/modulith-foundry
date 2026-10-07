@@ -127,3 +127,11 @@ fallback chain. A user-to-tenant resolver can use neither helper.
 adapter without an actor dependency. [The sample](../../samples/Wholesale/HttpIdentityDemo/README.md)
 composes both adapters with consumer-owned Organization lookup and guarded Inventory reads.
 [The E3.2 report](../../docs/reports/e3-2-http-tenancy.md) records executed guarantees and limits.
+
+## Deferred direction
+
+The current route/subdomain/custom resolver choices and overrides are defined above. Unicode/
+IDN/custom domains, alternative authorization ordering and route re-execution require explicit
+consumer choices and new proofs; no fallback strategy or rebinding is selected. Database RLS,
+tenant-value stamping and worker/message propagation belong to separate capabilities and do
+not follow from successful HTTP admission.

@@ -422,6 +422,10 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
         Assert.Equal(42, (await catalog.ReadAsync("DEMO-NOTEBOOK", Token))!.AvailableQuantity);
         var inventoryDatabase = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
         var purchasingDatabase = scope.ServiceProvider.GetRequiredService<PurchasingDbContext>();
+        await using var inventoryTransaction =
+            await inventoryDatabase.Database.BeginTransactionAsync(Token);
+        await using var purchasingTransaction =
+            await purchasingDatabase.Database.BeginTransactionAsync(Token);
         InventoryHistorySeed.Stage(
             inventoryDatabase,
             FixtureHistories.StreamId,
@@ -434,6 +438,8 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
         );
         await inventoryDatabase.SaveChangesAsync(Token);
         await purchasingDatabase.SaveChangesAsync(Token);
+        await inventoryTransaction.CommitAsync(Token);
+        await purchasingTransaction.CommitAsync(Token);
         Assert.Equal((3, 13m), Amount(await ReadAsync(scope, true)));
         Assert.Equal((3, 62.50m), Amount(await ReadAsync(scope, false)));
         Assert.Equal(42, (await catalog.ReadAsync("DEMO-NOTEBOOK", Token))!.AvailableQuantity);
@@ -470,6 +476,7 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
             "inventory inline: committed-version=3, on-hand=13.000",
             "purchasing inline: committed-version=3, total=62.50",
             "purchasing summary: committed-version=3, lines=1, total=62.50",
+            "inventory issues: committed-version=5, on-hand=6.000, rejected=7",
         ];
         Assert.Equal(
             expected,
@@ -494,19 +501,27 @@ public sealed class HistoryReadTests(PostgreSqlFixture postgres) : IClassFixture
         {
             await using var scope = Scope(provider, owner);
             var inventory = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            await using var inventoryTransaction = await inventory.Database.BeginTransactionAsync(
+                Token
+            );
             InventoryHistorySeed.Stage(
                 inventory,
                 FixtureHistories.StreamId,
                 FixtureHistories.Inventory(Fixtures, factor)
             );
             await inventory.SaveChangesAsync(Token);
+            await inventoryTransaction.CommitAsync(Token);
             var purchasing = scope.ServiceProvider.GetRequiredService<PurchasingDbContext>();
+            await using var purchasingTransaction = await purchasing.Database.BeginTransactionAsync(
+                Token
+            );
             PurchasingHistorySeed.Stage(
                 purchasing,
                 FixtureHistories.StreamId,
                 FixtureHistories.Purchasing(Fixtures, factor)
             );
             await purchasing.SaveChangesAsync(Token);
+            await purchasingTransaction.CommitAsync(Token);
         }
         return connection;
     }

@@ -4,7 +4,7 @@ namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
 internal static class PurchaseOrderDecisions
 {
-    internal static IPurchaseOrderEvent[] Draft(DraftPurchaseOrder request)
+    internal static void ValidateDraft(DraftPurchaseOrder request)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentOutOfRangeException.ThrowIfEqual(request.Id, Guid.Empty);
@@ -12,13 +12,18 @@ internal static class PurchaseOrderDecisions
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Code);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.SupplierReference);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Currency);
+    }
+
+    internal static IPurchaseOrderEvent[] Draft(DraftPurchaseOrder request)
+    {
+        ValidateDraft(request);
         return
         [
             new PurchaseOrderDrafted(request.Code, request.SupplierReference, request.Currency),
         ];
     }
 
-    internal static IPurchaseOrderEvent[] Lines(ChangePurchaseOrderLines request)
+    internal static PurchaseOrderLine[] LineItems(ChangePurchaseOrderLines request)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentOutOfRangeException.ThrowIfEqual(request.Id, Guid.Empty);
@@ -26,7 +31,18 @@ internal static class PurchaseOrderDecisions
         ArgumentNullException.ThrowIfNull(request.Lines);
         PurchaseOrderLine[] items = request.Lines.ToArray();
         ArgumentOutOfRangeException.ThrowIfLessThan(items.Length, 1);
-        return items
+        foreach (var item in items)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            ArgumentException.ThrowIfNullOrWhiteSpace(item.ItemCode);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(item.Quantity, 0);
+            ArgumentOutOfRangeException.ThrowIfNegative(item.UnitPrice);
+        }
+        return items;
+    }
+
+    internal static IPurchaseOrderEvent[] Lines(IReadOnlyList<PurchaseOrderLine> items) =>
+        items
             .Select(item =>
             {
                 ArgumentNullException.ThrowIfNull(item);
@@ -37,5 +53,4 @@ internal static class PurchaseOrderDecisions
                     new PurchaseOrderLineSet(item.ItemCode, item.Quantity, item.UnitPrice);
             })
             .ToArray();
-    }
 }

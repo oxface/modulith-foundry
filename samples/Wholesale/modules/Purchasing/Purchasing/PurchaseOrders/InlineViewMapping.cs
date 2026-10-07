@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
@@ -34,6 +35,9 @@ internal static class InlineViewMapping
             .WithMany()
             .HasForeignKey(row => new { row.OrganizationKey, row.StreamId })
             .OnDelete(DeleteBehavior.Restrict);
+        model.ConfigureRequiredInlineState<EventStream, StoredEvent, PurchaseOrderCurrentRow>(
+            PurchaseOrderHistoryReader.StreamType
+        );
         current.HasTenantOwnership(
             row => row.OrganizationKey,
             requiredOrganization,
@@ -81,6 +85,10 @@ internal static class InlineViewMapping
             row => row.OrganizationKey,
             requiredOrganization,
             "OrganizationScope"
+        );
+        model.ConfigureRequiredInlineState<EventStream, StoredEvent, PurchaseOrderSummaryRow>(
+            PurchaseOrderHistoryReader.StreamType,
+            isMainState: false
         );
     }
 }

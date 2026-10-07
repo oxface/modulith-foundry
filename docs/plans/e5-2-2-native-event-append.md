@@ -1,7 +1,8 @@
 # E5.2.2 expected-version append and caller-owned transactions
 
-Status: owner-authorized scope implemented, 2026-10-06, after E5.2.1 checkpoint `4f4d5b2`.
-Implementation remains unstaged for review; no commit is authorized.
+Status: owner-reviewed and checkpointed as `abcd370` on 2026-10-06, together with E5.3.
+The approved scope is retained below. [E6.1](e6-1-inline-decision-state.md) subsequently changes
+ordinary command loading from live history to required inline decision state.
 See [the implementation findings and fresh verification](../reports/e5-2-2-native-event-append.md).
 Read [the extraction plan](library-extraction.md), [design](../design.md) and
 [the read findings](../reports/e5-2-1-native-event-history.md) alongside this proposal.

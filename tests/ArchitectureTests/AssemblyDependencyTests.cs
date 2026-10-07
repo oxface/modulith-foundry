@@ -6,6 +6,7 @@ using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Events.History;
 using ModulithFoundry.Events.Serialization;
+using ModulithFoundry.EventSourcing;
 using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Tenancy;
@@ -28,6 +29,7 @@ public sealed class AssemblyDependencyTests
     private const string EventSerialization = "ModulithFoundry.Events.Serialization";
     private const string History = "ModulithFoundry.Events.History";
     private const string EventPersistenceSample = "EventPersistenceDemo";
+    private const string AggregateCore = "ModulithFoundry.EventSourcing";
     private const string Storage = "ModulithFoundry.EventSourcing.EntityFrameworkCore";
     private const string StorageSample = "EventStorageDemo";
     private const string CodecSample = "EventCodecDemo";
@@ -42,6 +44,7 @@ public sealed class AssemblyDependencyTests
             typeof(SerializedEvent).Assembly,
             typeof(EventHistory).Assembly,
             typeof(IEventStreamRecord).Assembly,
+            typeof(IEventSourcedAggregate<>).Assembly,
             typeof(Samples.EventStorageDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.EventCodecDemo.DemoJourneys).Assembly,
             typeof(Samples.Wholesale.EventPersistenceDemo.DemoJourneys).Assembly,
@@ -101,6 +104,7 @@ public sealed class AssemblyDependencyTests
                 HttpSample,
                 CodecSample,
                 EventPersistenceSample,
+                AggregateCore,
                 Storage,
                 StorageSample,
                 History,
@@ -126,11 +130,43 @@ public sealed class AssemblyDependencyTests
                 HttpSample,
                 CodecSample,
                 EventPersistenceSample,
+                AggregateCore,
                 Storage,
                 StorageSample,
             }
         )
             NoDependency(History, forbidden).Check(Architecture);
+    }
+
+    [Fact]
+    public void AggregateCoreUsesNoOtherSegmentsOrConsumerTypes()
+    {
+        foreach (
+            string forbidden in new[]
+            {
+                Actor,
+                ActorHttp,
+                Tenancy,
+                TenancyHttp,
+                Persistence,
+                EventSerialization,
+                History,
+                Storage,
+                ContextSample,
+                PersistenceSample,
+                HttpSample,
+                CodecSample,
+                EventPersistenceSample,
+                StorageSample,
+            }
+        )
+            NoDependency(AggregateCore, forbidden).Check(Architecture);
+        Assert.DoesNotContain(
+            typeof(IEventSourcedAggregate<>).Assembly.GetReferencedAssemblies(),
+            assembly =>
+                assembly.Name!.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+                || assembly.Name == "System.Text.Json"
+        );
     }
 
     [Fact]

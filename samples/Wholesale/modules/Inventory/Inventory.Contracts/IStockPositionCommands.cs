@@ -5,12 +5,14 @@ public interface IStockPositionCommands
 {
     Task<StockPositionChangeResult> StageOpenAsync(
         OpenStockPosition request,
-        DateTimeOffset recordedAt,
         CancellationToken cancellationToken
     );
     Task<StockPositionChangeResult> StageReceiptsAsync(
         ReceiveStock request,
-        DateTimeOffset recordedAt,
+        CancellationToken cancellationToken
+    );
+    Task<StockPositionChangeResult> StageIssuesAsync(
+        IssueStock request,
         CancellationToken cancellationToken
     );
 }
@@ -31,6 +33,10 @@ public sealed record ReceiveStock(
     IReadOnlyList<StockReceipt> Receipts
 );
 
+public sealed record StockIssue(decimal Quantity);
+
+public sealed record IssueStock(Guid Id, long ExpectedVersion, IReadOnlyList<StockIssue> Issues);
+
 public abstract record StockPositionChangeResult
 {
     public sealed record Staged(StockPositionHistory Proposed) : StockPositionChangeResult;
@@ -38,4 +44,7 @@ public abstract record StockPositionChangeResult
     public sealed record NotFound : StockPositionChangeResult;
 
     public sealed record Conflict : StockPositionChangeResult;
+
+    public sealed record InsufficientStock(decimal Available, decimal Requested)
+        : StockPositionChangeResult;
 }

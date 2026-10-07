@@ -1,0 +1,28 @@
+using System.Text.Json;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
+
+namespace ModulithFoundry.Samples.EventStorageDemo;
+
+internal sealed class CounterEventRecordAdapter
+    : EventRecordAdapter<CounterEvent, EventStreamRecord, StoredEventRecord>
+{
+    public override string StreamType => "proof.counter";
+
+    public override StoredEventRecord CreateRecord(CounterEvent @event, EventStreamRecord stream) =>
+        @event switch
+        {
+            CounterStarted started => new()
+            {
+                EventName = "proof.counter-started",
+                SchemaVersion = 1,
+                Payload = JsonSerializer.SerializeToElement(new { value = started.Value }),
+            },
+            CounterIncreased increased => new()
+            {
+                EventName = "proof.counter-increased",
+                SchemaVersion = 1,
+                Payload = JsonSerializer.SerializeToElement(new { amount = increased.Amount }),
+            },
+            _ => throw new InvalidOperationException("The counter event is not registered."),
+        };
+}

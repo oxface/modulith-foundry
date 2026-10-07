@@ -43,7 +43,15 @@ disposal is idempotent. No ambient state, rebinding, permission check or automat
 is introduced. Separate operations use separate scopes.
 
 See [tenancy-only Inventory and combined Sales usage](../../samples/Wholesale/ContextDemo/README.md)
-and [the split report](../../docs/reports/e1-identity-split.md). Optional HTTP selection
-utilities are planned for E3; their route/hostname strategies remain proposals. Persistence
-filtering and write validation remain E2 work. No stable wire or persistence format is
+and [the split report](../../docs/reports/e1-identity-split.md). Optional [HTTP selection/admission utilities](../ModulithFoundry.Tenancy.AspNetCore/README.md)
+and [EF ownership validation](../ModulithFoundry.Persistence.EntityFrameworkCore/README.md) are
+implemented as separate opt-in packages. No stable wire or persistence format is
 established by this library.
+
+## Deferred direction
+
+HTTP tenant selection/admission composition is implemented in the optional sibling adapter;
+EF ownership filtering/write validation is implemented in Persistence.EntityFrameworkCore.
+Neither becomes a dependency of this core. No cross-process context format or database
+isolation mechanism is supplied here. Future worker/message integration needs its own explicit
+selection/admission and compatibility contract; membership remains consumer policy.

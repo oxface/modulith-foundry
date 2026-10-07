@@ -1,9 +1,10 @@
 using System.Text.Json;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
-internal sealed class PurchaseOrderSummaryRow
+internal sealed class PurchaseOrderSummaryRow : IInlineStateRecord
 {
     public string OrganizationKey { get; set; } = null!;
     public Guid StreamId { get; set; }
@@ -18,13 +19,26 @@ internal sealed class PurchaseOrderSummaryRow
     internal PurchaseOrderSummary ToContract() =>
         new(StreamId, Version, RecordedAt, Code, Currency, LineCount, Total);
 
-    // This view evolves its own committed amounts, without reading the proposed aggregate state.
     internal static PurchaseOrderSummaryRow Prepare(
         PurchaseOrderSummaryRow? current,
         string owner,
         Guid id,
         long version,
         DateTimeOffset recordedAt,
+        IEnumerable<IPurchaseOrderEvent> events
+    )
+    {
+        var row = Evolve(current, events);
+        row.OrganizationKey = owner;
+        row.StreamId = id;
+        row.Version = version;
+        row.RecordedAt = recordedAt;
+        return row;
+    }
+
+    // This view evolves its own committed amounts, without reading the proposed aggregate state.
+    internal static PurchaseOrderSummaryRow Evolve(
+        PurchaseOrderSummaryRow? current,
         IEnumerable<IPurchaseOrderEvent> events
     )
     {
@@ -66,10 +80,6 @@ internal sealed class PurchaseOrderSummaryRow
         }
         return new PurchaseOrderSummaryRow
         {
-            OrganizationKey = owner,
-            StreamId = id,
-            Version = version,
-            RecordedAt = recordedAt,
             Code = code ?? throw new InvalidOperationException("The summary has not been drafted."),
             Currency =
                 currency ?? throw new InvalidOperationException("The summary has no currency."),

@@ -82,3 +82,16 @@ The typed registration factory has one local CA1000 suppression: the family type
 the registration and the method selects its concrete event type. There is no global analyzer
 disable or extra factory facade. Review it with [the interface plan](../../docs/plans/e4-event-serialization.md)
 and [proof report](../../docs/reports/e4-event-serialization.md).
+
+## Deferred direction and event-store composition
+
+Wholesale uses this codec for event-store envelope encoding and explicit historical decoding.
+It maps each exact durable name/schema pair back to the concrete registered CLR fact shape.
+The provided event store does not depend on this package: direct JSON/other explicit encoders
+remain possible. No domain-event bus or handler registry follows from these registrations.
+
+Multiple historical schemas for one CLR type, deterministic upcasting, generated registration,
+alternative serializers and AOT remain deferred. Any selected extension must preserve literal
+old payload compatibility and establish errors for unsupported schemas/missing upgrade paths.
+See the [event-store capability context](../ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+for related persisted-history/projection obligations; no extension is implemented by that plan.

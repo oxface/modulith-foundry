@@ -5,12 +5,10 @@ public interface IPurchaseOrderCommands
 {
     Task<PurchaseOrderChangeResult> StageDraftAsync(
         DraftPurchaseOrder request,
-        DateTimeOffset recordedAt,
         CancellationToken cancellationToken
     );
     Task<PurchaseOrderChangeResult> StageLinesAsync(
         ChangePurchaseOrderLines request,
-        DateTimeOffset recordedAt,
         CancellationToken cancellationToken
     );
 }

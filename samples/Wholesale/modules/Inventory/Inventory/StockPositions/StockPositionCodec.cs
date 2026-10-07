@@ -20,6 +20,10 @@ internal static class StockPositionCodec
                     "inventory.stock-position.received",
                     1
                 ),
+                EventRegistration<IStockPositionEvent>.For<StockPositionIssued>(
+                    "inventory.stock-position.issued",
+                    1
+                ),
             ]
         );
 }

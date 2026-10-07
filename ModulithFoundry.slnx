@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Libraries/">
+    <Project Path="src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
     <Project Path="src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
     <Project Path="src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <Project Path="src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
@@ -37,6 +38,7 @@
     <Project Path="samples/Wholesale/modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/EventSourcingTests/EventSourcingTests.csproj" />
     <Project Path="tests/EventHistoryTests/EventHistoryTests.csproj" />
     <Project Path="tests/EventSerializationTests/EventSerializationTests.csproj" />
     <Project Path="tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj" />

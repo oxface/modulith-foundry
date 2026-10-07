@@ -101,3 +101,13 @@ See [the executable Inventory/Sales consumer](../../samples/Wholesale/Persistenc
 [the first-slice plan](../../docs/plans/e2-1-tenant-ownership.md) and
 [the first proof report](../../docs/reports/e2-1-tenant-ownership.md) and
 [the relationship proof report](../../docs/reports/e2-3-tenant-relationships.md).
+
+## Deferred direction
+
+Automatic trusted-owner assignment is not implemented; the current mechanism rejects absent,
+foreign or changed ownership rather than filling it. Raw/bulk writes and database-level RLS
+remain outside tracked-save validation. Table metadata could support an optional PostgreSQL
+adapter for USING/WITH CHECK policies, but role/context handling, privilege bypass, pooled
+connections, rollback and competing writers need actual database proofs. No provider package
+or universal SQL abstraction has been selected. Additional providers/mapping shapes require
+their own identity, native-predicate and transaction evidence.

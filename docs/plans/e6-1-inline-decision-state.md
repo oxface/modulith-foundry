@@ -1,9 +1,15 @@
 # E6.1 inline decision state and required views
 
-Status: next-slice implementation proposal, 2026-10-06. Prepared after the owner requested
-the [Marten/archive comparison](../reports/marten-event-sourcing-reference.md). This document
-specifies the next reviewable capability; it introduces no implemented projection library or
-commit authorization. Read [the extraction plan](library-extraction.md), [design](../design.md)
+Status: the inline-state experiment was checkpointed separately as `1ae13d4` on 2026-10-06,
+following `abcd370`. It remains available for comparison; no event removal has been selected.
+T1 subsequently completed the event-free template rehearsal as `8ccf4c8`. The next proposed
+capability is [ES1 bounded append](es1-bounded-event-append.md), not E6.2 repair.
+
+[The report](../reports/e6-1-inline-decision-state.md) records the implementation's earlier
+execution evidence and extraction findings; no new execution is claimed by this status update.
+The retained scope below was prepared after
+the [Marten/archive comparison](../reports/marten-event-sourcing-reference.md). No projection
+library was extracted. Read [the extraction plan](library-extraction.md), [design](../design.md)
 and [the current append proof](../reports/e5-2-2-native-event-append.md) alongside it.
 
 ## Outcome
@@ -178,7 +184,7 @@ Any proposed shared coordinator needs its own line-by-line owner review after co
 Template findings are editable state/decider/projector definitions, explicit registrations,
 native migrations and caller-controlled orchestration. Sample findings must demonstrate both
 live history and inline decision loading, with independent required views and failure proofs.
-Materialized template output remains E10.
+T1 now materializes an event-free composition; generating these event recipes remains later work.
 
 E6.2 will separately scope bounded persisted-view repair. Replay alone is not repair. Writer
 barriers, original-stream discovery, creation admission and projection-dependent identity must

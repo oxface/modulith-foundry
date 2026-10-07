@@ -3,6 +3,7 @@
     <RootNamespace>ModulithFoundry.Samples.Wholesale.Inventory</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />

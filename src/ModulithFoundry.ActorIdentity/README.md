@@ -53,3 +53,12 @@ See [actor-only and combined sample composition](../../samples/Wholesale/Context
 [ASP.NET Core integration](../ModulithFoundry.ActorIdentity.AspNetCore/README.md) and its native
 request proofs are implemented for review in E3.1. The core acquires no new dependencies.
 No stable wire or persistence format is established here.
+
+## Deferred direction
+
+Current capabilities and consumer obligations are defined above. HTTP establishment is an
+optional separate package; identity-provider lookup and authorization remain consumer policy.
+No cross-process propagation or stable serialized context format is supported. A future
+message/worker integration would need explicit trust, attribution and compatibility proofs
+rather than automatically transferring a captured operation scope. No new core interface
+is selected for that work.

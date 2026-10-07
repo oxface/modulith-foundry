@@ -1,8 +1,8 @@
 # E5.3 explicit event-sourcing storage registration
 
 2026-10-06. The owner-authorized [interface and scope](../plans/e5-3-event-storage-registration.md)
-is implemented. E5.2.2 and this extraction remain unstaged for line-by-line review; neither has
-been checkpointed. This report records new executions, not commit-hook or remote CI results.
+was owner-reviewed and checkpointed as `abcd370`, together with E5.2.2. This report records
+implementation executions separately from checkpoint hooks; it makes no remote CI claim.
 
 ## Outcome and extraction finding
 

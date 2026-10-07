@@ -46,7 +46,6 @@ public static class AppendJourneys
                             Guid.Parse("22222222-2222-2222-2222-222222222222"),
                             "EA"
                         ),
-                        FixtureHistories.OpenedAt,
                         cancellationToken
                     );
                     if (result is not StockPositionChangeResult.Staged)
@@ -77,14 +76,14 @@ public static class AppendJourneys
                 try
                 {
                     var result = await scope
-                        .ServiceProvider.GetRequiredService<IStockPositionCommands>()
+                        .ServiceProvider.WithClock(FixtureHistories.FirstChangeAt)
+                        .GetRequiredService<IStockPositionCommands>()
                         .StageReceiptsAsync(
                             new ReceiveStock(
                                 CommandStreamId,
                                 1,
                                 [new StockReceipt(10.125m), new StockReceipt(2.875m, "DELIVERY-2")]
                             ),
-                            FixtureHistories.FirstChangeAt,
                             cancellationToken
                         );
                     if (result is not StockPositionChangeResult.Staged)
@@ -115,10 +114,10 @@ public static class AppendJourneys
                 try
                 {
                     var result = await scope
-                        .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+                        .ServiceProvider.WithClock(FixtureHistories.OpenedAt)
+                        .GetRequiredService<IPurchaseOrderCommands>()
                         .StageDraftAsync(
                             new DraftPurchaseOrder(CommandStreamId, "COMMAND-1", "SUP-1", "EUR"),
-                            FixtureHistories.OpenedAt,
                             cancellationToken
                         );
                     if (result is not PurchaseOrderChangeResult.Staged)
@@ -149,7 +148,8 @@ public static class AppendJourneys
                 try
                 {
                     var result = await scope
-                        .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+                        .ServiceProvider.WithClock(FixtureHistories.FirstChangeAt)
+                        .GetRequiredService<IPurchaseOrderCommands>()
                         .StageLinesAsync(
                             new ChangePurchaseOrderLines(
                                 CommandStreamId,
@@ -159,7 +159,6 @@ public static class AppendJourneys
                                     new PurchaseOrderLine("ITEM-1", 5m, 12.5m),
                                 ]
                             ),
-                            FixtureHistories.FirstChangeAt,
                             cancellationToken
                         );
                     if (result is not PurchaseOrderChangeResult.Staged)

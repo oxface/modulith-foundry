@@ -4,6 +4,20 @@ A reusable template and a set of opt-in .NET libraries for modular monoliths, de
 against an executable sample. Consumers own their application composition, module policy,
 transactions, transport routing, and worker deployment.
 
+The [state-stored template rehearsal](docs/plans/t1-template-rehearsal.md) is owner-approved
+and checkpointed as `8ccf4c8`. Its [creator](tools/template/README.md) generates an independent
+Catalog/console repository with configurable naming and three existing library source
+snapshots, without event or messaging dependencies. [The report](docs/reports/t1-template-rehearsal.md)
+records the supported creation behavior and limits.
+
+[ES1 bounded event append](docs/plans/es1-library-write-store.md) adds reviewed aggregate bookkeeping
+and a provided IEventStore write coordinator to the optional native EF event segment.
+State-dependent Inventory issues and an independent history/direct-JSON counter exercise it.
+Explicit native save guards validate registered required-state participation. Consumers keep
+domain rules, view definitions and native save/commit. Existing event experiments and T1's event-free output
+remain intact. See [the store slice report](docs/reports/es1-library-write-store.md) and
+[the current plan](docs/plans/library-extraction.md).
+
 The original wholesale sample and its documentation are preserved under
 [`archive/proof-sample`](archive/proof-sample/). They supply behavioral evidence and known
 limits for deliberate reimplementation, rather than prescribing the new library design.
@@ -44,15 +58,19 @@ separates memory-only proofs from database guarantees.
 [E5.2.1 native EF reads](docs/plans/e5-2-1-native-event-history.md) adds owning Inventory/Purchasing
 modules and an [executable database consumer](samples/Wholesale/EventPersistenceDemo/README.md),
 owner-reviewed and checkpointed as `4f4d5b2`. [Its report](docs/reports/e5-2-1-native-event-history.md)
-records PostgreSQL selection/isolation/capture proofs. The implemented, unstaged
+records PostgreSQL selection/isolation/capture proofs. The owner-reviewed
 [E5.2.2 append slice](docs/plans/e5-2-2-native-event-append.md) adds explicit command staging
 and caller-owned transactions before views and messaging. [Its report](docs/reports/e5-2-2-native-event-append.md)
 records real PostgreSQL conflict/rollback proofs; no new library mechanism was needed.
 [E5.3 storage registration](docs/plans/e5-3-event-storage-registration.md) adds
 [EventSourcing.EntityFrameworkCore](src/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md),
 adopted by both modules and an [independent shared-table consumer](samples/EventStorageDemo/README.md).
-It is unstaged for review; [the report](docs/reports/e5-3-event-storage-registration.md) records
+E5.2.2 and E5.3 were checkpointed together as `abcd370`;
+[the storage report](docs/reports/e5-3-event-storage-registration.md) records
 fresh tenant-free/customized/mixed-stream proofs and preserved module schemas.
+[E6.1](docs/plans/e6-1-inline-decision-state.md) implements inline decision state and
+required views in both modules, checkpointed separately as `1ae13d4`. [Its report](docs/reports/e6-1-inline-decision-state.md)
+records atomic view updates and editing without history replay; no new library mechanism was proven.
 
 - [Current design decisions](docs/design.md)
 - [Project glossary](CONTEXT.md)

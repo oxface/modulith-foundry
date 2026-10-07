@@ -1,8 +1,11 @@
 # E6.1 inline decision state and required views
 
 2026-10-06. The owner-approved [scope](../plans/e6-1-inline-decision-state.md) is implemented
-following checkpoint `abcd370` (E5.2.2 and E5.3). E6.1 changes remain unstaged for owner review;
-no further commit is authorized. These results are fresh local executions, not remote CI.
+following checkpoint `abcd370` (E5.2.2 and E5.3), and was checkpointed separately as `1ae13d4`.
+The results below are the original local executions, not remote CI or fresh runs for this
+status update. T1 subsequently completed the event-free template rehearsal as `8ccf4c8`.
+The next proposed capability is [ES1 bounded append](../plans/es1-bounded-event-append.md),
+not projection repair. No new commit is authorized by this report.
 
 ## Outcome
 

@@ -35,3 +35,16 @@ approval do not authorize `git commit`.
 Present the implementation and documentation changes, verification, and known limitations
 before requesting commit approval. If the proposed files change after approval, obtain
 approval for the updated change set. Include staged and unstaged work in the handoff.
+
+## Library documentation
+
+Keep each library's consumer setup, current capabilities, limitations and deferred-feature
+context beside its source, in its README and local docs directory where useful. A consumer
+should not need the repository's root plans to discover an essential guarantee or integration
+obligation. Keep related package composition and optional dependencies explicit.
+
+Root design decisions, ADRs, interface proposals and slice reports retain cross-cutting review
+and dated evidence; link them to the owning library's current capability record. Mark future
+features as deferred rather than supported, including their known proof obligations. Moving
+project/test folders is a separately reviewed relocation with references, template snapshots
+and checks accounted for; documentation locality does not require moving everything at once.

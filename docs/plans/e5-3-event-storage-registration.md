@@ -1,9 +1,8 @@
 # E5.3 explicit event-sourcing storage registration
 
-Status: owner-authorized interface implemented, 2026-10-06. The implementation remains
-unstaged for line-by-line review; [the report](../reports/e5-3-event-storage-registration.md)
-records fresh proofs and remaining limits. E5.2.2 also remains unstaged, not checkpointed.
-No commit is authorized. The approved scope and implementation gate are retained below.
+Status: owner-reviewed and checkpointed as `abcd370` on 2026-10-06, together with E5.2.2.
+[The report](../reports/e5-3-event-storage-registration.md) records implementation proofs and
+remaining limits. The approved scope and implementation gate are retained below.
 Read [design](../design.md), [the extraction plan](library-extraction.md) and
 [the append findings](../reports/e5-2-2-native-event-append.md) alongside it.
 

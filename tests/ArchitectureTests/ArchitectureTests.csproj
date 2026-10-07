@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
     <ProjectReference Include="../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
     <ProjectReference Include="../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <ProjectReference Include="../../samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj" />
@@ -25,6 +26,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None
+      Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj"
+      Link="ProjectDeclarations/ModulithFoundry.EventSourcing.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
     <None
       Include="../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj"
       Link="ProjectDeclarations/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj"

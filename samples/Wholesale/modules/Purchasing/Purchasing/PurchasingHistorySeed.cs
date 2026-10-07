@@ -17,6 +17,32 @@ public static class PurchasingHistorySeed
         ArgumentNullException.ThrowIfNull(history);
         ArgumentOutOfRangeException.ThrowIfLessThan(history.Count, 1);
         string owner = database.RequiredOrganizationKey;
+        var codec = PurchaseOrderCodec.CreateCodec();
+        IPurchaseOrderEvent[] facts = history
+            .Select(item =>
+                codec.Deserialize(
+                    item.Event.EventName,
+                    item.Event.SchemaVersion,
+                    item.Event.Payload
+                )
+            )
+            .ToArray();
+        var state = PurchaseOrderEvolution.Evolve(null, facts);
+        var main = PurchaseOrderCurrentRow.Prepare(
+            owner,
+            id,
+            history.Count,
+            history[^1].RecordedAt,
+            state
+        );
+        var summary = PurchaseOrderSummaryRow.Prepare(
+            null,
+            owner,
+            id,
+            history.Count,
+            history[^1].RecordedAt,
+            facts
+        );
         database.Add(
             new EventStream
             {
@@ -43,5 +69,7 @@ public static class PurchasingHistorySeed
                     RecordedAt = recordedAt,
                 }
             );
+        database.Add(main);
+        database.Add(summary);
     }
 }

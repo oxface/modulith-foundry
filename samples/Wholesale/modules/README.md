@@ -134,3 +134,23 @@ the live-history fixture streams. The executable's command-created streams estab
 normally. Bounded repair/backfill needs its own reviewed operation before editing older streams
 without required views. [The findings](../../../docs/reports/e6-1-inline-decision-state.md)
 record the new proofs and remaining extraction candidates.
+
+## ES1 bounded accepted-batch append
+
+Inventory also owns **stock issue**: positive quantities leave a selected stock position in
+its base unit, and a complete requested batch must fit the loaded OnHand. StageIssuesAsync
+loads the required inline state at the observed header version before deciding eligibility.
+InsufficientStock reports Available/Requested without staging any proposal. The issued v1
+fact evolves historical state by subtraction; replay does not reapply current command rules.
+This behavior does not reserve stock, update the availability catalog or coordinate a sale.
+
+Inventory opening/receipts/issues and Purchasing drafts/lines now use the optional
+package-free EventSourcing aggregate bookkeeping and configured native EF appender. Module
+stores reuse existing loaders and prepare required views; library code owns GUIDs, positions
+and one timestamp sampled from the configured TimeProvider. Business Contracts omit timestamps.
+Domain Contracts, decisions, reducers, codec registration, required views/summary, ownership
+admission, native save guards and final save/commit remain module/consumer code. Existing
+native mappings/migrations, historical fixtures and explicit loading paths are preserved.
+The independent EventStorageDemo counter uses that same append interface with captured-history
+state, direct JSON and no required view or tenancy. T1's generated state-stored composition
+does not acquire event sourcing. See [the reviewed ES1 scope](../../../docs/plans/es1-bounded-event-append.md).

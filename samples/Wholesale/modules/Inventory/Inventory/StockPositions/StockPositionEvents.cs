@@ -15,3 +15,6 @@ internal sealed record StockPositionReceived(
     [property: JsonRequired] decimal Quantity,
     string? DeliveryReference = null
 ) : IStockPositionEvent;
+
+internal sealed record StockPositionIssued([property: JsonRequired] decimal Quantity)
+    : IStockPositionEvent;

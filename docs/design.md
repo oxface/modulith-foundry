@@ -313,7 +313,7 @@ recommendation, not a frozen package decision. Native mappings, tenant/stream co
 query selectors, timestamps and domain evolution remain consumer/template policy. Captured
 heads bound reads under an atomic append-only assumption.
 [E5.2.2](plans/e5-2-2-native-event-append.md) implements module-owned command decisions and
-expected-version staging in caller-owned native transactions, unstaged for owner review.
+expected-version staging in caller-owned native transactions, checkpointed with E5.3 as `abcd370`.
 [Its fresh PostgreSQL proofs](reports/e5-2-2-native-event-append.md) cover competing creation/
 append, complete-batch rollback, two explicit saves and fresh-context recovery. No new Foundry
 mechanism was needed: EF's original-version predicate and native constraints arbitrate writes.
@@ -322,15 +322,72 @@ decisions, result types, row mappings and narrow native fault classification sta
 
 Owner review identified a narrower extraction candidate in the two duplicated HistoryMapping
 implementations. [E5.3 explicit event-sourcing storage registration](plans/e5-3-event-storage-registration.md)
-is implemented before E6, unstaged for line-by-line review. Consumer rows keep their concrete
+was owner-reviewed and checkpointed as `abcd370`. Consumer rows keep their concrete
 types and optional ownership fields;
 an explicit EF utility configures shared stream/envelope tables, version concurrency and
 selected keys/relationships/position uniqueness. Schema/table options and native builders
 keep setup editable. Ownership, provider payload mapping, DbContext, migrations and saves
-remain explicit consumer choices. The proposed segment requires neither tenancy nor other
+remain explicit consumer choices. The segment requires neither tenancy nor other
 event libraries. [The fresh report](reports/e5-3-event-storage-registration.md) proves adoption
 by both modules without schema changes and customized tenant-free mixed-type storage in an
 independent executable. It adds a reusable mapping utility, not append/transaction orchestration.
+
+[E6.1](plans/e6-1-inline-decision-state.md) adds sample-owned inline decision state and required
+views, checkpointed separately as `1ae13d4`. Commands load version-checked state without replay;
+explicit live/temporal reads retain their reconstruction behavior. Prepare the complete batch,
+including all serialized view/event payloads, before tracking mutations. Purchasing evolves
+its summary from its own committed amounts, independently of the aggregate-shaped write view.
+Native view concurrency tokens and the stream token arbitrate writes; the caller owns the
+transaction and rollback. Missing or behind required views fail without automatic repair; an
+ahead view after an older header read is a concurrency outcome. [The report](reports/e6-1-inline-decision-state.md)
+records real PostgreSQL proofs. The small checks and native staging remain editable module code;
+no shared projector, aggregate base or transaction mechanism was justified. Bounded repair is
+E6.2, and audit/messaging require their own participants and proofs.
+
+After the owner-approved T1 template rehearsal (`8ccf4c8`), ES1 concentrates one bounded
+append capability. The owner reviewed the initial interface, then requested and approved
+an aggregate/store replacement. The package-free EventSourcing core provides the required
+write contract and optional atomic candidate/pending bookkeeping. The existing optional EF
+segment adds a configured appender/typed record adapter and references that core; see
+[ADR 0005](adr/0005-aggregate-write-contract-and-native-append.md).
+
+The appender owns GUIDs, ordered positions, one configured-clock sample, payload lifetime,
+complete mapped keys and native header staging. After further owner feedback, the owner
+endorsed IEventStore<TAggregate> and authorized implementing the concrete provided store for
+review. [Its exact surface and change map](plans/es1-library-write-store.md) concentrate scoped
+stream lookup, family/version validation, observation/transaction binding, validated main-state
+loading and configured required-state staging. Consumer bindings supply ownership, state
+encoding/reconstitution and secondary evolution; handlers pass the aggregate only.
+
+Domain operations, pure reducers, eligibility, business Contracts, tenant admission and native
+save/commit remain consumer-owned. Create produces an opening fact immediately. ApplyChanges
+changes accepted aggregate bookkeeping; Evolve computes pure whole-batch state, reusable in the
+owning module. JsonElement stays in persistence bindings. No history/projector engine, repair,
+async processing or template event preset is added. The raw counter reuses captured history
+and direct JSON without required inline state. T1's event-free composition remains intact.
+
+[ADR 0006](adr/0006-transactional-main-inline-state.md) requires main state for registered
+aggregate writes and permits raw streams. Explicit native model declarations plus validation
+in both save overrides enforce tracked participation/version/time/complete event range for
+main and configured required secondary rows. This does not enforce arbitrary SQL or validate
+semantic equivalence of manually changed state bodies. Native module Queries and Filters
+remain the read side; a PostgreSQL availability query demonstrates the mapped-state boundary.
+
+[The follow-up slice report](reports/es1-library-write-store.md) distinguishes new store/save
+proofs from [prior appender evidence](reports/es1-bounded-event-append.md) and the archive.
+Exact implementation and configuration remain available for line-by-line owner review; edits
+are unstaged and existing staged entries are preserved. The
+[deferred catalog](plans/event-sourcing-capabilities.md) records separate future proof obligations.
+
+The owner requests self-sufficient documentation alongside each library. Local READMEs and
+capability records define current behavior, dependencies, limits and deferred context; root
+plans/ADRs/reports record review and historical executions. The
+[event-store capability record](../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+now carries projection lifecycle gaps and future provider-specific adapter candidates. A
+possible EventSourcing.Postgres package would depend on a demonstrated shared seam; no locking
+abstraction/provider implementation is selected now. Family project/docs/test grouping is a
+separate recorded relocation proposal. [The refinement report](reports/es1-envelope-and-library-docs.md)
+records default-envelope adoption and documentation/naming changes.
 
 Use options for supported variations, and explicit registration or dependencies for larger
 policy changes. Document how a setting changes a guarantee. Schema names, transport routes,
@@ -342,17 +399,26 @@ automatically promoted into libraries.
 
 ## Template bootstrap direction
 
-Provide a bootstrap CLI later to apply the template to a consumer repository. It will select
-reviewed template alternatives and optional capabilities and materialize ordinary,
-consumer-owned code and configuration. Intended choices include transport, event sourcing,
+The owner-approved [T1 rehearsal](plans/t1-template-rehearsal.md), checkpointed as `8ccf4c8`,
+now materializes one ordinary consumer-owned Catalog/console repository using native
+`dotnet new` with a TypeScript/npm creator. Application name and root namespace are configured
+explicitly; three existing libraries are materialized as local source snapshots. The fixed
+composition uses PostgreSQL state storage and omits events and messaging. See
+[creation requirements and invocation](../tools/template/README.md) and
+[execution evidence](reports/t1-template-rehearsal.md).
+
+This bounded source-distribution choice does not settle package releases or upgrades. Initial
+creation refuses existing destinations; updates, additional platforms and richer compositions
+remain separate capabilities. Further template work can select reviewed alternatives and
+optional capabilities. Intended choices include transport, event sourcing,
 Aspire resources and authentication/admission setup such as Keycloak with directory-gated
 or open registration. These are configuration goals, not currently supported alternatives.
 
 Introduce an option after its implementation and composition have been exercised. Provider
 selection does not require a common provider abstraction. Authentication/admission choices
-configure consumer-owned Access policy. CLI implementation, existing-file handling and the
-supported combinations remain later design decisions in E10; this adds no runtime dependency
-or immediate CLI implementation work.
+configure consumer-owned Access policy. T1 supports the documented initial-creation behavior
+only; broader combinations and repository-update semantics remain later E10 decisions.
+The population tool introduces no dependency into the generated application runtime.
 
 ## Telemetry and tooling
 

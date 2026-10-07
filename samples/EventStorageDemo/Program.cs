@@ -6,3 +6,4 @@ string connection =
         "Supply a disposable EVENT_STORAGE_DEMO_CONNECTION_STRING."
     );
 await DemoJourneys.RunAsync(connection, Console.Out, CancellationToken.None);
+await CounterAppendJourney.RunAsync(connection, Console.Out, CancellationToken.None);

@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
@@ -34,6 +35,9 @@ internal static class InlineViewMapping
             .WithMany()
             .HasForeignKey(row => new { row.OrganizationKey, row.StreamId })
             .OnDelete(DeleteBehavior.Restrict);
+        model.ConfigureRequiredInlineState<EventStream, StoredEvent, StockPositionCurrentRow>(
+            StockPositionHistoryReader.StreamType
+        );
         current.HasTenantOwnership(
             row => row.OrganizationKey,
             requiredOrganization,

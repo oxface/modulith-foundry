@@ -1,9 +1,9 @@
 # Development and verification
 
-`ModulithFoundry.slnx` contains 33 active projects: independent ActorIdentity and Tenancy
+`ModulithFoundry.slnx` contains 42 active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, the event codec and
-ordered-range validation utility, three finite console
-samples, an HTTP identity/Organization host, six populated Access/Inventory/Sales module projects and
+ordered-range validation, package-free aggregate core and EF event-storage utilities, five finite console
+samples, an HTTP identity/Organization host, eight populated Access/Inventory/Sales/Purchasing module projects and
 their proof suites, an Aspire AppHost, sample ServiceDefaults and a runtime composition suite.
 The archived solution is independent. Root build defaults target .NET 10; central package
 management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers,
@@ -29,6 +29,37 @@ Lefthook checks root formatting, active style/analyzers/context, EF model, event
 and the archived semantic/architecture baseline. Restore the active and archived solutions before
 using hooks. Container suites stay outside local commit hooks.
 
+## Template creation and external-consumer proof
+
+T1 was owner-approved and checkpointed as `8ccf4c8`. On the supported Linux/glibc environment
+with Node.js 24.21+ (24.x), npm and the pinned .NET SDK:
+
+```bash
+npm ci --prefix tools/template --ignore-scripts
+npm --prefix tools/template run check
+npm --prefix tools/template run create -- --config example.json --output /tmp/Cedar
+```
+
+The npm script resolves configuration relative to `tools/template`; output must not exist.
+See [the creator guide](../tools/template/README.md) for the exact configuration, platform
+requirements and failure behavior. The output is independent of the Foundry checkout and
+contains no required event/messaging setup. Its README documents build, explicit migration
+and the adoption journey.
+
+For the complete creation/adoption proof, set `CATALOG_TEST_ADMIN_CONNECTION_STRING` to a
+disposable PostgreSQL 18.6 server with permission to create/drop databases, then run:
+
+```bash
+npm --prefix tools/template run verify
+```
+
+The [separate CI workflow](../.github/workflows/template.yml) supplies PostgreSQL and runs
+tooling checks and this proof. It covers two names/namespaces, omission, deterministic
+creation, refusal/races, conflicting parent SDK configuration and real generated-consumer
+journeys outside the checkout. [The checkpoint report](reports/t1-template-rehearsal.md)
+distinguishes those executions from earlier foundation results. These instructions add no
+new execution evidence.
+
 ## Active context lane
 
 Run from the repository root:
@@ -48,19 +79,21 @@ dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.cspr
 dotnet test --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
 dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
 dotnet test --project tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
+dotnet test --project tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
 ```
 
 These checks require no containers, identity provider or personal credentials. The active
-architecture suite uses ArchUnitNET for compiled type dependencies. Seven short declaration
-tests read the runtime libraries' copied project files with native XML APIs: both cores, the event codec and history utility
-allow no package/project/extra-framework references, and persistence allows only an explicit
-EF Core Relational package reference; each HTTP adapter permits only its corresponding core and the
-native ASP.NET Core framework. No restored-graph parser or exact transitive-package
-whitelist is maintained. These checks inspect direct declarations, not evaluated MSBuild
-imports or transitive dependencies.
+architecture suite uses ArchUnitNET for compiled type dependencies. Declaration tests read
+copied project files with native XML APIs: foundation cores, event codec/history and aggregate
+core allow no package/project/extra-framework references. EF ownership allows only its native
+EF Relational package; EF event storage additionally references the aggregate core. HTTP
+adapters permit their corresponding core and the native ASP.NET Core framework. The independent
+event adopter declares just aggregate core/EF storage plus its native provider/design packages.
+No restored-graph parser or exact transitive-package whitelist is maintained. These checks
+inspect direct declarations, not evaluated MSBuild imports or transitive dependencies.
 
 Two container-free sample policies also inspect actual Inventory/Sales models and native
 migration operations for module-owned schemas, explicit ownership/global classification,
@@ -73,7 +106,7 @@ ordinary restore/build and their behavior tests remain part of CI. Sample projec
 graphs are editable composition rather than exact test snapshots. Architecture policies are
 repository-owned; consumers select their own module structure.
 
-CI's Active context lane runs architecture tests, style, analyzers, build, the other nine
+CI's Active context lane runs architecture tests, style, analyzers, build, the other ten
 container-free test projects and the context/event codec consoles. Root formatter verification remains
 in the repository-check lane. See [the test audit](reports/test-audit.md),
 [architecture checks](reports/architecture-tests.md), [the E1 split report](reports/e1-identity-split.md)
@@ -132,6 +165,17 @@ currently certifies only the returned range, not excluded history.
 
 ## Active PostgreSQL ownership lane
 
+ES1's reviewed [append interface](plans/es1-bounded-event-append.md) is exercised by both event
+test projects below. The [Wholesale executable](../samples/Wholesale/EventPersistenceDemo/README.md)
+adds a stock-issue acceptance/rejection journey through its module Contract; the
+[independent storage executable](../samples/EventStorageDemo/README.md) adds a bounded counter
+using captured history/direct JSON. Both visibly own native transactions/saves/commits, and
+both retain their existing authored fixtures/output. No migration or template option is added.
+The provided IEventStore implementation now concentrates loading/version/required-state
+coordination; explicit model declarations and native save guards enforce tracked participation.
+See [the store report](reports/es1-library-write-store.md) for fresh executions and limits,
+and [the earlier ES1 report](reports/es1-bounded-event-append.md) for prior appender results.
+
 After restoring and building the active solution, run with a reachable Docker-compatible
 container engine. Tests start disposable PostgreSQL 18.6 instances and keep the resource
 reaper enabled; no application process or personal database credentials are required.
@@ -155,7 +199,9 @@ DOTNET_PROCESSOR_COUNT=4
 Use your actual user socket path when it differs. The console smoke proof starts its own
 finite child process from the source checkout and passes the disposable connection through
 its environment. The sample executable must have been built in the same configuration.
-CI's separate Active PostgreSQL ownership lane runs all five suites. The event-history suite
+CI's separate Active PostgreSQL ownership lane runs all five suites. Per-case databases disable
+connection pooling so their idle pools do not exhaust the shared container; production connection
+configuration is unaffected. The event-history suite
 launches the built native executable and coordinates captured-head races through EF command
 interception, with no production test hook. It also exercises module command staging,
 expected-version conflicts and caller-owned rollback on actual PostgreSQL; see

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 using ModulithFoundry.Tenancy;
@@ -27,6 +28,7 @@ public sealed class PurchasingDbContext(
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateEventStreamChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -36,6 +38,7 @@ public sealed class PurchasingDbContext(
     )
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateEventStreamChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 }

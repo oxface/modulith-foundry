@@ -44,22 +44,30 @@ public static class DemoJourneys
             if (await stock.ReadCurrentAsync(FixtureHistories.StreamId, cancellationToken) is null)
             {
                 var database = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+                await using var transaction = await database.Database.BeginTransactionAsync(
+                    cancellationToken
+                );
                 InventoryHistorySeed.Stage(
                     database,
                     FixtureHistories.StreamId,
                     FixtureHistories.Inventory(fixtures, multiplier)
                 );
                 await database.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             if (await orders.ReadCurrentAsync(FixtureHistories.StreamId, cancellationToken) is null)
             {
                 var database = scope.ServiceProvider.GetRequiredService<PurchasingDbContext>();
+                await using var transaction = await database.Database.BeginTransactionAsync(
+                    cancellationToken
+                );
                 PurchasingHistorySeed.Stage(
                     database,
                     FixtureHistories.StreamId,
                     FixtureHistories.Purchasing(fixtures, multiplier)
                 );
                 await database.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             var currentStock = (
                 await stock.ReadCurrentAsync(FixtureHistories.StreamId, cancellationToken)

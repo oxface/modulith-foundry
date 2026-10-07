@@ -11,6 +11,8 @@ public static class DemoComposition
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         var services = new ServiceCollection();
+        services.AddScoped<DemoClock>();
+        services.AddScoped<TimeProvider>(provider => provider.GetRequiredService<DemoClock>());
         services.AddScoped<TenantContextAccessor>();
         services.AddScoped<ITenantContextAccessor>(provider =>
             provider.GetRequiredService<TenantContextAccessor>()

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
 using ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
@@ -12,6 +13,8 @@ public static class PurchasingRegistration
 
     public static IServiceCollection AddPurchaseOrderCommands(this IServiceCollection services)
     {
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddScoped<IEventStore<PurchaseOrderAggregate>, PurchaseOrderStore>();
         services.TryAddScoped<PurchaseOrderInlineProjection>();
         return services.AddScoped<IPurchaseOrderCommands, PurchaseOrderCommands>();
     }

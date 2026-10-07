@@ -9,9 +9,9 @@ internal static class PurchaseOrderEvolution
         long version,
         DateTimeOffset recordedAt,
         IEnumerable<IPurchaseOrderEvent> events
-    ) => Apply(null, events).ToHistory(id, version, recordedAt);
+    ) => Evolve(null, events).ToHistory(id, version, recordedAt);
 
-    internal static PurchaseOrderState Apply(
+    internal static PurchaseOrderState Evolve(
         PurchaseOrderState? state,
         IEnumerable<IPurchaseOrderEvent> events
     )

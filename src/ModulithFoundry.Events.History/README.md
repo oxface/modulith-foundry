@@ -1,8 +1,8 @@
 # Ordered history range validation
 
 A package-free .NET 10 integrity utility for a consumer-selected range. It has no JSON,
-persistence, identity, tenancy, messaging or required event-type dependency. The current
-project division remains provisional until real EF consumers are exercised in E5.2.
+persistence, identity, tenancy, messaging or required event-type dependency. Wholesale replay paths compose it with the separate JSON codec;
+the provided EF event store and independent counter do not require this package.
 
 ## Explicit consumer usage
 
@@ -64,6 +64,18 @@ that version. Filtering rows by time alone could omit intermediate positions.
 Successful validation certifies only the supplied range. Full-stream integrity checks are
 explicit maintenance work; selected-range reads do not certify corruption elsewhere, correct
 tenant scoping, stream creation/update metadata or a committed captured head. The utility does
-not append, save, transact, retry or publish. E5.2 must prove actual native EF queries, captured-head
-races and persistence behavior on PostgreSQL. See [the plan](../../docs/plans/e5-1-event-history.md)
+not append, save, transact, retry or publish. Wholesale consumer suites exercise actual native EF queries, captured-head races and
+persistence on PostgreSQL; these are composition proofs beyond this utility alone. See [the plan](../../docs/plans/e5-1-event-history.md)
 and [report](../../docs/reports/e5-1-event-history.md).
+
+## Deferred direction and event-store composition
+
+Wholesale's native replay paths use this validator after fetching the selected range, then
+decode through Events.Serialization and run their own reducers. The EF write store does not
+depend on this package; its independent counter has a local history validator/reader.
+
+A generic history reader, snapshot-plus-tail loading, projection rebuild/catch-up and a safe
+global event feed remain deferred. Range success cannot establish excluded history or committed
+global progress. Any selected extension needs captured-head/tail, corruption and concurrent
+writer/progress proofs. See the [event-store capability record](../ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+for those pending contracts. Current metadata validation remains independently adoptable.

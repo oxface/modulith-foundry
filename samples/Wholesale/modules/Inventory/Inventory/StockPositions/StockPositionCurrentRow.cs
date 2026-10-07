@@ -1,8 +1,9 @@
 using System.Text.Json;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
-internal sealed class StockPositionCurrentRow
+internal sealed class StockPositionCurrentRow : IInlineStateRecord
 {
     private static readonly JsonSerializerOptions StateJson = new(JsonSerializerDefaults.Web)
     {
@@ -30,6 +31,9 @@ internal sealed class StockPositionCurrentRow
             throw new InvalidDataException("The stock-position write view has invalid state.");
         return state;
     }
+
+    internal static StockPositionCurrentRow PrepareCandidate(StockPositionState state) =>
+        new() { State = JsonSerializer.SerializeToElement(state, StateJson) };
 
     internal static StockPositionCurrentRow Prepare(
         string owner,

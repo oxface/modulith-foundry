@@ -2,7 +2,7 @@
 
 This executable uses the independent Events.Serialization and Events.History libraries in
 module-owned native EF readers and explicit command writers. Inventory reconstructs stock
-positions and stages receipts; Purchasing reconstructs orders and stages line changes.
+positions and stages receipts/issues; Purchasing reconstructs orders and stages line changes.
 Both use tenant-discriminated rows in separate schemas of one PostgreSQL
 connection, with separate native migration histories. No messaging registration is needed.
 
@@ -35,6 +35,7 @@ purchasing append: committed-version=3, total=62.50
 inventory inline: committed-version=3, on-hand=13.000
 purchasing inline: committed-version=3, total=62.50
 purchasing summary: committed-version=3, lines=1, total=62.50
+inventory issues: committed-version=5, on-hand=6.000, rejected=7
 ```
 
 Setup skips already-present streams for an ordinary sequential rerun. It has no concurrent
@@ -51,13 +52,30 @@ for explicit replay, not for command loading. Open/draft
 requires expected version 0; receipts/line changes require a positive expected version and a
 nonempty valid batch. The established tenant supplies ownership; DTOs carry no tenant or actor.
 
-Commands return Staged, NotFound or Conflict. Staged contains proposed business state, not
+`StageIssuesAsync(IssueStock, ...)` validates all positive quantities, loads the required
+inline state at the requested version and accepts only a complete batch whose sum fits
+current OnHand. InsufficientStock carries Available/Requested and leaves no staged rows.
+Inventory owns this rule: stock leaving one position, with no reservation, catalog mutation
+or cross-module sale. Historical evolution subtracts issued facts without applying current
+eligibility or authorization again.
+
+Both modules inject `IEventStore<TAggregate>` and configure the provided EventStore base once.
+Handlers use GetForWritingAsync, domain Create/operations and AppendAsync; bindings no longer
+repeat lookup/family/version/transaction orchestration. The library owns those validations,
+identities, positions, one batch clock sample and aggregate bookkeeping.
+Domain decisions, pure reducers, codec registration, required views and native completion
+remain explicit consumer code. [StockIssueJourney](StockIssueJourney.cs) uses a separate stream:
+load 13 at version 3, issue 4 and 3 to reach 6 at version 5, then reject issue 7 in a fresh scope.
+
+Commands return Staged, NotFound or Conflict; issues also return InsufficientStock. Staged contains proposed business state, not
 durable success. A competitor can still win before saving. Native EF preserves the original
 header version in its UPDATE predicate; owned stream keys arbitrate competing creation.
 Native composition helpers classify only stream/required-view concurrency and the known PostgreSQL
 header/position unique constraints. Other faults retain their actual meaning.
 
-Supply one UTC recorded timestamp per batch, without regression. Stage at most one batch per
+Configure TimeProvider once; the library records one UTC timestamp per batch, without regression.
+Module registration uses TimeProvider.System when no clock is supplied; this finite demo configures
+a scoped deterministic clock. Business command Contracts take no timestamp. Stage at most one batch per
 stream in an operation context; tracked headers detect repeats before and after save. Manual
 clearing/detaching tracking mid-operation is outside this recipe. Different
 streams may participate in the same module transaction. On failure, roll back and discard the
@@ -71,6 +89,11 @@ Register `AddStockPositionQueries()` / `AddPurchaseOrderQueries()` explicitly to
 inline state. Inventory owns stock_position_current. Purchasing owns purchase_order_current
 and purchase_order_summary, whose per-item amounts evolve independently from accepted events.
 The caller's append transaction saves headers, events and all required views together.
+Explicit model declarations and both native save overrides validate required tracked
+participants/metadata/event ranges; a detached required row cannot silently leave events alone.
+This contract excludes bypass SQL/bulk saves and does not validate a manually altered state body.
+ReadAvailableAsync uses StockPositionFilters over mapped onHand state and scoped native joins,
+with server-side filtering rather than historical payload replay.
 The availability catalog remains a separate state-stored demonstration.
 
 Commands read module-internal decision state from the inline write view and check every required
@@ -82,8 +105,9 @@ a database snapshot across their separate reads.
 
 Complete candidate evolution, arithmetic validation, event encoding and view payload preparation
 finish before tracked rows change. Purchasing validates its final total after the complete batch;
-its summary applies the batch to its own committed amounts. No aggregate base, automatic event
-collection or discovered projector registry is required.
+its summary applies the batch to its own committed amounts. The aggregate base collects only
+new accepted facts; historical reconstruction collects none. Existing pure reducers are shared
+within each module. No discovered projector registry is added.
 
 Inline commands validate their decision state and required view positions, rather than certifying
 all historical facts on each edit. Privileged historical corruption can therefore leave an inline
@@ -117,7 +141,7 @@ These are consumer error policies, not a new Foundry error protocol or HTTP resp
 ## Scope and proofs
 
 [The read suite](../EventPersistenceDemo.Tests/HistoryReadTests.cs) runs actual migrations,
-launches this executable and checks all nine output lines. Native EF command
+launches this executable and checks all ten output lines. Native EF command
 interception observes SQL and coordinates a commit between header capture and event selection;
 no production test hook is present. A later append is excluded from that captured read and
 included by a fresh read. [The append suite](../EventPersistenceDemo.Tests/AppendTests.cs)
@@ -133,6 +157,11 @@ invalid/overflowing batches before tracking. The existing append matrix also obs
 views and fails each new view participant. This is consumer protocol coverage, not another EF
 feature matrix.
 
+[State-dependent proofs](../EventPersistenceDemo.Tests/AppendTests.StateDependent.cs) check
+whole-batch issue eligibility, zero-stock completion, isolated tenants, stale/damaged/ahead
+observations, competing eligible decisions, required-view/event faults and fresh-context
+redecision. The existing E5/E6 matrices retain all original assertions through shared append.
+
 Ordinary read consistency assumes atomically committed, append-only histories. Arbitrary
 privileged updates/deletes can invalidate that assumption; selected-range success does not
 certify excluded rows. Full replay is unbounded in history length and no snapshot or capacity
@@ -142,10 +171,13 @@ The availability catalog remains a separate state-stored Inventory demonstration
 increment does not make it an event projection. Required inline views are now implemented;
 bounded repair remains E6.2, audit and reliable messaging remain later participants. The new
 migrations create empty views; they do not automatically populate them for existing streams.
-The authored fixture streams are live-read demonstrations, while command-created streams establish
-their views through actual append. Provider-specific jsonb mapping is sample code; other DBMSs are unproven.
+The finite seed now prepares matching main/summary state from the unchanged literals and
+saves each module in its own explicit native transaction. Command-created streams establish
+state through the provided store. Historical reconstruction remains available separately. Provider-specific jsonb mapping is sample code; other DBMSs are unproven.
 
 [Composition](DemoComposition.cs), [fixture recipe](DemoJourneys.cs),
 [module ownership](../modules/README.md), [append findings](../../../docs/reports/e5-2-2-native-event-append.md),
 [inline-view findings](../../../docs/reports/e6-1-inline-decision-state.md).
-Materialized template output and bootstrap CLI remain E10.
+See [the store report](../../../docs/reports/es1-library-write-store.md) for fresh save-boundary
+omission/corruption, preparation-conflict, query translation and recovery proofs. T1 already
+provides an event-free generated composition; event template presets remain deferred.

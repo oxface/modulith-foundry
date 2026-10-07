@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
@@ -8,6 +9,36 @@ internal sealed class StockPositionQueries(
     StockPositionInlineProjection projection
 ) : IStockPositionQueries
 {
+    public async Task<IReadOnlyList<StockPositionHistory>> ReadAvailableAsync(
+        decimal requiredQuantity,
+        CancellationToken cancellationToken
+    )
+    {
+        _ = database.RequiredOrganizationKey;
+        var rows = await database
+            .StockPositions.AsNoTracking()
+            .WithOnHandAtLeast(requiredQuantity)
+            .Join(
+                database
+                    .EventStreams.AsNoTracking()
+                    .Where(stream => stream.StreamType == StockPositionHistoryReader.StreamType),
+                state => new { state.OrganizationKey, Id = state.StreamId },
+                stream => new { stream.OrganizationKey, stream.Id },
+                (state, stream) => new { State = state, Stream = stream }
+            )
+            .OrderBy(row => row.State.StreamId)
+            .ToArrayAsync(cancellationToken);
+        var mapping = new InlineProjectionStorage<EventStream, StockPositionCurrentRow>(database);
+        return rows.Select(row =>
+            {
+                mapping.Validate(row.Stream, row.State);
+                return row
+                    .State.ReadState()
+                    .ToHistory(row.State.StreamId, row.State.Version, row.State.RecordedAt);
+            })
+            .ToArray();
+    }
+
     public async Task<StockPositionHistory?> ReadCurrentAsync(
         Guid id,
         CancellationToken cancellationToken

@@ -9,9 +9,9 @@ internal static class StockPositionEvolution
         long version,
         DateTimeOffset recordedAt,
         IEnumerable<IStockPositionEvent> events
-    ) => Apply(null, events).ToHistory(id, version, recordedAt);
+    ) => Evolve(null, events).ToHistory(id, version, recordedAt);
 
-    internal static StockPositionState Apply(
+    internal static StockPositionState Evolve(
         StockPositionState? state,
         IEnumerable<IStockPositionEvent> events
     )
@@ -36,6 +36,11 @@ internal static class StockPositionEvolution
                     {
                         OnHand = state.OnHand + received.Quantity,
                         LatestDeliveryReference = received.DeliveryReference,
+                    },
+                StockPositionIssued issued when state is not null && issued.Quantity > 0 =>
+                    state with
+                    {
+                        OnHand = state.OnHand - issued.Quantity,
                     },
                 _ => throw new InvalidOperationException(
                     "Invalid stock-position event sequence or business values."

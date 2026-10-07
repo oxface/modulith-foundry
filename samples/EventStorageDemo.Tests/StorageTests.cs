@@ -32,13 +32,14 @@ public sealed class StorageTests(PostgreSqlFixture postgres) : IClassFixture<Pos
             [
                 "journal proof.counter: version=2, value=17",
                 "journal proof.note: version=1, text=review",
+                "journal append: version=3, value=22, rejected=4",
             ],
             (await output).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
         );
 
         await using var read = new StorageDbContext(StorageDbContext.Options(connection));
         Assert.Equal(
-            ["proof.counter", "proof.note"],
+            ["proof.counter", "proof.counter", "proof.note"],
             await read
                 .Streams.AsNoTracking()
                 .OrderBy(row => row.StreamType)
@@ -53,7 +54,7 @@ public sealed class StorageTests(PostgreSqlFixture postgres) : IClassFixture<Pos
                     .SingleAsync(row => row.Id == DemoData.CounterId, Token)
             ).Description
         );
-        Assert.Equal(3, await read.Events.CountAsync(Token));
+        Assert.Equal(6, await read.Events.CountAsync(Token));
         Assert.Equal(
             2,
             await read.Events.CountAsync(row => row.StreamId == DemoData.CounterId, Token)

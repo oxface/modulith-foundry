@@ -17,6 +17,24 @@ public static class InventoryHistorySeed
         ArgumentNullException.ThrowIfNull(history);
         ArgumentOutOfRangeException.ThrowIfLessThan(history.Count, 1);
         string owner = database.RequiredOrganizationKey;
+        var codec = StockPositionCodec.CreateCodec();
+        IStockPositionEvent[] facts = history
+            .Select(item =>
+                codec.Deserialize(
+                    item.Event.EventName,
+                    item.Event.SchemaVersion,
+                    item.Event.Payload
+                )
+            )
+            .ToArray();
+        var state = StockPositionEvolution.Evolve(null, facts);
+        var main = StockPositionCurrentRow.Prepare(
+            owner,
+            id,
+            history.Count,
+            history[^1].RecordedAt,
+            state
+        );
         database.Add(
             new EventStream
             {
@@ -43,5 +61,6 @@ public static class InventoryHistorySeed
                     RecordedAt = recordedAt,
                 }
             );
+        database.Add(main);
     }
 }

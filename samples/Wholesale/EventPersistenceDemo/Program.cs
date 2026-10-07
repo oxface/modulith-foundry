@@ -12,3 +12,4 @@ await DemoJourneys.RunAsync(
     CancellationToken.None
 );
 await AppendJourneys.RunAsync(connection, Console.Out, CancellationToken.None);
+await StockIssueJourney.RunAsync(connection, Console.Out, CancellationToken.None);

@@ -1,5 +1,64 @@
 # Library and sample extraction plan
 
+## Current delivery status and next slice — 2026-10-07
+
+The three outputs remain reusable libraries, configurable repository population, and samples.
+[The strategy review](../reports/strategy-review.md) brought a bounded template rehearsal
+forward from E10; that rehearsal is now complete and owner-approved.
+
+| Capability | Current disposition |
+| --- | --- |
+| E1–E3 foundations and ingress | Retained checkpointed libraries and consumer proofs. |
+| E4–E5 event utilities and native consumers | Retained checkpointed mechanisms and experiments; no replacement dependency selected. |
+| E6.1 inline decision state | Checkpointed separately as `1ae13d4`; an experiment, not justification to proceed automatically to repair. |
+| T1 state-stored template rehearsal | Owner-approved checkpoint `8ccf4c8`; two generated consumer proofs, event/messaging omission and bounded initial creation. |
+| ES1 bounded event append | Owner-reviewed aggregate/store replacement implemented. [Concrete interface/scope](es1-bounded-event-append.md#concrete-aggregate-based-replacement-for-interface-review) and [new proofs](../reports/es1-bounded-event-append.md) accompany line-by-line implementation review. |
+
+T1 implements one fixed event-free Catalog/console composition with configurable application
+name/root namespace, local library source snapshots and TypeScript/npm creation tooling around
+native `dotnet new`. See [the creator](../../tools/template/README.md) and
+[checkpoint findings](../reports/t1-template-rehearsal.md) for supported platforms and limits.
+It does not implement optional event presets, production ingress or repository updates.
+
+ES1 concentrates accepted-batch technical append using the existing state-loading paths.
+Inventory issues depend on loaded availability; the independent counter uses captured history
+and direct JSON without tenancy or required views. Domain policy and native save/commit remain
+consumer-owned. [Its report](../reports/es1-bounded-event-append.md) distinguishes new proofs
+and source-concentration leverage from historical evidence. Existing demos, fixtures,
+migrations, the frozen archive and T1 output are preserved; no cleanup is included.
+Marten remains a behavioral reference for a smaller optional capability, not a selected
+runtime dependency. The approved native EF direction remains in force.
+
+The owner requested and approved replacement of per-call delegates/timestamp assembly with
+an aggregate-oriented journey. The package-free aggregate core and configured EF appender
+are now implemented; [ADR 0005](../adr/0005-aggregate-write-contract-and-native-append.md)
+records the required write contract and optional inheritance. Pure reducers remain in modules
+and are shared with existing historical reconstruction. The revised report records actual
+verification separately from the initial surface. No generic reader/projector engine, repair
+or subsequent event slice is authorized.
+
+The [owner follow-up and deferred capability catalog](event-sourcing-capabilities.md) records
+transactional main-state consistency, native query/filter naming, event registry/JSONB findings
+and future proof obligations. Mandatory main state applies to registered aggregate writes;
+raw streams remain permitted. The owner subsequently endorsed IEventStore<TAggregate> and
+authorized concrete changes. [The provided write-store surface](es1-library-write-store.md)
+now concentrates native lookup, version observation/comparison, context/transaction association,
+main-state loading and configured required-state staging. Explicit native save validation
+checks tracked required participants; no generated persistence or hidden save/commit.
+[New executions](../reports/es1-library-write-store.md) accompany implementation review.
+
+The owner-approved default envelope and projection/store terminology refinements are now
+implemented. [Library-local capability records](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+retain the supported contract, missing rebuilding/async/multi-stream context and provider
+adapter investigation. Other packages retain their own local setup/limits/deferred directions.
+A family folder restructure or Postgres locking package is not implemented by this refinement;
+see [its proof and scope report](../reports/es1-envelope-and-library-docs.md).
+
+Stop after this reviewable ES1 capability. The E0–E10 sections below preserve
+the original sequence and evidence; they are not an instruction to begin E6.2 or E7.
+
+## Checkpoint history
+
 Status: review proposal, 2026-10-03. The owner approved the archive-and-plan direction.
 This document proposes implementation increments; it does not freeze public interfaces,
 package boundaries, or authorize a commit. E1 was reviewed and checkpointed as `a8e45c9`;
@@ -41,11 +100,18 @@ records selected-range integrity and two-family reconstruction proofs. Its packa
 remains for review alongside the now-implemented [E5.2.1 native EF consumers](e5-2-1-native-event-history.md).
 [Their report](../reports/e5-2-1-native-event-history.md) records new PostgreSQL evidence. E5.2.1
 was owner-reviewed and checkpointed as `4f4d5b2`. [E5.2.2](e5-2-2-native-event-append.md) is
-implemented and unstaged for owner review; [its report](../reports/e5-2-2-native-event-append.md)
+owner-reviewed and checkpointed with E5.3 as `abcd370`; [its report](../reports/e5-2-2-native-event-append.md)
 records new native append evidence and no new library mechanism.
 [E5.3 explicit storage registration](e5-3-event-storage-registration.md) is implemented before
-E6 and unstaged for review. [Its report](../reports/e5-3-event-storage-registration.md) records
+E6 and checkpointed as `abcd370`. [Its report](../reports/e5-3-event-storage-registration.md) records
 the extracted stream/envelope model utility independently of append orchestration.
+[E6.1](e6-1-inline-decision-state.md) was checkpointed as `1ae13d4`;
+[its report](../reports/e6-1-inline-decision-state.md) records inline decision state, atomic required
+views and no new reusable mechanism.
+[T1](t1-template-rehearsal.md) was owner-approved and checkpointed as `8ccf4c8` after review
+corrections; [its report](../reports/t1-template-rehearsal.md) records creation and adoption
+proofs, with no new reusable runtime mechanism. The ES1 interface/scope was then owner-approved
+on 2026-10-06; its implementation remains unstaged for review, with no commit authorized.
 
 ## Delivery model
 
@@ -134,7 +200,7 @@ interfaces. Links below deliberately point to the historical evidence.
 | Module persistence | Explicit EF ownership-filter/model utilities and justified write validation | Module DbContext, schema, mappings, migrations and transaction ownership. The archived `shared/Persistence` utility is a starting comparison, not a required base context. |
 | Event identity and codec | Explicit alias/version registry, payload encoding/decoding and compatibility errors | Event definitions, required/optional fields, allowed schemas and evolution. Compare both serializers before designing a common interface. |
 | Event history | Contiguous ordered-range checks, captured-head reads and deterministic hydration mechanics | Domain reducer, state shape and temporal meaning. Preserve application append time versus commit time. |
-| Event-sourcing model registration | Explicit EF stream/envelope mapping, version token, selected keys/relationship and position uniqueness; E5.3 implementation awaiting review | Consumer row types, ownership/filter choice, DbContext/provider, migrations, stream families and saves. No required tenancy or codec dependency. |
+| Event-sourcing model registration | Explicit EF stream/envelope mapping, version token, selected keys/relationship and position uniqueness; E5.3 owner-reviewed implementation | Consumer row types, ownership/filter choice, DbContext/provider, migrations, stream families and saves. No required tenancy or codec dependency. |
 | Event append | Stream expected-version checks and event/envelope staging in native EF transactions | Business-key identity, decision state, view definitions, audit and transaction owner. PostgreSQL guarantees stay explicit. |
 | Inline projections and repair | Explicit batch coordination and bounded reconstruction helpers where genuinely shared | View identities/reducers, required-view policy, write admission, lock granularity and privileged recovery. Purchasing repair is not yet proven. |
 | Reliable messaging | Inbox/outbox storage, lease claims, token-guarded completion/backoff and callable dispatch | Semantic operation identities, fingerprint meaning, producer trust, retention, routes and payload mapping. Delivery deduplication is not business idempotency. |
@@ -378,8 +444,8 @@ is checkpointed as `2a49ef3b`, before E5 history/append.
 E3.7 adds no technical
 library or provider-neutral authentication abstraction. Its local HTTPS topology does not
 prove external cross-site providers, proxy/subdomain sessions or account administration.
-Materialized template output and bootstrap CLI remain E10; sample source is
-the exercised template recipe now.
+E3.7 supplied exercised sample recipes. T1 now materializes a separate bounded state-stored
+composition; generating this richer HTTP/OIDC composition remains later work.
 Native ServiceDefaults remains template source; the owner confirmed it warrants no Foundry
 library wrapper.
 
@@ -460,8 +526,8 @@ E5.2 is split into two reviewable capabilities:
   [the report](../reports/e5-2-1-native-event-history.md) records new proofs.
 - [E5.2.2 native append](e5-2-2-native-event-append.md): expected-version staging,
   caller-owned save/commit, competing
-  writers, stream/event-write faults, rollback and fresh-context recovery. Implemented and
-  unstaged for owner review. [The report](../reports/e5-2-2-native-event-append.md) compares the
+  writers, stream/event-write faults, rollback and fresh-context recovery. Owner-reviewed and
+  checkpointed with E5.3 as `abcd370`. [The report](../reports/e5-2-2-native-event-append.md) compares the
   consumer-owned writers: native EF supplies the concurrency/transaction mechanism. Reassess
   the repeated staging shape with E6's required participants before proposing another interface.
 
@@ -491,14 +557,21 @@ The owner authorized the interface before implementation. [The report](../report
 records new adoption proofs: preserved module schemas/migrations and append behavior, multiple
 StreamType values in one table pair and customized tenant-free independent usage. The new
 mechanism is model registration; it does not enforce append-only behavior or commit transactions.
-Implementation remains unstaged for line-by-line review. Append coordination remains a separate
-candidate for E6 evidence.
+Implementation was owner-reviewed and checkpointed as `abcd370`. Append coordination remains
+a separate candidate evaluated with E6 evidence.
 
 ### E6 Required inline views and bounded repair
 
-[E6.1 inline decision state and required views](e6-1-inline-decision-state.md) specifies the
-next reviewable capability and proposed consumer Contracts. It is a preparation document,
-not an implemented projector interface. Bounded repair will receive a separate E6.2 scope.
+[E6.1 inline decision state and required views](e6-1-inline-decision-state.md) was checkpointed
+as `1ae13d4`. [Its report](../reports/e6-1-inline-decision-state.md) records earlier proofs of ordinary
+edits without history reads, complete-batch validation, independent summary evolution and
+atomic event/header/view updates on PostgreSQL. No new reusable mechanism was proven: local
+immutable candidates suffice, and concrete view checks/staging do not yet justify a generic
+projector interface. Explicit Contracts, mappings and orchestration are editable template
+recipes; T1 materializes an event-free composition, not these event recipes. Bounded repair
+requires a separate E6.2 scope and is not the next slice.
+
+The broader E6 objectives below remain the gate for subsequent increments.
 
 Before proposing the E6 interface, compare the archived aggregate wrappers, deciders,
 candidate-state policies, live readers and inline projectors with the Marten reference.
@@ -525,7 +598,8 @@ First establish one reviewable decision-and-inline-view capability in both aggre
   discovery, generated projection code or SaveChanges interception is proposed.
 
 Integrate an aggregate-shaped write view and an independent summary view with one atomic
-append. Prove failure of each participant rolls back all required views/events/audit, with
+append. E6.1 proves rollback of required views/events/header. Audit needs its own participant
+and failure proof before event/view/audit atomicity can be claimed. Verify results with
 independently expected quantities and totals. Missing/lagging required views fail according
 to explicit consumer policy; ordinary append does not silently repair them.
 
@@ -581,6 +655,10 @@ large consumer setup to hide little complexity. This increment is a decision gat
 large library PR; each selected mechanism receives its own consumer/proof slice.
 
 ### E10 Template rehearsal and delivery basis
+
+The first bounded creation/adoption rehearsal was delivered early as T1 (`8ccf4c8`). Its
+initial-creation behavior and fixed state-stored composition are supported now. The objectives
+below concern further supported compositions and delivery, not a requirement to repeat T1.
 
 Consolidate exercised sample setup into the template and create a second consumer with
 selected segments. Verify build, migrations, local startup, independent adoption and CI.

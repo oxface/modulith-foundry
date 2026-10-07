@@ -1,8 +1,9 @@
 # E5.2.2 expected-version append and caller-owned transactions
 
 2026-10-06. The owner-authorized [append scope](../plans/e5-2-2-native-event-append.md)
-is implemented after E5.2.1 checkpoint `4f4d5b2`. Changes remain unstaged for line-by-line
-review; no commit is authorized.
+was owner-reviewed and checkpointed as `abcd370`, together with E5.3, after E5.2.1
+checkpoint `4f4d5b2`. The results below describe this increment. [E6.1](e6-1-inline-decision-state.md)
+subsequently replaces ordinary command history replay with required inline state.
 
 ## Outcome and extraction finding
 

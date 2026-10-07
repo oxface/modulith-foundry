@@ -1,8 +1,9 @@
 using System.Text.Json;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 
-internal sealed class PurchaseOrderCurrentRow
+internal sealed class PurchaseOrderCurrentRow : IInlineStateRecord
 {
     private static readonly JsonSerializerOptions StateJson = new(JsonSerializerDefaults.Web)
     {
@@ -34,6 +35,9 @@ internal sealed class PurchaseOrderCurrentRow
             throw new InvalidDataException("The purchase-order write view has invalid state.");
         return state;
     }
+
+    internal static PurchaseOrderCurrentRow PrepareCandidate(PurchaseOrderState state) =>
+        new() { State = JsonSerializer.SerializeToElement(state, StateJson) };
 
     internal static PurchaseOrderCurrentRow Prepare(
         string owner,

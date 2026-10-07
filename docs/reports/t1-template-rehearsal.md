@@ -1,10 +1,14 @@
 # T1: bounded template-population rehearsal
 
-2026-10-06. One supported consumer composition, implemented for owner review. T1 changes
-remain unstaged; no T1 commit or package publication was made. The owner subsequently
-checkpointed the event experiment separately as `1ae13d4`; T1 does not remove or extend it.
+2026-10-06. One supported consumer composition, owner-approved and checkpointed as
+`8ccf4c8`, including the review corrections recorded below. No package was published.
+The event experiment was checkpointed separately as `1ae13d4`; T1 does not remove or extend it.
 The existing planning edits and frozen archive are preserved.
 At the owner's request, the creation/proof tooling now uses TypeScript and npm.
+
+This checkpoint-status update adds no new test execution. The results below retain their
+original execution scope. The next proposed capability is
+[ES1 bounded event append](../plans/es1-bounded-event-append.md).
 
 ## Outcome and supported configuration
 

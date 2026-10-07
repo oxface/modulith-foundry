@@ -437,6 +437,8 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
     private static ServiceProvider Provider(string connection, QueryObservation? observation = null)
     {
         var services = DemoComposition.CreateServices(connection);
+        services.AddScoped<TestClock>();
+        services.AddScoped<TimeProvider>(provider => provider.GetRequiredService<TestClock>());
         if (observation is not null)
         {
             services.AddDbContext<InventoryDbContext>(options =>
@@ -482,7 +484,8 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
         Guid streamId = id ?? Id;
         if (inventory)
             return await scope
-                .ServiceProvider.GetRequiredService<IStockPositionCommands>()
+                .ServiceProvider.WithClock(Opened)
+                .GetRequiredService<IStockPositionCommands>()
                 .StageOpenAsync(
                     new OpenStockPosition(
                         streamId,
@@ -491,14 +494,13 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
                         "EA",
                         expected
                     ),
-                    Opened,
                     Token
                 );
         return await scope
-            .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+            .ServiceProvider.WithClock(Opened)
+            .GetRequiredService<IPurchaseOrderCommands>()
             .StageDraftAsync(
                 new DraftPurchaseOrder(streamId, "APPEND-1", "SUP-1", "EUR", expected),
-                Opened,
                 Token
             );
     }
@@ -513,18 +515,19 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
     {
         if (inventory)
             return await scope
-                .ServiceProvider.GetRequiredService<IStockPositionCommands>()
+                .ServiceProvider.WithClock(time ?? Changed)
+                .GetRequiredService<IStockPositionCommands>()
                 .StageReceiptsAsync(
                     new ReceiveStock(
                         Id,
                         expected,
                         quantities.Select(quantity => new StockReceipt(quantity)).ToArray()
                     ),
-                    time ?? Changed,
                     Token
                 );
         return await scope
-            .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+            .ServiceProvider.WithClock(time ?? Changed)
+            .GetRequiredService<IPurchaseOrderCommands>()
             .StageLinesAsync(
                 new ChangePurchaseOrderLines(
                     Id,
@@ -533,7 +536,6 @@ public sealed partial class AppendTests(PostgreSqlFixture postgres)
                         .Select(quantity => new PurchaseOrderLine("ITEM-1", quantity, 12.5m))
                         .ToArray()
                 ),
-                time ?? Changed,
                 Token
             );
     }

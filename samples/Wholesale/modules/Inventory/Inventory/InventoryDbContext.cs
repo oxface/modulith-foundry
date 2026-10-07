@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 using ModulithFoundry.Tenancy;
@@ -42,6 +43,7 @@ public sealed class InventoryDbContext(
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateEventStreamChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -51,6 +53,7 @@ public sealed class InventoryDbContext(
     )
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateEventStreamChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 }

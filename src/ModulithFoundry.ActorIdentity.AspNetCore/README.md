@@ -95,3 +95,12 @@ catalog reads; actor-only adoption remains exercised by the standalone suite.
 protected cookies and a test-only secondary scheme without sample/EF/tenancy dependencies.
 [The E3.1 report](../../docs/reports/e3-1-http-actor-identity.md) records current executions
 and limits. Live OIDC provider callbacks and session topology remain later evidence.
+
+## Deferred direction
+
+The adapter establishes canonical actor attribution through native request authentication/
+authorization; it does not implement an OIDC client, user directory or session management.
+Provider/proxy deployment and principal mutation/re-execution topologies need consumer-specific
+proofs. No universal claims mapping, nested context rebinding or transport propagation is
+selected. The interface, ordering constraints and limits above are the local supported contract;
+repository reports distinguish earlier adapter proofs from later sample browser/provider runs.

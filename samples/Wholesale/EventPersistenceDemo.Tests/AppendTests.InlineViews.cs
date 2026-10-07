@@ -207,7 +207,8 @@ public sealed partial class AppendTests
             if (total)
                 await Assert.ThrowsAsync<OverflowException>(() =>
                     scope
-                        .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+                        .ServiceProvider.WithClock(Changed)
+                        .GetRequiredService<IPurchaseOrderCommands>()
                         .StageLinesAsync(
                             new ChangePurchaseOrderLines(
                                 Id,
@@ -217,7 +218,6 @@ public sealed partial class AppendTests
                                     new PurchaseOrderLine("MAX-B", 1, 1),
                                 ]
                             ),
-                            Changed,
                             Token
                         )
                 );
@@ -242,7 +242,8 @@ public sealed partial class AppendTests
             var database = Context(scope, false);
             await using var transaction = await database.Database.BeginTransactionAsync(Token);
             var result = await scope
-                .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+                .ServiceProvider.WithClock(Changed)
+                .GetRequiredService<IPurchaseOrderCommands>()
                 .StageLinesAsync(
                     new ChangePurchaseOrderLines(
                         Id,
@@ -253,7 +254,6 @@ public sealed partial class AppendTests
                             new PurchaseOrderLine("ITEM-1", 2, 1),
                         ]
                     ),
-                    Changed,
                     Token
                 );
             Assert.Equal((6, 3m), Proposed(result));
@@ -283,7 +283,8 @@ public sealed partial class AppendTests
                 (5, 47m),
                 Proposed(
                     await scope
-                        .ServiceProvider.GetRequiredService<IPurchaseOrderCommands>()
+                        .ServiceProvider.WithClock(Changed)
+                        .GetRequiredService<IPurchaseOrderCommands>()
                         .StageLinesAsync(
                             new ChangePurchaseOrderLines(
                                 Id,
@@ -293,7 +294,6 @@ public sealed partial class AppendTests
                                     new PurchaseOrderLine("ITEM-1", 3, 9),
                                 ]
                             ),
-                            Changed,
                             Token
                         )
                 )
