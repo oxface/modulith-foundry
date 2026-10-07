@@ -118,11 +118,11 @@ prefixes are documented there. Concurrency/transaction assertions require Postgr
 
 ## Review-worthy files and scope
 
-Start with [IEventStore](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/IEventStore.cs),
-[EventStore](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStore.cs),
-[state/projection bindings](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineAggregateAdapter.cs),
-[native inline state](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineProjectionStorage.cs)
-and [model/save validation](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs).
+Start with [IEventStore](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/IEventStore.cs),
+[EventStore](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStore.cs),
+[state/projection bindings](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineAggregateAdapter.cs),
+[native inline state](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineProjectionStorage.cs)
+and [model/save validation](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs).
 The previously reviewed EventRecordAdapter, EventAppender and PreparedEventAppend remain the
 underlying batch mechanism, with their existing public shapes.
 

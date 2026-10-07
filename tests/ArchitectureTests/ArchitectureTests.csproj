@@ -5,34 +5,34 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
     <ProjectReference Include="../../samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj" />
     <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
     <PackageReference Include="xunit.v3.mtp-v2" />
-    <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../samples/Wholesale/ContextDemo/ContextDemo.csproj" />
     <ProjectReference Include="../../samples/Wholesale/HttpIdentityDemo/HttpIdentityDemo.csproj" />
     <ProjectReference Include="../../samples/Wholesale/PersistenceDemo/PersistenceDemo.csproj" />
     <ProjectReference Include="../../samples/Wholesale/modules/Purchasing/Purchasing/Purchasing.csproj" />
     <ProjectReference Include="../../samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj" />
-    <ProjectReference Include="../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../samples/EventStorageDemo/EventStorageDemo.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
     <None
-      Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj"
+      Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj"
       Link="ProjectDeclarations/ModulithFoundry.EventSourcing.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj"
+      Include="../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj"
       Link="ProjectDeclarations/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
@@ -42,37 +42,37 @@
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj"
+      Include="../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj"
       Link="ProjectDeclarations/ModulithFoundry.Events.History.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj"
+      Include="../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj"
       Link="ProjectDeclarations/ModulithFoundry.Events.Serialization.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj"
+      Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj"
       Link="ProjectDeclarations/ModulithFoundry.Tenancy.AspNetCore.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj"
+      Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj"
       Link="ProjectDeclarations/ModulithFoundry.ActorIdentity.AspNetCore.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj"
+      Include="../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj"
       Link="ProjectDeclarations/ModulithFoundry.ActorIdentity.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj"
+      Include="../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj"
       Link="ProjectDeclarations/ModulithFoundry.Tenancy.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />
     <None
-      Include="../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj"
+      Include="../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj"
       Link="ProjectDeclarations/ModulithFoundry.Persistence.EntityFrameworkCore.csproj"
       CopyToOutputDirectory="PreserveNewest"
     />

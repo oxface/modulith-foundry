@@ -55,14 +55,14 @@ jobs:
       - name: Test actor identity library
         run: >-
           dotnet test
-          --project tests/ActorIdentityTests/ActorIdentityTests.csproj
+          --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj
           --no-build
           --no-restore
 
       - name: Test tenancy library
         run: >-
           dotnet test
-          --project tests/TenantTests/TenantTests.csproj
+          --project src/ModulithFoundry.Tenancy/tests/TenantTests/TenantTests.csproj
           --no-build
           --no-restore
 
@@ -76,7 +76,7 @@ jobs:
       - name: Test EF models and write validation without containers
         run: >-
           dotnet test
-          --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
+          --project src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
           --no-build
           --no-restore
 
@@ -85,14 +85,14 @@ jobs:
         # The runnable HTTP sample has no test authentication shortcut.
         run: >-
           dotnet test
-          --project tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
+          --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
           --no-build
           --no-restore
 
       - name: Test independent tenancy HTTP integration
         run: >-
           dotnet test
-          --project tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
+          --project src/ModulithFoundry.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
           --no-build
           --no-restore
 
@@ -104,13 +104,13 @@ jobs:
           --no-restore
 
       - name: Test explicit event serialization
-        run: dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
+        run: dotnet test --project src/ModulithFoundry.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
 
       - name: Test bounded ordered event history
-        run: dotnet test --project tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
+        run: dotnet test --project src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
 
       - name: Aggregate core tests
-        run: dotnet test --project tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
+        run: dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
 
       - name: Test event codec consumer compatibility
         run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
@@ -137,7 +137,7 @@ jobs:
       - name: Restore active projects
         run: dotnet restore ModulithFoundry.slnx
       - name: Test independent GUID ownership consumer
-        run: dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-restore
+        run: dotnet test --project src/ModulithFoundry.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-restore
       - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
       - name: Test independent shared event-storage registration

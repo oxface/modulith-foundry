@@ -113,7 +113,7 @@ proof costs without evidence from this bounded capability; neither is extracted.
 
 ## New proofs for the replacement
 
-[Pure core tests](../../tests/EventSourcingTests/AggregateTests.cs) prove ordered multiple
+[Pure core tests](../../src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/AggregateTests.cs) prove ordered multiple
 decisions with a fixed observed version, a read-only pending collection and a snapshot of the
 submitted event list. Final-candidate validation occurs once per batch, including a batch
 whose intermediate state exceeds policy but final state is valid. A later evolution failure,
@@ -202,11 +202,11 @@ rerun here. No new template or archive runtime mechanism is claimed.
 
 ## Review map and remaining limits
 
-Start with [aggregate core](../../src/ModulithFoundry.EventSourcing/EventSourcedAggregate.cs),
-[write contract](../../src/ModulithFoundry.EventSourcing/IEventSourcedAggregate.cs),
-[configured appender](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventAppender.cs),
-[record adapter](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventRecordAdapter.cs)
-and [prepared batch](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/PreparedEventAppend.cs).
+Start with [aggregate core](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/EventSourcedAggregate.cs),
+[write contract](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/IEventSourcedAggregate.cs),
+[configured appender](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventAppender.cs),
+[record adapter](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventRecordAdapter.cs)
+and [prepared batch](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/PreparedEventAppend.cs).
 Then review [Inventory store](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionStore.cs),
 [commands](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionCommands.cs),
 [Purchasing store](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/PurchaseOrderStore.cs)

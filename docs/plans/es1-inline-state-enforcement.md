@@ -163,9 +163,9 @@ All paths below are relative to the repository root. No existing source file is 
 
 | File | Disposition and behavior |
 | --- | --- |
-| `src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventAppender.cs` | Replace class arity/constructor and move typed adapter validation to Prepare; preserve append mechanics. |
-| `src/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs` | New model registration and explicit save validator for required-state inclusion/metadata. |
-| `src/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md` | Revised public usage, supported integration and bypass boundaries. |
+| `src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventAppender.cs` | Replace class arity/constructor and move typed adapter validation to Prepare; preserve append mechanics. |
+| `src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs` | New model registration and explicit save validator for required-state inclusion/metadata. |
+| `src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md` | Revised public usage, supported integration and bypass boundaries. |
 | `samples/Wholesale/modules/Inventory/Inventory/StockPositions/InlineViewMapping.cs` | Register the existing main-state FK/version/time without schema changes. |
 | `samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/InlineViewMapping.cs` | Register main state; independent summary remains a required module participant. |
 | `samples/Wholesale/modules/Inventory/Inventory/InventoryDbContext.cs` | Invoke validator in both native save override paths after tenant validation. |

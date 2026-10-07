@@ -84,10 +84,10 @@ Archive references and Marten comparisons remain historical/source evidence.
 
 ## Review scope and preserved work
 
-Review [StoredEventRecord](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/StoredEventRecord.cs),
-[InlineProjectionStorage](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineProjectionStorage.cs),
-[EventStore](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStore.cs),
-[save validation](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs)
+Review [StoredEventRecord](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/StoredEventRecord.cs),
+[InlineProjectionStorage](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/InlineProjectionStorage.cs),
+[EventStore](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventStore.cs),
+[save validation](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/RequiredInlineStateExtensions.cs)
 and [default-envelope adoption](../../samples/EventStorageDemo.Tests/AppendTests.DefaultEnvelope.cs).
 The existing append test class becomes partial to host that proof. Inventory/Purchasing inline
 loaders and Inventory's native query use the renamed storage type. No runtime dependency change.

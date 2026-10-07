@@ -121,17 +121,17 @@ presented as a fresh E4 all-project result.
 
 ## Review files and remaining boundary
 
-Start line-by-line review with the [registration factory](../../src/ModulithFoundry.Events.Serialization/EventRegistration.cs)
-and [codec](../../src/ModulithFoundry.Events.Serialization/JsonEventCodec.cs), then the
-[output record](../../src/ModulithFoundry.Events.Serialization/SerializedEvent.cs),
-[decoding exception](../../src/ModulithFoundry.Events.Serialization/EventDecodingException.cs)
-and [failure enum](../../src/ModulithFoundry.Events.Serialization/EventDecodingFailure.cs).
-The [library guide](../../src/ModulithFoundry.Events.Serialization/README.md) describes
+Start line-by-line review with the [registration factory](../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/EventRegistration.cs)
+and [codec](../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/JsonEventCodec.cs), then the
+[output record](../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/SerializedEvent.cs),
+[decoding exception](../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/EventDecodingException.cs)
+and [failure enum](../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/EventDecodingFailure.cs).
+The [library guide](../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md) describes
 the consumer obligations.
 
 Review the actual [Inventory recipe](../../samples/Wholesale/EventCodecDemo/Inventory/StockPositionExample.cs)
 and [Purchasing recipe](../../samples/Wholesale/EventCodecDemo/Purchasing/PurchaseOrderExample.cs)
-with [library proofs](../../tests/EventSerializationTests/CodecTests.cs) and
+with [library proofs](../../src/ModulithFoundry.Events/tests/EventSerializationTests/CodecTests.cs) and
 [consumer proofs](../../samples/Wholesale/EventCodecDemo.Tests/CompatibilityTests.cs).
 The [architecture changes](../../tests/ArchitectureTests/AssemblyDependencyTests.cs),
 [CI](../../.github/workflows/ci.yml) and [hooks](../../lefthook.yml) accompany the capability.

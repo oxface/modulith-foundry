@@ -1,14 +1,41 @@
 <Solution>
-  <Folder Name="/Libraries/">
-    <Project Path="src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
-    <Project Path="src/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
-    <Project Path="src/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
-    <Project Path="src/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
-    <Project Path="src/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
-    <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
-    <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
-    <Project Path="src/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj" />
-    <Project Path="src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+  <Folder Name="/Libraries/ActorIdentity/">
+    <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/ModulithFoundry.ActorIdentity.AspNetCore.csproj" />
+    <Project Path="src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/ActorIdentity/Tests/">
+    <Project Path="src/ModulithFoundry.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj" />
+    <Project Path="src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Tenancy/">
+    <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <Project Path="src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.AspNetCore/ModulithFoundry.Tenancy.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Tenancy/Tests/">
+    <Project Path="src/ModulithFoundry.Tenancy/tests/TenantTests/TenantTests.csproj" />
+    <Project Path="src/ModulithFoundry.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Persistence/">
+    <Project Path="src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Persistence/Tests/">
+    <Project Path="src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj" />
+    <Project Path="src/ModulithFoundry.Persistence/tests/PersistenceTests/PersistenceTests.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Events/">
+    <Project Path="src/ModulithFoundry.Events/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
+    <Project Path="src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Events/Tests/">
+    <Project Path="src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj" />
+    <Project Path="src/ModulithFoundry.Events/tests/EventSerializationTests/EventSerializationTests.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/EventSourcing/">
+    <Project Path="src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
+    <Project Path="src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/EventSourcing/Tests/">
+    <Project Path="src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj" />
   </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/EventStorageDemo/EventStorageDemo.csproj" />
@@ -38,15 +65,6 @@
     <Project Path="samples/Wholesale/modules/Inventory/Inventory.Contracts/Inventory.Contracts.csproj" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="tests/EventSourcingTests/EventSourcingTests.csproj" />
-    <Project Path="tests/EventHistoryTests/EventHistoryTests.csproj" />
-    <Project Path="tests/EventSerializationTests/EventSerializationTests.csproj" />
-    <Project Path="tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj" />
     <Project Path="tests/ArchitectureTests/ArchitectureTests.csproj" />
-    <Project Path="tests/ActorIdentityTests/ActorIdentityTests.csproj" />
-    <Project Path="tests/TenantTests/TenantTests.csproj" />
-    <Project Path="tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj" />
-    <Project Path="tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj" />
-    <Project Path="tests/PersistenceTests/PersistenceTests.csproj" />
   </Folder>
 </Solution>

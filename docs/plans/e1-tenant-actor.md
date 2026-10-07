@@ -13,9 +13,9 @@ Each replaces repeated scoped-holder lifecycle and explicit requirement checks w
 requiring the other library or the sample Access model. Keep executing actor and optional
 initiator together; tenant choice belongs to its own context.
 
-- `src/ModulithFoundry.ActorIdentity/`: actor values, attribution, lifecycle and actor guard.
-- `src/ModulithFoundry.Tenancy/`: tenant choice, lifecycle and tenant guard.
-- `tests/ActorIdentityTests/` and `tests/TenantTests/`: separate executable test consumers,
+- `src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/`: actor values, attribution, lifecycle and actor guard.
+- `src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/`: tenant choice, lifecycle and tenant guard.
+- `src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/` and `src/ModulithFoundry.Tenancy/tests/TenantTests/`: separate executable test consumers,
   each referencing only its selected foundation library and the test framework.
 - `samples/Wholesale/ContextDemo/`: actor-only, tenancy-only and combined standard-DI usage.
 - `samples/Wholesale/ContextDemo.Tests/`: consumer composition and capability proofs.

@@ -1,58 +1,49 @@
-# Aggregate capability and deferred context
+# EventSourcing composition and capabilities
 
-Status: current interface and ownership, 2026-10-07. This document and the package README
-are the consumer contract; repository plans/reports contain dated review and proof evidence.
+Current scope, 2026-10-07. This family guide and the package-local contracts travel with
+the source. Root plans/reports retain cross-cutting review and dated execution evidence.
 
-## Supported now
+## Supported composition
 
-The package-free core supplies IEventSourcedAggregate<TEvent> and optional
-EventSourcedAggregate<TState,TEvent>. Its contract carries a GUID identity, captured
-ExpectedVersion, proposed Version and ordered pending reference-type facts. Several concrete
-fact types can share a family interface or object; no domain-event base or persistence envelope
-is required. A consumer may implement the interface without inheriting the base.
+The aggregate core carries captured/proposed versions and ordered heterogeneous facts. The EF store
+requires the consumer's explicit transaction, loads state at a captured stream version, validates
+family/version/root association and stages the accepted event batch plus registered required inline
+state. Explicit native save validation enforces tracked event/header/main-state/required-view
+participation. Registered aggregate writes require one main inline state; raw history-backed streams
+remain permitted.
 
-The base accepts already loaded state/version with no pending facts. Consumer creation methods
-can initialize at zero and apply the opening event immediately. Protected ApplyChanges snapshots
-an accepted decision, checks null facts/version arithmetic, evolves a complete candidate and
-runs candidate validation once. Only complete success changes accepted state/version/pending.
-An empty batch changes nothing. ExpectedVersion remains fixed across decisions in one operation.
-Consumers own eligibility, pure immutable reducers, candidate invariants and domain factories.
+Select only the packages needed by the consumer:
 
-Argument errors cover invalid identity/version/state pairing or null facts. Version arithmetic
-can overflow. Consumer evolution/validation exceptions propagate. The base cannot undo mutable
-input changes or external effects; state/facts/reducers must be immutable and effect-free.
-Aggregates are operation-owned and must not be used concurrently. Pending facts remain proposed
-until the consumer's actual persistence commit. No automatic clearing/retry or durability result.
+- [ModulithFoundry.EventSourcing](../ModulithFoundry.EventSourcing/README.md)
+- [ModulithFoundry.EventSourcing.EntityFrameworkCore](../ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md)
 
-## Related packages and independence
+## Consumer obligations
 
-| Package | Selected responsibility |
-| --- | --- |
-| EventSourcing | Aggregate proposal/bookkeeping; no EF, JSON, HTTP, tenancy or host dependency. |
-| EventSourcing.EntityFrameworkCore | Optional native write store, ordered append, stream/envelope mappings and explicitly required inline projection participation. References this core and EF Relational. |
-| Events.Serialization | Optional explicit durable name/schema registry and native JSON codec. Used by Wholesale; not required by either EventSourcing package. |
-| Events.History | Optional ordered-range metadata validation. Used by Wholesale replay; not required by either EventSourcing package. |
+Consumers own domain eligibility, event schemas/encoding, reducers, native query filters, tenant
+admission/ownership, typed module DbContexts, migrations and final SaveChanges/commit. One stored
+envelope shape supports different payload types; optional StoredEventRecord uses JsonElement, with
+JSONB configured in the PostgreSQL consumer. Additional inline views are projections of the stream
+rather than command aggregates. Events.Serialization/History remain optional utilities.
 
-The independent counter adopts core plus EF storage with direct JSON and its existing reader.
-Wholesale combines all four packages. The core itself does not fetch/replay events or validate
-a database observation. Native EF stores validate loaded state against a captured header; other
-consumers must supply their own corresponding guarantee. See the
-[optional EF setup](../../ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md) and
-[its capability record](../../ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md).
+The package READMEs specify public types, explicit integration steps, errors and unsupported
+configuration. Copying or referencing one package does not automatically install another
+family's context or policy. Consumers keep DI lifetimes, host wiring and native dependency
+selection visible.
 
-## Deferred directions and limits
+## Deferred context
 
-There is no general history/reconstitution engine, discovered Apply methods, projection registry,
-transaction abstraction, pending reset/rebase, automatic persistence or messaging dispatch.
-Encapsulated aggregate reducers and separately reusable pure evolution are consumer choices.
-Generic lifecycle extensions require a real caller and failure/recovery proof before selection.
+No catch-up/rebuild engine, async or multi-stream projections, snapshot-plus-tail, upcasting,
+messaging, audit participation, cross-module transaction contract, automatic retry or
+ambiguous-commit recovery is supplied. PostgreSQL is the only proven provider; other providers are
+not deliberately rejected or certified. Pessimistic locks and a possible EventSourcing.Postgres
+adapter remain candidates requiring a concrete portable seam and provider proofs.
 
-Projection rebuild/catch-up, snapshot-plus-tail, async/subscription processing, multi-stream
-projections, upcasting, command idempotency and ambiguous-commit recovery remain deferred.
-They concern persisted versions, compatibility and progress guarantees beyond this in-memory
-contract; their current context is in the EF capability record. A projected summary and the
-aggregate's persisted state are views of the same stream, not additional command aggregates.
+Deferred features need executable contract proofs before support can be claimed. No future
+package or interface is implemented by this repository relocation.
 
-Provider-specific locks and a possible EventSourcing.Postgres package are recorded candidates,
-not core dependencies or implemented interfaces. Repository family grouping is likewise a
-separate relocation proposal; packages retain independent contracts and dependencies.
+The detailed local records retain the full supported contract and future proof obligations:
+
+- [Aggregate core capabilities](../ModulithFoundry.EventSourcing/docs/capabilities.md)
+- [EF store capabilities and deferred catalog](../ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+
+The Events family remains separate: [Serialization](../../ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md) and [History](../../ModulithFoundry.Events/ModulithFoundry.Events.History/README.md) are used by Wholesale, while the independent counter needs neither. There is no Postgres project until a concrete provider capability earns its own reviewed interface.

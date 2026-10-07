@@ -40,7 +40,9 @@ the same proof. No post-actions or restore run during creation.
 The wrapper supplies only strict input validation, snapshots of the three selected existing
 libraries, provenance hashes and transactional initial creation. Direct installation of
 the bare source skeleton is not the supported entry point: the wrapper adds the library
-payload first. No library API changes, template runtime, custom replacement language or
+payload first. The explicit `librarySources` map resolves the three upstream projects from
+their family folders; generated `libraries/{Package}` paths and source hashes retain the
+existing contract. No library API changes, template runtime, custom replacement language or
 general generation engine are introduced.
 
 The wrapper and creation proof are TypeScript, executed by Node's native type stripping;

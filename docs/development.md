@@ -1,5 +1,11 @@
 # Development and verification
 
+Library projects and their tests live under `src/ModulithFoundry.{Family}/`; each family has
+a README and local capability documentation. Repository architecture tests and shared support
+remain under `tests/`. The active solution, hooks and CI use the family paths below.
+See [the layout scope](plans/library-family-layout.md).
+
+
 `ModulithFoundry.slnx` contains 42 active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, the event codec and
 ordered-range validation, package-free aggregate core and EF event-storage utilities, five finite console
@@ -71,15 +77,15 @@ dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet build ModulithFoundry.slnx --no-restore
 dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
-dotnet test --project tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
-dotnet test --project tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-build --no-restore
-dotnet test --project tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-build --no-restore
-dotnet test --project tests/TenantTests/TenantTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.Tenancy/tests/TenantTests/TenantTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
-dotnet test --project tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
-dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
-dotnet test --project tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
-dotnet test --project tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
@@ -181,7 +187,7 @@ container engine. Tests start disposable PostgreSQL 18.6 instances and keep the 
 reaper enabled; no application process or personal database credentials are required.
 
 ```bash
-dotnet test --project tests/PersistenceTests/PersistenceTests.csproj --no-build --no-restore
+dotnet test --project src/ModulithFoundry.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-build --no-restore

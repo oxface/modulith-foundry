@@ -7,7 +7,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
-    <ProjectReference Include="../../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <ProjectReference Include="../../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
   </ItemGroup>
 </Project>

@@ -138,19 +138,19 @@ after the commit.
 
 ## Review order and library/template/sample findings
 
-Review [the resolver](../../src/ModulithFoundry.ActorIdentity.AspNetCore/IHttpActorContextResolver.cs),
-[registration/pipeline helpers](../../src/ModulithFoundry.ActorIdentity.AspNetCore/HttpActorContextExtensions.cs),
-[failure type](../../src/ModulithFoundry.ActorIdentity.AspNetCore/HttpActorResolutionException.cs),
-[evaluator](../../src/ModulithFoundry.ActorIdentity.AspNetCore/ActorContextPolicyEvaluator.cs),
-[middleware](../../src/ModulithFoundry.ActorIdentity.AspNetCore/ActorContextMiddleware.cs) and
-[shared establishment implementation](../../src/ModulithFoundry.ActorIdentity.AspNetCore/HttpActorContextEstablishment.cs)
+Review [the resolver](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/IHttpActorContextResolver.cs),
+[registration/pipeline helpers](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/HttpActorContextExtensions.cs),
+[failure type](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/HttpActorResolutionException.cs),
+[evaluator](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/ActorContextPolicyEvaluator.cs),
+[middleware](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/ActorContextMiddleware.cs) and
+[shared establishment implementation](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/HttpActorContextEstablishment.cs)
 line by line. The last file owns cancellation checks, authenticated/anonymous branching,
 principal-reference validation and publication after successful core initialization.
 
 Then review [sample registration/pipeline](../../samples/Wholesale/HttpIdentityDemo/DemoComposition.cs),
 [native authentication](../../samples/Wholesale/HttpIdentityDemo/NativeAuthentication.cs),
 [current actor resolver](../../samples/Wholesale/HttpIdentityDemo/HttpIntegration/ApplicationActorResolver.cs),
-[standalone proofs](../../tests/ActorIdentityAspNetCoreTests/HttpActorTests.cs) and
+[standalone proofs](../../src/ModulithFoundry.ActorIdentity/tests/ActorIdentityAspNetCoreTests/HttpActorTests.cs) and
 [sample proofs](../../samples/Wholesale/HttpIdentityDemo.Tests/CompositionTests.cs).
 
 E3.3 replaced the original configured directory/resolver with persisted Access. The E3.1

@@ -8,7 +8,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="../Sales.Contracts/Sales.Contracts.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
+    <ProjectReference Include="../../../../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>

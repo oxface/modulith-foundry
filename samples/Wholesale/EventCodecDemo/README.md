@@ -1,6 +1,6 @@
 # Standalone two-family event serialization and history consumer
 
-A finite .NET 10 consumer of [Events.Serialization](../../../src/ModulithFoundry.Events.Serialization/README.md).
+A finite .NET 10 consumer of [Events.Serialization](../../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md).
 Its two project references are the independently adoptable serialization and history
 libraries; it has no package, database, HTTP, bus, DI or context-library dependency. It
 demonstrates explicit event registration, native JSON contracts and bounded history
@@ -83,8 +83,8 @@ technical library.
 ## Proofs
 
 ```bash
-dotnet test --project tests/EventSerializationTests/EventSerializationTests.csproj
-dotnet test --project tests/EventHistoryTests/EventHistoryTests.csproj
+dotnet test --project src/ModulithFoundry.Events/tests/EventSerializationTests/EventSerializationTests.csproj
+dotnet test --project src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj
 dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj
 ```
 

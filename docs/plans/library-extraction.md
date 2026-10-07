@@ -48,11 +48,12 @@ checks tracked required participants; no generated persistence or hidden save/co
 [New executions](../reports/es1-library-write-store.md) accompany implementation review.
 
 The owner-approved default envelope and projection/store terminology refinements are now
-implemented. [Library-local capability records](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+implemented. [Library-local capability records](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
 retain the supported contract, missing rebuilding/async/multi-stream context and provider
 adapter investigation. Other packages retain their own local setup/limits/deferred directions.
-A family folder restructure or Postgres locking package is not implemented by this refinement;
-see [its proof and scope report](../reports/es1-envelope-and-library-docs.md).
+The default-envelope refinement did not move projects; see [its proof and scope report](../reports/es1-envelope-and-library-docs.md).
+The subsequent owner-authorized [family relocation](library-family-layout.md) groups all five
+library families with local documentation and tests. No Postgres locking package is implemented.
 
 Stop after this reviewable ES1 capability. The E0–E10 sections below preserve
 the original sequence and evidence; they are not an instruction to begin E6.2 or E7.
@@ -174,12 +175,15 @@ module with explicit policies rather than a technical foundation; do not move it
 or role model into the tenant/actor seam to make extraction convenient. New evidence and a
 reviewed strategy change can reorder later increments; neither is silently assumed.
 
-### Planned layout
+### Current layout and extension direction
 
-- `src/`: opt-in runtime libraries and provider-specific adapters.
+- `src/ModulithFoundry.{Family}/`: family README/docs, independently selectable package
+  directories and library tests. ActorIdentity, Tenancy, Persistence, Events and EventSourcing
+  are grouped without adding runtime dependencies.
 - `samples/Wholesale/`: API composition root, modules/Contracts, finite Migrator, AppHost,
   host ServiceDefaults, and sample-specific tests, introduced as needed.
-- `tests/`: library-interface and independence tests introduced with each mechanism.
+- `tests/`: repository-wide architecture checks and shared test support; library-interface
+  and independence tests live in the owning family's `tests/` directory.
 - `templates/`: exercised consumer setup, consolidated after working sample usage.
 - `archive/proof-sample/`: frozen original source, tests, fixtures, and historical documents.
 - `docs/`: current decisions, development commands, reviewed slice designs and proof reports.

@@ -1,64 +1,26 @@
-# Actor identity
+# ActorIdentity family
 
-A package-free, independently adoptable library for the identity performing an operation
-and optional initiator attribution. It has no dependency on tenancy, DI, ASP.NET Core, EF,
-transports, Aspire or sample Access types. Actor denotes attribution, not the actor
-concurrency model. Consumers authenticate identities and authorize work.
+Executing actor identity and optional initiator attribution, with an independently selectable ASP.NET Core adapter.
 
-## Public interface
+This directory groups source, documentation and library tests. Each package retains its own
+public contract and dependencies; the family is not an umbrella runtime package.
 
-- `ActorId`: a validated opaque string, preserved and compared exactly.
-- `Actor`: explicitly anonymous, human or system. Human/system kind distinguishes identical
-  key text. `ActorKind` has explicit values Anonymous=1, Human=2, System=3; 0 is invalid.
-- `ActorContext`: immutable actor and optional initiator. Construct with
-  `new ActorContext(actor, initiator)`; `new ActorContext(Actor.Anonymous)` deliberately
-  establishes anonymity. No tenant choice is required.
-- `IActorContextAccessor.Current`: read-only access to the established context.
-- `IActorContextInitializer.Initialize`: host-facing, single-assignment establishment.
-- `ActorContextAccessor`: scope-owned holder implementing both interfaces and `IDisposable`.
-- `RequireIdentifiedActor()`: explicitly checks presence, throwing
-  `IdentifiedActorRequiredException` for anonymity. It does not check trust or permission.
+| Package | Responsibility and dependencies |
+| --- | --- |
+| [ModulithFoundry.ActorIdentity](ModulithFoundry.ActorIdentity/README.md) | Package-free identity values, single-assignment operation accessor and explicit identified-actor check. |
+| [ModulithFoundry.ActorIdentity.AspNetCore](ModulithFoundry.ActorIdentity.AspNetCore/README.md) | References only the core and native ASP.NET Core; establishes identity after policy authentication and before consumer authorization handlers. |
 
-The host owns the scope and finishes establishment before business work begins. Early reads,
-repeat initialization and access after disposal fail. Concurrent reads after initialization
-are supported; disposal is idempotent. Scope disposal does not revoke captured values,
-cancel work, save or commit. Different operations establish different scopes.
+[Current capabilities, consumer obligations and deferred context](docs/capabilities.md)
+explain composition. Follow the selected package's README for explicit setup and errors.
+The [executable consumer](../../samples/Wholesale/HttpIdentityDemo/README.md) demonstrates adoption.
 
-## Consumer setup
+Library tests:
 
-DI registration stays visible in consumer code:
+- [ActorIdentityTests](tests/ActorIdentityTests/ActorIdentityTests.csproj)
+- [ActorIdentityAspNetCoreTests](tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj)
 
-```csharp
-services.AddScoped<ActorContextAccessor>();
-services.AddScoped<IActorContextAccessor>(provider =>
-    provider.GetRequiredService<ActorContextAccessor>());
-services.AddScoped<IActorContextInitializer>(provider =>
-    provider.GetRequiredService<ActorContextAccessor>());
-
-await using var scope = serviceProvider.CreateAsyncScope();
-scope.ServiceProvider.GetRequiredService<IActorContextInitializer>()
-    .Initialize(new ActorContext(
-        Actor.System(new ActorId("sample.maintenance")),
-        initiator: knownInitiator));
-```
-
-Business code injects the read accessor. The consumer supplies trusted canonical keys,
-optional attribution and authorization; there is no implicit initiator population or
-propagation. For OIDC, the sample will map validated issuer/subject to a globally unique
-application user in consumer-owned Access code. The core performs no provider lookup.
-
-See [actor-only and combined sample composition](../../samples/Wholesale/ContextDemo/README.md),
-[the split interfaces for review](../../docs/plans/e1-tenant-actor.md) and
-[the split report](../../docs/reports/e1-identity-split.md). Optional
-[ASP.NET Core integration](../ModulithFoundry.ActorIdentity.AspNetCore/README.md) and its native
-request proofs are implemented for review in E3.1. The core acquires no new dependencies.
-No stable wire or persistence format is established here.
-
-## Deferred direction
-
-Current capabilities and consumer obligations are defined above. HTTP establishment is an
-optional separate package; identity-provider lookup and authorization remain consumer policy.
-No cross-process propagation or stable serialized context format is supported. A future
-message/worker integration would need explicit trust, attribution and compatibility proofs
-rather than automatically transferring a captured operation scope. No new core interface
-is selected for that work.
+Run commands from the repository root. Restore/build the active solution, then test a selected
+project under this family's tests directory with `dotnet test --project <path> --no-build --no-restore`.
+PostgreSQL suites require a supported local container runtime. Repository-wide architecture
+checks remain in [tests/ArchitectureTests](../../tests/ArchitectureTests/ArchitectureTests.csproj);
+shared PostgreSQL test support remains repository-owned. See [development commands](../../docs/development.md).

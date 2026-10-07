@@ -1,7 +1,7 @@
 # Wholesale context demonstration
 
-A finite console consumer of independent [actor identity](../../../src/ModulithFoundry.ActorIdentity/README.md)
-and [tenancy](../../../src/ModulithFoundry.Tenancy/README.md) libraries.
+A finite console consumer of independent [actor identity](../../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/README.md)
+and [tenancy](../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/README.md) libraries.
 It uses project references and standard Microsoft DI, with no EF, ASP.NET Core, Rebus,
 Aspire or Access.Contracts. It supplies demonstration identities explicitly and opens no
 HTTP endpoints. Authentication and durable business behavior enter later slices.

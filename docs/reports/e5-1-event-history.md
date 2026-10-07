@@ -129,15 +129,15 @@ follows from either the focused 101 cases or the checkpoint's container-free sui
 
 ## Review and remaining gaps
 
-Review [the validator](../../src/ModulithFoundry.Events.History/EventHistory.cs),
-[metadata position](../../src/ModulithFoundry.Events.History/HistoryPosition.cs),
-[failure enum](../../src/ModulithFoundry.Events.History/EventHistoryFailure.cs) and
-[exception](../../src/ModulithFoundry.Events.History/EventHistoryException.cs) with
-[the usage guide](../../src/ModulithFoundry.Events.History/README.md).
+Review [the validator](../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/EventHistory.cs),
+[metadata position](../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/HistoryPosition.cs),
+[failure enum](../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/EventHistoryFailure.cs) and
+[exception](../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/EventHistoryException.cs) with
+[the usage guide](../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/README.md).
 
 Review [Inventory selection](../../samples/Wholesale/EventCodecDemo/Inventory/StockPositionHistoryExample.cs)
 and [Purchasing selection](../../samples/Wholesale/EventCodecDemo/Purchasing/PurchaseOrderHistoryExample.cs)
-with [range proofs](../../tests/EventHistoryTests/HistoryTests.cs) and
+with [range proofs](../../src/ModulithFoundry.Events/tests/EventHistoryTests/HistoryTests.cs) and
 [consumer proofs](../../samples/Wholesale/EventCodecDemo.Tests/HistoryCompatibilityTests.cs).
 The shared [row shape](../../samples/Wholesale/EventCodecDemo/RecordedEvent.cs) remains sample code.
 

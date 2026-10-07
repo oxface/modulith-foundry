@@ -25,6 +25,7 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import {
   exists,
   libraries,
+  librarySources,
   root,
   sha256,
   type Configuration,
@@ -179,9 +180,15 @@ function inspect(output: string, config: Configuration): void {
     const bytes = content.get(path);
     assert(bytes);
     assert.equal(sha256(bytes), digest);
+    const name = libraries.find((name) =>
+      path.startsWith(`libraries/${name}/`),
+    );
+    assert(name);
     assert.deepEqual(
       bytes,
-      readFileSync(join(root, "src", relative("libraries", path))),
+      readFileSync(
+        join(librarySources[name], path.slice(`libraries/${name}/`.length)),
+      ),
     );
   }
   assert.deepEqual(JSON.parse(text(content, "foundry.json")), config);

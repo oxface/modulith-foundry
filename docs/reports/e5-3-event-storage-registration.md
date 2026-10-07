@@ -149,10 +149,10 @@ comparison, not evidence of this library's actual behavior or provider portabili
 
 ## Review and remaining gaps
 
-Review [the row interfaces](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/IEventStreamRecord.cs),
-[envelope interface](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/IStoredEventRecord.cs),
-[options](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventSourcingStorageOptions.cs)
-and [registration](../../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventSourcingStorageExtensions.cs).
+Review [the row interfaces](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/IEventStreamRecord.cs),
+[envelope interface](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/IStoredEventRecord.cs),
+[options](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventSourcingStorageOptions.cs)
+and [registration](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/EventSourcingStorageExtensions.cs).
 Compare [Inventory configuration](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/HistoryMapping.cs)
 and [Purchasing configuration](../../samples/Wholesale/modules/Purchasing/Purchasing/PurchaseOrders/HistoryMapping.cs)
 with their concrete rows and unchanged snapshots. Then inspect [the independent context](../../samples/EventStorageDemo/StorageDbContext.cs),

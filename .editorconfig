@@ -33,5 +33,9 @@ max_line_length = 100
 # Test names optimize behavior readability rather than public API shape.
 dotnet_diagnostic.CA1707.severity = none
 
+[src/**/tests/**/*.cs]
+# Family-local tests retain the same naming rule as root tests.
+dotnet_diagnostic.CA1707.severity = none
+
 [*.md]
 trim_trailing_whitespace = false

@@ -382,7 +382,7 @@ are unstaged and existing staged entries are preserved. The
 The owner requests self-sufficient documentation alongside each library. Local READMEs and
 capability records define current behavior, dependencies, limits and deferred context; root
 plans/ADRs/reports record review and historical executions. The
-[event-store capability record](../src/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+[event-store capability record](../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
 now carries projection lifecycle gaps and future provider-specific adapter candidates. A
 possible EventSourcing.Postgres package would depend on a demonstrated shared seam; no locking
 abstraction/provider implementation is selected now. Family project/docs/test grouping is a
@@ -456,3 +456,12 @@ in-process orchestration alone provides no recovery after process death.
 Historical identity, repair, replay-cost, retry, and shutdown limits remain visible until
 new evidence resolves them. Production provider compatibility, packaging, deployment, and
 recovery are separate proof gates, not consequences of local extraction.
+
+## Library documentation and family ownership
+
+Active ActorIdentity, Tenancy, Persistence, Events and EventSourcing families group their
+independently selectable projects, README, local capability/deferred context and library tests
+under `src/ModulithFoundry.{Family}/`. Detailed package setup remains with each project. Root
+ADRs/plans/reports keep cross-cutting decisions and dated evidence; consumers can discover
+essential integration obligations beside the library. Shared architecture/support and sample
+proofs stay with their owners. See [the relocation scope](plans/library-family-layout.md).

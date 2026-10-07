@@ -25,6 +25,21 @@ export const libraries = [
   "ModulithFoundry.Persistence.EntityFrameworkCore",
 ] as const;
 
+export const librarySources: Record<(typeof libraries)[number], string> = {
+  "ModulithFoundry.ActorIdentity": join(
+    root,
+    "src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity",
+  ),
+  "ModulithFoundry.Tenancy": join(
+    root,
+    "src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy",
+  ),
+  "ModulithFoundry.Persistence.EntityFrameworkCore": join(
+    root,
+    "src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore",
+  ),
+};
+
 export type Configuration = { applicationName: string; rootNamespace: string };
 
 const keywords = new Set(
@@ -185,7 +200,7 @@ export function create(configPath: string, destination: string): void {
     );
     const manifest: Record<string, string> = {};
     for (const name of libraries) {
-      const upstream = join(root, "src", name);
+      const upstream = librarySources[name];
       const target = join(template, "libraries", name);
       mkdirSync(target, { recursive: true });
       for (const file of readdirSync(upstream)

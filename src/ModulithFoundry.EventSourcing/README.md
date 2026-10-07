@@ -1,61 +1,27 @@
-# Event-sourced aggregate bookkeeping
+# EventSourcing family
 
-This package-free core supports one bounded event-append capability. It has no EF, JSON,
-codec, tenancy, hosting or module dependency. The write contract is
-`IEventSourcedAggregate<TEvent>`: Id, captured ExpectedVersion, proposed Version and ordered
-PendingEvents. Implementing it is required for the EF appender; inheriting the supplied
-`EventSourcedAggregate<TState, TEvent>` is optional.
+Aggregate proposal/bookkeeping and optional native EF write coordination for one stream timeline.
 
-The base initializes already-loaded state at its observed version. Version zero requires
-null state; positive versions require state. Initialization creates no pending facts and
-never applies today's command eligibility to historical state. The optional EF store validates its captured header/inline state; consumers using other
-readers remain responsible for state/version consistency and historical decoding/integrity.
+This directory groups source, documentation and library tests. Each package retains its own
+public contract and dependencies; the family is not an umbrella runtime package.
 
-Consumer aggregate methods decide eligibility, produce immutable facts, then call protected
-`ApplyChanges(batch)`. The base snapshots the batch, checks nulls and version arithmetic,
-invokes pure `Evolve(state, batch)` and validates its final candidate exactly once through
-`ValidateCandidate`. Only a successful complete candidate changes State, Version and the
-read-only pending collection. An empty decision changes nothing. ExpectedVersion stays fixed
-across accepted decisions; PendingEvents retains their order.
+| Package | Responsibility and dependencies |
+| --- | --- |
+| [ModulithFoundry.EventSourcing](ModulithFoundry.EventSourcing/README.md) | Package-free aggregate contract and optional immutable state/pending-event base. |
+| [ModulithFoundry.EventSourcing.EntityFrameworkCore](ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md) | References the core and EF Core Relational; provided IEventStore, stream/envelope mapping, ordered append and required inline projection/save validation. |
 
-```csharp
-internal bool TryIssue(decimal[] quantities, out decimal requested)
-{
-    var decision = StockPositionDecisions.Issues(State!, quantities);
-    requested = decision.Requested;
-    if (decision.Events is null)
-        return false;
-    ApplyChanges(decision.Events);
-    return true;
-}
+[Current capabilities, consumer obligations and deferred context](docs/capabilities.md)
+explain composition. Follow the selected package's README for explicit setup and errors.
+The [executable consumer](../../samples/Wholesale/EventPersistenceDemo/README.md) demonstrates adoption.
 
-protected override StockPositionState Evolve(
-    StockPositionState? state, IReadOnlyList<IStockPositionEvent> events) =>
-    StockPositionEvolution.Evolve(state, events);
-```
+Library tests:
 
-ApplyChanges mutates accepted aggregate bookkeeping; Evolve calculates a candidate. A module
-can share its internal pure reducer between aggregate evolution and historical reconstruction,
-without exposing aggregate mutation or sharing business policy with the library. Different
-projection state shapes retain their own reducers. The whole-batch hook avoids repeatedly
-copying Purchasing's line dictionary for each fact.
+- [EventSourcingTests](tests/EventSourcingTests/EventSourcingTests.csproj)
 
-States/facts and consumer evolution/policy must be immutable and free of side effects. The
-base preserves its own accepted state/version/pending after ordinary failures; it cannot
-undo arbitrary consumer mutation, external effects or concurrently used aggregates.
-Pending events are proposals until caller commit. There is no pending reset, replay engine,
-generic loader, projector registry, retry or transaction abstraction. Discard the aggregate
-and context after persistence failure/rollback and load committed state for a new decision.
+PostgreSQL adoption proofs also live with [Wholesale](../../samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj) and the [independent raw counter](../../samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj).
 
-[EF appender](../ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md),
-[consumer aggregate](../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/StockPositionAggregate.cs),
-[core proofs](../../tests/EventSourcingTests/AggregateTests.cs),
-[reviewed scope](../../docs/plans/es1-bounded-event-append.md),
-[findings](../../docs/reports/es1-bounded-event-append.md).
-
-## Local capability context
-
-[Capabilities, limitations and deferred directions](docs/capabilities.md) are maintained
-beside this package. They explain the optional EF adapter, independent Events utilities,
-projection lifecycle gaps and future provider-specific integration. Repository plans/reports
-are supplementary review/evidence, rather than required consumer setup documentation.
+Run commands from the repository root. Restore/build the active solution, then test a selected
+project under this family's tests directory with `dotnet test --project <path> --no-build --no-restore`.
+PostgreSQL suites require a supported local container runtime. Repository-wide architecture
+checks remain in [tests/ArchitectureTests](../../tests/ArchitectureTests/ArchitectureTests.csproj);
+shared PostgreSQL test support remains repository-owned. See [development commands](../../docs/development.md).
