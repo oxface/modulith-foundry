@@ -140,9 +140,11 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-Every push to main and PR checks active architecture, context, HTTP identity, EF models,
-event codecs and history, with a separate PostgreSQL ownership lane and external generated-template
-proofs. The [sample runtime workflow](.github/workflows/sample-runtime.yml) tests Aspire startup
-and real browser login on Wholesale sample or shared build changes, or by manual request. Repository checks
-verify formatting, commit messages and archive checksums. Archived builds/tests are excluded
-from CI and commit hooks; their files remain available as historical reference material.
+Every push to main and PR runs five Rootbolt family lanes, including their independent
+consumers and real PostgreSQL proofs, plus Wholesale consumer composition, repository
+integrity and external generated-template adoption. The
+[CI lane map](docs/development.md#ci-lanes) lists their responsibilities. The
+[sample runtime workflow](.github/workflows/sample-runtime.yml) tests Aspire startup and real
+browser login on PRs changing Wholesale or shared build inputs, or by manual request.
+Archived builds/tests are excluded from CI and commit hooks; their files remain available
+as historical reference material, with frozen-source checksums verified by CI.

@@ -12,17 +12,6 @@ on:
       - 'Directory.Packages.props'
       - 'NuGet.Config'
       - 'ModulithFoundry.slnx'
-  push:
-    branches: [main]
-    paths:
-      - 'samples/Wholesale/**'
-      - '.github/workflows/sample-runtime.yml'
-      - 'global.json'
-      - 'Directory.Build.props'
-      - 'Directory.Build.targets'
-      - 'Directory.Packages.props'
-      - 'NuGet.Config'
-      - 'ModulithFoundry.slnx'
 
 permissions:
   contents: read
@@ -33,7 +22,7 @@ concurrency:
 
 jobs:
   runtime:
-    name: Active Aspire runtime composition lane
+    name: Wholesale runtime
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:

@@ -8,9 +8,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: template-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   state-stored:
-    name: External state-stored consumers
+    name: Template integrity and adoption
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:

@@ -14,18 +14,84 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  context:
-    name: Active context lane
+  libraries:
+    name: Rootbolt.${{ matrix.family }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}
+    strategy:
+      # A failing family must not cancel the other families' proofs.
+      fail-fast: false
+      matrix:
+        include:
+          - family: ActorIdentity
+            commands: |
+              dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj
+              dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
+          - family: Tenancy
+            commands: |
+              dotnet test --project src/Rootbolt.Tenancy/tests/TenantTests/TenantTests.csproj
+              dotnet test --project src/Rootbolt.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
+          - family: Persistence
+            commands: |
+              dotnet test --project src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
+              dotnet test --project src/Rootbolt.Persistence/tests/PersistenceTests/PersistenceTests.csproj
+          - family: Events
+            commands: |
+              dotnet test --project src/Rootbolt.Events/tests/EventSerializationTests/EventSerializationTests.csproj
+              dotnet test --project src/Rootbolt.Events/tests/EventHistoryTests/EventHistoryTests.csproj
+              dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj
+              dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
+          - family: EventSourcing
+            commands: |
+              dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj
+              dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj
+              dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj
+              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Test family and independent consumers
+        # Each test restores/builds its project and dependencies on this runner.
+        run: ${{ matrix.commands }}
+
+  wholesale:
+    name: Wholesale consumer composition
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Test context composition
+        run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj
+      - name: Run context sample
+        run: dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
+      - name: Test module migrations and persistence ownership
+        run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj
+      - name: Test persisted admission, isolated business operations and native telemetry through HTTP
+        run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj
+
+  repository:
+    name: Repository integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up .NET
@@ -42,125 +108,11 @@ jobs:
       - name: Verify active analyzers
         run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
 
-      - name: Build active projects
+      - name: Build active solution
         run: dotnet build ModulithFoundry.slnx --no-restore
 
-      - name: Test active architecture, module schemas and independent adoption
+      - name: Test architecture, module schemas and independent adoption
         run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
-
-      - name: Test actor identity library
-        run: >-
-          dotnet test
-          --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj
-          --no-build
-          --no-restore
-
-      - name: Test tenancy library
-        run: >-
-          dotnet test
-          --project src/Rootbolt.Tenancy/tests/TenantTests/TenantTests.csproj
-          --no-build
-          --no-restore
-
-      - name: Test sample composition
-        run: >-
-          dotnet test
-          --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj
-          --no-build
-          --no-restore
-
-      - name: Test EF models and write validation without containers
-        run: >-
-          dotnet test
-          --project src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
-          --no-build
-          --no-restore
-
-      - name: Test actor HTTP integration
-        # HTTP identity proofs use native protected cookies and require no external provider.
-        # The runnable HTTP sample has no test authentication shortcut.
-        run: >-
-          dotnet test
-          --project src/Rootbolt.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
-          --no-build
-          --no-restore
-
-      - name: Test independent tenancy HTTP integration
-        run: >-
-          dotnet test
-          --project src/Rootbolt.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
-          --no-build
-          --no-restore
-
-      - name: Run context sample
-        run: >-
-          dotnet run
-          --project samples/Wholesale/ContextDemo/ContextDemo.csproj
-          --no-build
-          --no-restore
-
-      - name: Test explicit event serialization
-        run: dotnet test --project src/Rootbolt.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
-
-      - name: Test bounded ordered event history
-        run: dotnet test --project src/Rootbolt.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
-
-      - name: Aggregate core tests
-        run: dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
-
-      - name: Test event codec consumer compatibility
-        run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
-
-      - name: Run independent event codec consumer
-        run: dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
-
-  persistence:
-    name: Active PostgreSQL ownership lane
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          global-json-file: global.json
-      - name: Restore active projects
-        run: dotnet restore ModulithFoundry.slnx
-      - name: Test independent GUID ownership consumer
-        run: dotnet test --project src/Rootbolt.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-restore
-      - name: Test module migrations and persistence ownership
-        run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
-      - name: Test independent shared event-storage registration
-        run: dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj --no-restore
-      - name: Test single-stream rebuilding and provider admission
-        run: dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-restore
-      - name: Test native event-history reads and append transactions
-        run: dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-restore
-      - name: Test persisted admission, isolated business operations and native telemetry through HTTP
-        run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-restore
-
-  repository:
-    name: Repository checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          global-json-file: global.json
 
       - name: Set up Node.js for repository checks
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

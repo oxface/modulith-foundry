@@ -31,9 +31,44 @@ Root formatting excludes `archive/` through `.csharpierignore`; archived formatt
 verified separately against its original configuration. CSharpier owns C#/XML layout.
 Semantic style and analyzer checks operate on a concrete solution.
 
-Lefthook checks root formatting, active style/analyzers/context, EF model, event codec and history tests/dependencies,
-and the archived semantic/architecture baseline. Restore the active and archived solutions before
-using hooks. Container suites stay outside local commit hooks.
+Lefthook checks root formatting, active style/analyzers, architecture, context, EF models,
+event codecs/history and the PostgreSQL rebuilding suite. Restore the active solution
+before using hooks. Other container suites run through CI or explicit local commands;
+archived suites are excluded from hooks.
+
+## CI lanes
+
+The [main workflow](../.github/workflows/ci.yml) exposes five separately named Rootbolt
+family checks through a matrix, plus Wholesale consumer composition and repository integrity.
+All run on every PR and push to `main`, without family path filters. A family failure does
+not cancel the other families. Each test invocation restores/builds its project and
+dependencies on that runner; no job consumes another job's build outputs.
+
+| Check | Responsibility |
+| --- | --- |
+| Rootbolt.ActorIdentity | Core identity and native HTTP adapter proofs. |
+| Rootbolt.Tenancy | Core tenant context and independent HTTP adapter proofs. |
+| Rootbolt.Persistence | EF model/write validation and real PostgreSQL GUID ownership consumer. |
+| Rootbolt.Events | Serialization/upcasting, ordered history integrity and independent event-codec consumer tests/executable. |
+| Rootbolt.EventSourcing | Aggregate core, PostgreSQL history/rebuilding/concurrency, independent event-storage consumer and Wholesale event-sourcing adoption. |
+| Wholesale consumer composition | Context tests/executable, module migrations/ownership and persisted HTTP admission/business/telemetry tests. |
+| Repository integrity | Whole-solution restore/style/analyzers/build, architecture boundaries, CSharpier, commitlint and frozen archive checksums. |
+| Template integrity and adoption | TypeScript generator checks and two external generated consumers against PostgreSQL. |
+| Wholesale runtime | Full Aspire setup/readiness/outage and real Keycloak/Chromium journeys on relevant PRs or manual dispatch. |
+
+Every job has a 15-minute limit, including setup/build. The
+[template workflow](../.github/workflows/template.yml) runs on every PR/main push; the
+[runtime workflow](../.github/workflows/sample-runtime.yml) has PR path filters and a manual
+trigger, with no automatic post-merge push run. All three workflows cancel superseded runs
+on the same PR/ref. Whole-solution validation remains centralized; family jobs build only
+their selected dependency graphs. Library-only changes still run all five families, since
+changes to a shared dependency can affect another family.
+
+Use the always-running family, composition, repository and template checks for branch
+protection. The path-filtered runtime check remains optional globally. Its scheduling
+policy preserves all deployment assertions. See the
+[family-lane verification report](reports/ci-family-lanes.md) for coverage accounting,
+fresh executions and remaining hosted/performance limits.
 
 ## Template creation and external-consumer proof
 
@@ -66,7 +101,7 @@ journeys outside the checkout. [The checkpoint report](reports/t1-template-rehea
 distinguishes those executions from earlier foundation results. These instructions add no
 new execution evidence.
 
-## Active context lane
+## Container-free verification
 
 Run from the repository root:
 
@@ -113,9 +148,9 @@ ordinary restore/build and their behavior tests remain part of CI. Sample projec
 graphs are editable composition rather than exact test snapshots. Architecture policies are
 repository-owned; consumers select their own module structure.
 
-CI's Active context lane runs architecture tests, style, analyzers, build, the other ten
-container-free test projects and the context/event codec consoles. Root formatter verification remains
-in the repository-check lane. See [the test audit](reports/test-audit.md),
+CI distributes these commands among the owning family, Wholesale composition and repository
+integrity jobs described above. The local command list remains a convenient container-free
+verification pass. See [the test audit](reports/test-audit.md),
 [architecture checks](reports/architecture-tests.md), [the E1 split report](reports/e1-identity-split.md)
 and [the E2.1 report](reports/e2-1-tenant-ownership.md).
 
@@ -170,7 +205,7 @@ database capture and append/transaction proofs remain E5.2.
 Reassess the final package division with those real native EF consumers; the validator
 currently certifies only the returned range, not excluded history.
 
-## Active PostgreSQL ownership lane
+## PostgreSQL verification
 
 ES1's reviewed [append interface](plans/es1-bounded-event-append.md) is exercised by both event
 test projects below. The [Wholesale executable](../samples/Wholesale/EventPersistenceDemo/README.md)
@@ -193,6 +228,7 @@ dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Te
 dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-build --no-restore
 ```
 
 For this repository's rootless Podman setup, prefix each command with:
@@ -206,7 +242,8 @@ DOTNET_PROCESSOR_COUNT=4
 Use your actual user socket path when it differs. The console smoke proof starts its own
 finite child process from the source checkout and passes the disposable connection through
 its environment. The sample executable must have been built in the same configuration.
-CI's separate Active PostgreSQL ownership lane runs all five suites. Per-case databases disable
+CI runs these suites in Rootbolt.Persistence, Rootbolt.EventSourcing and Wholesale consumer
+composition according to ownership. Per-case databases disable
 connection pooling so their idle pools do not exhaust the shared container; production connection
 configuration is unaffected. The event-history suite
 launches the built native executable and coordinates captured-head races through EF command
@@ -227,7 +264,7 @@ implementations; both independently adoptable HTTP library suites remain contain
 The [independent storage consumer](../samples/EventStorageDemo/README.md) uses the mapping
 segment alone with custom table names and mixed stream types; its tests use actual migrations.
 
-## Active Aspire runtime composition lane
+## Wholesale runtime verification
 
 The [runtime guide](../samples/Wholesale/AppHost/README.md) documents required parameters,
 native start/wait/setup/stop commands, dynamic endpoints and retained local data. The graph
@@ -264,7 +301,7 @@ HTTP and HTTPS health checks may fail. CI verifies trust before launching any te
 For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
 `DOCKER_HOST` to your user socket and optionally `DOTNET_PROCESSOR_COUNT=4`.
 Keep this container test outside commit hooks. The separate
-[Sample runtime workflow](../.github/workflows/sample-runtime.yml) runs on PRs and main pushes
+[Sample runtime workflow](../.github/workflows/sample-runtime.yml) runs on PRs
 changing `samples/Wholesale/**`, the workflow itself or the listed shared build/toolchain inputs.
 It also supports manual dispatch from GitHub Actions. Library-only changes run their focused
 contract, PostgreSQL and HTTP consumer proofs; they do not automatically run the complete
@@ -284,7 +321,7 @@ Family-local tests exercise native stamp conflicts between writers and independe
 aggregate-state-only maintenance saves, cancellation, rollback and fresh recovery on PostgreSQL
 18.6. Wholesale exercises both module maintenance Contracts and the executable journey. A local
 supported Docker/Podman runtime is required; absence is a failure, not a skipped proof.
-CI's active persistence lane and pre-commit's event-rebuilding-postgres-tests job run this suite.
+CI's Rootbolt.EventSourcing lane and pre-commit's event-rebuilding-postgres-tests job run this suite.
 
 ~~~sh
 dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-build --no-restore
