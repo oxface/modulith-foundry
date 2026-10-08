@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 using Rootbolt.Persistence.EntityFrameworkCore;
 using Rootbolt.Tenancy;
 
@@ -22,6 +24,13 @@ public sealed class InventoryDbContext(
         modelBuilder.HasDefaultSchema("inventory");
         HistoryMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
         InlineStateMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
+        modelBuilder
+            .ConfigurePostgresOutbox("inventory", "outbox_messages")
+            .HasTenantOwnership(
+                row => row.TenantKey!,
+                () => RequiredOrganizationKey,
+                "OrganizationScope"
+            );
         var stock = modelBuilder.Entity<StockRow>();
         stock.ToTable("stock_availability");
         stock.HasKey(row => row.Id);
@@ -44,6 +53,7 @@ public sealed class InventoryDbContext(
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
         this.ValidateEventStreamChanges();
+        this.ValidateOutboxChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -54,6 +64,7 @@ public sealed class InventoryDbContext(
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
         this.ValidateEventStreamChanges();
+        this.ValidateOutboxChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 }

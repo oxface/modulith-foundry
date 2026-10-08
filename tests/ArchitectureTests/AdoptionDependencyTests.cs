@@ -34,6 +34,7 @@ public sealed class AdoptionDependencyTests
     [InlineData("Rootbolt.Tenancy", null)]
     [InlineData("Rootbolt.Events.Serialization", null)]
     [InlineData("Rootbolt.Events.History", null)]
+    [InlineData("Rootbolt.Messaging", null)]
     [InlineData(
         "Rootbolt.Persistence.EntityFrameworkCore",
         "Microsoft.EntityFrameworkCore.Relational"
@@ -84,6 +85,55 @@ public sealed class AdoptionDependencyTests
                 .Select(reference => (string)reference.Attribute("Include")!)
         );
         Assert.Empty(declaration.Descendants("FrameworkReference"));
+    }
+
+    [Fact]
+    public void MessagingLayersDeclareOnlyUsedContractsAndNativeDependencies()
+    {
+        Check(
+            "Rootbolt.Messaging.EntityFrameworkCore",
+            ["Rootbolt.Messaging"],
+            [
+                "Microsoft.EntityFrameworkCore.Relational",
+                "Microsoft.Extensions.DependencyInjection.Abstractions",
+                "Microsoft.Extensions.Hosting.Abstractions",
+                "Microsoft.Extensions.Logging.Abstractions",
+            ]
+        );
+        Check(
+            "Rootbolt.Messaging.EntityFrameworkCore.Postgres",
+            ["Rootbolt.Messaging.EntityFrameworkCore"],
+            ["Npgsql.EntityFrameworkCore.PostgreSQL"]
+        );
+        Check(
+            "OutboxDemo",
+            ["Rootbolt.Messaging.EntityFrameworkCore.Postgres"],
+            ["Microsoft.EntityFrameworkCore.Design"]
+        );
+
+        static void Check(string project, string[] projects, string[] packages)
+        {
+            var declaration = XDocument.Load(
+                Path.Combine(AppContext.BaseDirectory, "ProjectDeclarations", project + ".csproj")
+            );
+            Assert.Equal(
+                projects.Order(StringComparer.Ordinal),
+                declaration
+                    .Descendants("ProjectReference")
+                    .Select(reference =>
+                        Path.GetFileNameWithoutExtension((string)reference.Attribute("Include")!)
+                    )
+                    .Order(StringComparer.Ordinal)
+            );
+            Assert.Equal(
+                packages.Order(StringComparer.Ordinal),
+                declaration
+                    .Descendants("PackageReference")
+                    .Select(reference => (string)reference.Attribute("Include")!)
+                    .Order(StringComparer.Ordinal)
+            );
+            Assert.Empty(declaration.Descendants("FrameworkReference"));
+        }
     }
 
     [Fact]

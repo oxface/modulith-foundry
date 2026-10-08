@@ -5,6 +5,10 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging/Rootbolt.Messaging.csproj" />
+    <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/Rootbolt.Messaging.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/Rootbolt.Messaging.EntityFrameworkCore.Postgres.csproj" />
+    <ProjectReference Include="../../samples/OutboxDemo/OutboxDemo.csproj" />
     <ProjectReference Include="../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing/Rootbolt.EventSourcing.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Events/Rootbolt.Events.History/Rootbolt.Events.History.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Events/Rootbolt.Events.Serialization/Rootbolt.Events.Serialization.csproj" />
@@ -26,6 +30,26 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None
+      Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging/Rootbolt.Messaging.csproj"
+      Link="ProjectDeclarations/Rootbolt.Messaging.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/Rootbolt.Messaging.EntityFrameworkCore.csproj"
+      Link="ProjectDeclarations/Rootbolt.Messaging.EntityFrameworkCore.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/Rootbolt.Messaging.EntityFrameworkCore.Postgres.csproj"
+      Link="ProjectDeclarations/Rootbolt.Messaging.EntityFrameworkCore.Postgres.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../samples/OutboxDemo/OutboxDemo.csproj"
+      Link="ProjectDeclarations/OutboxDemo.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
     <None
       Include="../../src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj"
       Link="ProjectDeclarations/EventSourcingPostgresTests.csproj"
