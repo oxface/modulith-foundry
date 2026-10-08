@@ -1,8 +1,8 @@
 using System.Text.Json;
-using ModulithFoundry.Events.History;
-using ModulithFoundry.Events.Serialization;
 using ModulithFoundry.Samples.Wholesale.EventCodecDemo.Inventory;
 using ModulithFoundry.Samples.Wholesale.EventCodecDemo.Purchasing;
+using Rootbolt.Events.History;
+using Rootbolt.Events.Serialization;
 
 namespace ModulithFoundry.Samples.Wholesale.EventCodecDemo.Tests;
 

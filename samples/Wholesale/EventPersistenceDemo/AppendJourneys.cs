@@ -4,7 +4,7 @@ using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.Purchasing;
 using ModulithFoundry.Samples.Wholesale.Purchasing.Contracts;
-using ModulithFoundry.Tenancy;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.EventPersistenceDemo;
 

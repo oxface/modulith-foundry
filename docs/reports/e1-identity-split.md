@@ -9,10 +9,10 @@ remain [historical E1 evidence](e1-tenant-actor.md). See [the revised interfaces
 
 Two package-free libraries replace `ModulithFoundry.ExecutionIdentity`:
 
-- [ActorIdentity](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/README.md) owns actor kind/key,
+- [ActorIdentity](../../src/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity/README.md) owns actor kind/key,
   explicit anonymity, optional initiator, immutable actor context, reader/initializer,
   single-assignment holder and identified-actor requirement.
-- [Tenancy](../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/README.md) owns tenant key, explicit selected
+- [Tenancy](../../src/Rootbolt.Tenancy/Rootbolt.Tenancy/README.md) owns tenant key, explicit selected
   tenant or tenantless context, reader/initializer, single-assignment holder and tenant
   requirement. It requires no actor or authentication model.
 
@@ -87,18 +87,18 @@ strategies remain E3 proposals, alongside a separate Access membership/admission
 
 ## Review-worthy files and remaining gaps
 
-1. [ActorContext](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/ActorContext.cs),
-   [actor holder](../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity/ActorContextAccessor.cs), reader/
+1. [ActorContext](../../src/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity/ActorContext.cs),
+   [actor holder](../../src/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity/ActorContextAccessor.cs), reader/
    initializer, guard and typed failure in that directory.
-2. [TenantContext](../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/TenantContext.cs),
-   [tenant holder](../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/TenantContextAccessor.cs), reader/
+2. [TenantContext](../../src/Rootbolt.Tenancy/Rootbolt.Tenancy/TenantContext.cs),
+   [tenant holder](../../src/Rootbolt.Tenancy/Rootbolt.Tenancy/TenantContextAccessor.cs), reader/
    initializer, guard and typed failure in that directory.
 3. [Consumer registration](../../samples/Wholesale/ContextDemo/DemoComposition.cs),
    [operation establishment](../../samples/Wholesale/ContextDemo/Program.cs),
    [Sales requirements](../../samples/Wholesale/ContextDemo/Sales/DraftOrderPreview.cs)
    and tenancy-only Inventory consumption.
-4. [Actor lifecycle proofs](../../src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/AccessorTests.cs),
-   [tenant lifecycle proofs](../../src/ModulithFoundry.Tenancy/tests/TenantTests/AccessorTests.cs),
+4. [Actor lifecycle proofs](../../src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/AccessorTests.cs),
+   [tenant lifecycle proofs](../../src/Rootbolt.Tenancy/tests/TenantTests/AccessorTests.cs),
    [composition proofs](../../samples/Wholesale/ContextDemo.Tests/CompositionTests.cs),
    [current dependency architecture tests](../../tests/ArchitectureTests/AdoptionDependencyTests.cs),
    solution, CI/hooks and revised documents.

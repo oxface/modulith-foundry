@@ -210,7 +210,7 @@ version and timestamps and never rewrites retained facts. Roll back/dispose and 
 fault. These guarantees rely on the explicit native transaction and both save guards, not arbitrary
 SQL or external writers. Module ownership, authorization and final completion remain consumer policy.
 
-[Library contract](../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md)
+[Library contract](../../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing.EntityFrameworkCore/README.md)
 records setup, native errors and recovery limits. A maintenance worker remains planned and needed
 eventually; consumers can host reconciliation now and own scheduling, scaling and locking/windows.
 Ordinary reads/writes remain strict; no silent repair, snapshot catch-up or automatic retry.

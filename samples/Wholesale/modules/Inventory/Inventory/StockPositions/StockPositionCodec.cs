@@ -1,5 +1,5 @@
 using System.Text.Json;
-using ModulithFoundry.Events.Serialization;
+using Rootbolt.Events.Serialization;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 

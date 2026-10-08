@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ModulithFoundry.Events.Serialization;
+using Rootbolt.Events.Serialization;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 

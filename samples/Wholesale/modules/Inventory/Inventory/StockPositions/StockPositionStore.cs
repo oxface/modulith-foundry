@@ -1,4 +1,4 @@
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 

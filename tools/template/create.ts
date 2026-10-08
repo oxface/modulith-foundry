@@ -20,23 +20,20 @@ import koffi from "koffi";
 
 export const root = resolve(import.meta.dirname, "../..");
 export const libraries = [
-  "ModulithFoundry.ActorIdentity",
-  "ModulithFoundry.Tenancy",
-  "ModulithFoundry.Persistence.EntityFrameworkCore",
+  "Rootbolt.ActorIdentity",
+  "Rootbolt.Tenancy",
+  "Rootbolt.Persistence.EntityFrameworkCore",
 ] as const;
 
 export const librarySources: Record<(typeof libraries)[number], string> = {
-  "ModulithFoundry.ActorIdentity": join(
+  "Rootbolt.ActorIdentity": join(
     root,
-    "src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity",
+    "src/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity",
   ),
-  "ModulithFoundry.Tenancy": join(
+  "Rootbolt.Tenancy": join(root, "src/Rootbolt.Tenancy/Rootbolt.Tenancy"),
+  "Rootbolt.Persistence.EntityFrameworkCore": join(
     root,
-    "src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy",
-  ),
-  "ModulithFoundry.Persistence.EntityFrameworkCore": join(
-    root,
-    "src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore",
+    "src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore",
   ),
 };
 

@@ -175,5 +175,5 @@ Appends and repair change the header ConcurrencyStamp. A stale writer/repair fai
 save and must roll back/dispose/reload. Repair preserves facts, event version and recorded times.
 There is no pre-read admission gate, silent catch-up, scheduler or worker. A maintenance worker
 remains planned; consumers can host reconciliation and own authorization, windows/locks, retries,
-scheduling and scaling. [The current library contract](../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md)
+scheduling and scaling. [The current library contract](../../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing.EntityFrameworkCore/README.md)
 provides self-sufficient setup, errors and limits.

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
-using ModulithFoundry.Persistence.EntityFrameworkCore;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Persistence.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 

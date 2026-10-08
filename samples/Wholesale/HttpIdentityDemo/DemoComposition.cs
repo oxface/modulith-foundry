@@ -3,15 +3,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Samples.Wholesale.Access;
 using ModulithFoundry.Samples.Wholesale.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Sales;
-using ModulithFoundry.Tenancy.AspNetCore;
+using Rootbolt.ActorIdentity;
+using Rootbolt.ActorIdentity.AspNetCore;
+using Rootbolt.Tenancy.AspNetCore;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 

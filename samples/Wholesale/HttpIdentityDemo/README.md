@@ -1,7 +1,7 @@
 # Wholesale HTTP Access and Organization demonstration
 
-A runnable consumer composing the optional [actor](../../../src/ModulithFoundry.ActorIdentity/ModulithFoundry.ActorIdentity.AspNetCore/README.md)
-and [tenancy](../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.AspNetCore/README.md) adapters with native
+A runnable consumer composing the optional [actor](../../../src/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity.AspNetCore/README.md)
+and [tenancy](../../../src/Rootbolt.Tenancy/Rootbolt.Tenancy.AspNetCore/README.md) adapters with native
 cookie/OIDC authentication and separate PostgreSQL-backed Access/Inventory/Sales modules.
 Business reads and profile edits use module Contracts and tenant-owned rows.
 

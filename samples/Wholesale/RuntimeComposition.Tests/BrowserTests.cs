@@ -4,12 +4,12 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
-using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.AppHost;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints;
 using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
 using Npgsql;
+using Rootbolt.ActorIdentity;
 
 namespace ModulithFoundry.Samples.Wholesale.RuntimeComposition.Tests;
 

@@ -1,6 +1,6 @@
 # Development and verification
 
-Library projects and their tests live under `src/ModulithFoundry.{Family}/`; each family has
+Library projects and their tests live under `src/Rootbolt.{Family}/`; each family has
 a README and local capability documentation. Repository architecture tests and shared support
 remain under `tests/`. The active solution, hooks and CI use the family paths below.
 See [the layout scope](plans/library-family-layout.md).
@@ -77,15 +77,15 @@ dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
 dotnet build ModulithFoundry.slnx --no-restore
 dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.Tenancy/tests/TenantTests/TenantTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.Tenancy/tests/TenantTests/TenantTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
-dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
 dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
@@ -140,9 +140,9 @@ antiforgery, tenant-owned Sales profile changes and explicit versioned transacti
 
 ## Standalone event serialization and history
 
-The sixth technical library, `ModulithFoundry.Events.Serialization`, is independently
+The sixth technical library, `Rootbolt.Events.Serialization`, is independently
 adoptable. Its finite [two-family consumer](../samples/Wholesale/EventCodecDemo/README.md)
-now composes it with the seventh library, `ModulithFoundry.Events.History`, through two project
+now composes it with the seventh library, `Rootbolt.Events.History`, through two project
 references. Each library remains package-free and independent of the other. Build and run
 the consumer directly:
 
@@ -188,7 +188,7 @@ container engine. Tests start disposable PostgreSQL 18.6 instances and keep the 
 reaper enabled; no application process or personal database credentials are required.
 
 ```bash
-dotnet test --project src/ModulithFoundry.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-build --no-restore
@@ -270,18 +270,18 @@ supported Docker/Podman runtime is required; absence is a failure, not a skipped
 CI's active persistence lane and pre-commit's event-rebuilding-postgres-tests job run this suite.
 
 ~~~sh
-dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-build --no-restore
+dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-build --no-restore
 dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-build --no-restore
 ~~~
 
 For rootless Podman set DOCKER_HOST=unix:///run/user/1000/podman/podman.sock and
 TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/user/1000/podman/podman.sock.
 The retained TypeScript diagnostic
-[node proof](../src/ModulithFoundry.EventSourcing/docs/proofs/es2-coordination.ts) uses Node
+[node proof](../src/Rootbolt.EventSourcing/docs/proofs/es2-coordination.ts) uses Node
 24.21+ and rootless Podman to replay **historical gate design** observations in a disposable
 container. It is not a current library regression test and supplies no stamp-concurrency claim.
 Current executable coverage lives in the family/consumer test projects above. See
-[the supported EF contract](../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/README.md).
+[the supported EF contract](../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing.EntityFrameworkCore/README.md).
 
 ## Archived backend
 

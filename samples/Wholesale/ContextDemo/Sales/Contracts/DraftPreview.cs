@@ -1,4 +1,4 @@
-using ModulithFoundry.ActorIdentity;
+using Rootbolt.ActorIdentity;
 
 namespace ModulithFoundry.Samples.Wholesale.ContextDemo.Sales.Contracts;
 

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Antiforgery;
-using ModulithFoundry.ActorIdentity;
+using Rootbolt.ActorIdentity;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 

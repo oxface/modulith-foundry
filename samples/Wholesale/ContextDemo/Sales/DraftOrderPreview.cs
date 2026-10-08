@@ -1,7 +1,7 @@
-using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Sales.Contracts;
-using ModulithFoundry.Tenancy;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.ContextDemo.Sales;
 

@@ -1,5 +1,5 @@
-using ModulithFoundry.EventSourcing;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using Rootbolt.EventSourcing;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 

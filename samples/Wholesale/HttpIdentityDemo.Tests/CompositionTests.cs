@@ -14,17 +14,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.Sales;
-using ModulithFoundry.Tenancy;
-using ModulithFoundry.Tenancy.AspNetCore;
 using ModulithFoundry.Tests.Infrastructure;
 using Npgsql;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Tenancy;
+using Rootbolt.Tenancy.AspNetCore;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Tests;
 

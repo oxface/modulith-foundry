@@ -1,7 +1,7 @@
 using ConsumerRoot.Catalog.Contracts;
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Tenancy;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Tenancy;
 
 namespace ConsumerRoot.Catalog;
 

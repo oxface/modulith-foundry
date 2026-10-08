@@ -7,8 +7,8 @@ using ModulithFoundry.Samples.Wholesale.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Sales;
 using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
-using ModulithFoundry.Tenancy;
 using Npgsql;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Tests;
 

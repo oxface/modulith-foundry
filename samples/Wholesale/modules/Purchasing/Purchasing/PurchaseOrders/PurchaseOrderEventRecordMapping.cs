@@ -1,5 +1,5 @@
-using ModulithFoundry.Events.Serialization;
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Events.Serialization;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
 

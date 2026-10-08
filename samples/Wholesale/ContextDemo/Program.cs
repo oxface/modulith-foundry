@@ -1,9 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
-using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.ContextDemo;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.ContextDemo.Sales.Contracts;
-using ModulithFoundry.Tenancy;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Tenancy;
 
 var options = new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true };
 await using var tenantProvider = DemoComposition

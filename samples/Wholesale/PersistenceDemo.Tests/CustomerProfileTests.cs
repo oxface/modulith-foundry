@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Sales;
-using ModulithFoundry.Tenancy;
 using ModulithFoundry.Tests.Infrastructure;
 using Npgsql;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.PersistenceDemo.Tests;
 

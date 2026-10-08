@@ -6,6 +6,11 @@ review proposals.
 
 ## Purpose and ownership
 
+The reusable libraries are named Rootbolt. Their namespaces, project/assembly names and
+default package IDs use `Rootbolt.*`; the repository, sample and template identities remain
+Modulith Foundry. [The rename report](reports/rootbolt-library-renaming.md) records the
+mechanical scope and preserved persistence identities.
+
 Build useful .NET libraries, a consumer-owned repository template, and a working sample.
 Use the archived wholesale sample to identify guarantees and failure cases; reimplement
 mechanisms when that gives a clearer design. Domain completeness is not the goal.
@@ -104,9 +109,9 @@ checkpointed as `c8cbf64`. See [the split report](reports/e1-identity-split.md) 
 
 ## Scope and HTTP integration review
 
-`ModulithFoundry.ActorIdentity` covers executing actor kind/key, optional initiator, its
+`Rootbolt.ActorIdentity` covers executing actor kind/key, optional initiator, its
 accessor lifecycle and explicitly invoked identity-presence checks. Actor denotes attribution,
-not the actor concurrency model. `ModulithFoundry.Tenancy` covers selected tenant or deliberate
+not the actor concurrency model. `Rootbolt.Tenancy` covers selected tenant or deliberate
 tenantless execution, its accessor lifecycle and selected-tenant checks. Both are package-free
 and independent. Transaction, trace, HTTP and module-persistence contexts have their own seams.
 Authentication, membership and authorization remain consumer behavior.
@@ -287,7 +292,7 @@ sourcing does not require messaging; messaging does not require event sourcing; 
 modules do not depend on event-sourcing types or registrations. Technical libraries do not
 reference sample module Contracts. Use project references during local development.
 
-[E4](plans/e4-event-serialization.md) implements `ModulithFoundry.Events.Serialization`
+[E4](plans/e4-event-serialization.md) implements `Rootbolt.Events.Serialization`
 with native JSON and explicit durable name/version registrations, independently of every
 other segment. Consumer event definitions, JSON requirements/defaults and domain meaning
 stay outside the codec. [Its report](reports/e4-event-serialization.md) records fresh
@@ -305,7 +310,7 @@ and Events.History gain no Serialization dependency. [New evidence](reports/even
 is separate from the earlier codec/history/store checkpoints.
 
 [E5.1](plans/e5-1-event-history.md) implements independently adoptable
-`ModulithFoundry.Events.History` for consumer-selected ordered-range validation. The owner
+`Rootbolt.Events.History` for consumer-selected ordered-range validation. The owner
 approved removing the initial complete-history snapshot/selection object. The utility has
 no payload generic, JSON or other segment dependency; consumers explicitly select/materialize
 rows, validate metadata, decode and hydrate. The strict range policy requires contiguous
@@ -393,7 +398,7 @@ are unstaged and existing staged entries are preserved. The
 The owner requests self-sufficient documentation alongside each library. Local READMEs and
 capability records define current behavior, dependencies, limits and deferred context; root
 plans/ADRs/reports record review and historical executions. The
-[event-store capability record](../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
+[event-store capability record](../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
 carries the supported write-only store, independent full-replay rebuilder and native header
 Version/ConcurrencyStamp contract. [ADR 0008](adr/0008-native-optimistic-aggregate-rebuilding.md)
 replaces [the historical pre-read gate](adr/0007-pre-read-admission-for-inline-rebuilding.md).
@@ -490,7 +495,7 @@ recovery are separate proof gates, not consequences of local extraction.
 
 Active ActorIdentity, Tenancy, Persistence, Events and EventSourcing families group their
 independently selectable projects, README, local capability/deferred context and library tests
-under `src/ModulithFoundry.{Family}/`. Detailed package setup remains with each project. Root
+under `src/Rootbolt.{Family}/`. Detailed package setup remains with each project. Root
 ADRs/plans/reports keep cross-cutting decisions and dated evidence; consumers can discover
 essential integration obligations beside the library. Shared architecture/support and sample
 proofs stay with their owners. See [the relocation scope](plans/library-family-layout.md).

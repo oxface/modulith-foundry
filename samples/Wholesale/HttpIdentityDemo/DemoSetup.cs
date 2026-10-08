@@ -3,7 +3,7 @@ using ModulithFoundry.Samples.Wholesale.Access;
 using ModulithFoundry.Samples.Wholesale.Access.Persistence;
 using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Sales;
-using ModulithFoundry.Tenancy;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 

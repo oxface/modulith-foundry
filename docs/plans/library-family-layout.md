@@ -4,6 +4,10 @@ Status: owner authorized on 2026-10-07, after approving and requesting a checkpo
 complete ES1 change set. That checkpoint is `ab85ec9`. This is the separately reviewable
 folder/documentation follow-up; relocation changes remain unstaged.
 
+This plan records the 2026-10-07 relocation under its original library names. The subsequent
+owner-authorized [Rootbolt rename](../reports/rootbolt-library-renaming.md) changes current
+source/project names; the table below preserves the relocation scope at that checkpoint.
+
 ## Concrete scope
 
 Group the nine existing library projects and nine library test projects into five families.

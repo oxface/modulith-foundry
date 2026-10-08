@@ -55,14 +55,14 @@ jobs:
       - name: Test actor identity library
         run: >-
           dotnet test
-          --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj
+          --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj
           --no-build
           --no-restore
 
       - name: Test tenancy library
         run: >-
           dotnet test
-          --project src/ModulithFoundry.Tenancy/tests/TenantTests/TenantTests.csproj
+          --project src/Rootbolt.Tenancy/tests/TenantTests/TenantTests.csproj
           --no-build
           --no-restore
 
@@ -76,7 +76,7 @@ jobs:
       - name: Test EF models and write validation without containers
         run: >-
           dotnet test
-          --project src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
+          --project src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
           --no-build
           --no-restore
 
@@ -85,14 +85,14 @@ jobs:
         # The runnable HTTP sample has no test authentication shortcut.
         run: >-
           dotnet test
-          --project src/ModulithFoundry.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
+          --project src/Rootbolt.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
           --no-build
           --no-restore
 
       - name: Test independent tenancy HTTP integration
         run: >-
           dotnet test
-          --project src/ModulithFoundry.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
+          --project src/Rootbolt.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
           --no-build
           --no-restore
 
@@ -104,13 +104,13 @@ jobs:
           --no-restore
 
       - name: Test explicit event serialization
-        run: dotnet test --project src/ModulithFoundry.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
+        run: dotnet test --project src/Rootbolt.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-build --no-restore
 
       - name: Test bounded ordered event history
-        run: dotnet test --project src/ModulithFoundry.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
+        run: dotnet test --project src/Rootbolt.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-build --no-restore
 
       - name: Aggregate core tests
-        run: dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
+        run: dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-build --no-restore
 
       - name: Test event codec consumer compatibility
         run: dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-build --no-restore
@@ -137,13 +137,13 @@ jobs:
       - name: Restore active projects
         run: dotnet restore ModulithFoundry.slnx
       - name: Test independent GUID ownership consumer
-        run: dotnet test --project src/ModulithFoundry.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-restore
+        run: dotnet test --project src/Rootbolt.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-restore
       - name: Test module migrations and persistence ownership
         run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-restore
       - name: Test independent shared event-storage registration
         run: dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj --no-restore
       - name: Test single-stream rebuilding and provider admission
-        run: dotnet test --project src/ModulithFoundry.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-restore
+        run: dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-restore
       - name: Test native event-history reads and append transactions
         run: dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --no-restore
       - name: Test persisted admission, isolated business operations and native telemetry through HTTP

@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.EventSourcing;
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
-using DefaultEnvelope = ModulithFoundry.EventSourcing.EntityFrameworkCore.StoredEventRecord;
+using Rootbolt.EventSourcing;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
+using DefaultEnvelope = Rootbolt.EventSourcing.EntityFrameworkCore.StoredEventRecord;
 
 namespace ModulithFoundry.Samples.EventStorageDemo.Tests;
 

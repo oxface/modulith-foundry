@@ -3,16 +3,16 @@
     <RootNamespace>ModulithFoundry.Samples.Wholesale.Inventory</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing/Rootbolt.EventSourcing.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="../Inventory.Contracts/Inventory.Contracts.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy/ModulithFoundry.Tenancy.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/ModulithFoundry.Persistence.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/ModulithFoundry.Events.Serialization.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.Events/ModulithFoundry.Events.History/ModulithFoundry.Events.History.csproj" />
-    <ProjectReference Include="../../../../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.Tenancy/Rootbolt.Tenancy/Rootbolt.Tenancy.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/Rootbolt.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.Events/Rootbolt.Events.Serialization/Rootbolt.Events.Serialization.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.Events/Rootbolt.Events.History/Rootbolt.Events.History.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing.EntityFrameworkCore/Rootbolt.EventSourcing.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>

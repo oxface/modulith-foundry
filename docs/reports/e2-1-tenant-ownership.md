@@ -28,8 +28,8 @@ can roll back a successfully saved change.
 
 | Suite/check | Result | Evidence |
 | --- | --- | --- |
-| Container-free EF model and validation | 25 passed | [Model/write tests](../../src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/OwnershipTests.cs), [unsupported mappings](../../src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/UnsupportedMappingTests.cs). |
-| Independent GUID consumer, PostgreSQL 18.6 | 6 passed | [GUID proofs](../../src/ModulithFoundry.Persistence/tests/PersistenceTests/GuidOwnershipTests.cs), with no context-library dependency. |
+| Container-free EF model and validation | 25 passed | [Model/write tests](../../src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/OwnershipTests.cs), [unsupported mappings](../../src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/UnsupportedMappingTests.cs). |
+| Independent GUID consumer, PostgreSQL 18.6 | 6 passed | [GUID proofs](../../src/Rootbolt.Persistence/tests/PersistenceTests/GuidOwnershipTests.cs), with no context-library dependency. |
 | Inventory composition, PostgreSQL 18.6 | 30 passed | [Sample proofs](../../samples/Wholesale/PersistenceDemo.Tests/OwnershipTests.cs), including first/repeat finite console runs. |
 | Active solution | Build succeeded, zero warnings/errors | All 11 active projects, audited restore, EF 10.0.12 and Npgsql 10.0.3. |
 | Formatting and semantics | Passed | CSharpier, active native style and analyzer checks. |
@@ -97,15 +97,15 @@ scaffolding, with generated migrations remaining reviewed consumer code.
 
 ## Review-worthy files
 
-- [Public helpers](../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/TenantOwnershipExtensions.cs),
-  [metadata checks](../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/TenantOwnershipMetadata.cs),
-  [failure enum](../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/TenantOwnershipFailure.cs),
-  [exception](../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/TenantOwnershipException.cs)
-  and [documented contract](../../src/ModulithFoundry.Persistence/ModulithFoundry.Persistence.EntityFrameworkCore/README.md).
+- [Public helpers](../../src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/TenantOwnershipExtensions.cs),
+  [metadata checks](../../src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/TenantOwnershipMetadata.cs),
+  [failure enum](../../src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/TenantOwnershipFailure.cs),
+  [exception](../../src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/TenantOwnershipException.cs)
+  and [documented contract](../../src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/README.md).
 - [Inventory DbContext](../../samples/Wholesale/PersistenceDemo/Inventory/InventoryDbContext.cs),
   [composition](../../samples/Wholesale/PersistenceDemo/DemoComposition.cs),
   [finite console](../../samples/Wholesale/PersistenceDemo/Program.cs) and
-  [independent GUID context](../../src/ModulithFoundry.Persistence/tests/EntityFrameworkCoreTests/GuidConsumerContext.cs).
+  [independent GUID context](../../src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/GuidConsumerContext.cs).
 - [Current dependency architecture tests](../../tests/ArchitectureTests/AdoptionDependencyTests.cs),
   [CI lanes](../../.github/workflows/ci.yml) and [development commands](../development.md).
 

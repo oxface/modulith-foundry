@@ -2,15 +2,15 @@ using ArchUnitNET.Domain;
 using ArchUnitNET.Fluent.Syntax.Elements.Types;
 using ArchUnitNET.Loader;
 using ArchUnitNET.xUnitV3;
-using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.ActorIdentity.AspNetCore;
-using ModulithFoundry.Events.History;
-using ModulithFoundry.Events.Serialization;
-using ModulithFoundry.EventSourcing;
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
-using ModulithFoundry.Persistence.EntityFrameworkCore;
-using ModulithFoundry.Tenancy;
-using ModulithFoundry.Tenancy.AspNetCore;
+using Rootbolt.ActorIdentity;
+using Rootbolt.ActorIdentity.AspNetCore;
+using Rootbolt.Events.History;
+using Rootbolt.Events.Serialization;
+using Rootbolt.EventSourcing;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Persistence.EntityFrameworkCore;
+using Rootbolt.Tenancy;
+using Rootbolt.Tenancy.AspNetCore;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 using ReflectionAssembly = System.Reflection.Assembly;
 
@@ -18,19 +18,19 @@ namespace ModulithFoundry.ArchitectureTests;
 
 public sealed class AssemblyDependencyTests
 {
-    private const string Actor = "ModulithFoundry.ActorIdentity";
-    private const string ActorHttp = "ModulithFoundry.ActorIdentity.AspNetCore";
-    private const string Tenancy = "ModulithFoundry.Tenancy";
-    private const string TenancyHttp = "ModulithFoundry.Tenancy.AspNetCore";
-    private const string Persistence = "ModulithFoundry.Persistence.EntityFrameworkCore";
+    private const string Actor = "Rootbolt.ActorIdentity";
+    private const string ActorHttp = "Rootbolt.ActorIdentity.AspNetCore";
+    private const string Tenancy = "Rootbolt.Tenancy";
+    private const string TenancyHttp = "Rootbolt.Tenancy.AspNetCore";
+    private const string Persistence = "Rootbolt.Persistence.EntityFrameworkCore";
     private const string ContextSample = "ContextDemo";
     private const string PersistenceSample = "PersistenceDemo";
     private const string HttpSample = "HttpIdentityDemo";
-    private const string EventSerialization = "ModulithFoundry.Events.Serialization";
-    private const string History = "ModulithFoundry.Events.History";
+    private const string EventSerialization = "Rootbolt.Events.Serialization";
+    private const string History = "Rootbolt.Events.History";
     private const string EventPersistenceSample = "EventPersistenceDemo";
-    private const string AggregateCore = "ModulithFoundry.EventSourcing";
-    private const string Storage = "ModulithFoundry.EventSourcing.EntityFrameworkCore";
+    private const string AggregateCore = "Rootbolt.EventSourcing";
+    private const string Storage = "Rootbolt.EventSourcing.EntityFrameworkCore";
     private const string StorageSample = "EventStorageDemo";
     private const string CodecSample = "EventCodecDemo";
 

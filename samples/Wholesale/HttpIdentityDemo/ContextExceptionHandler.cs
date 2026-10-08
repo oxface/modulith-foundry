@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using ModulithFoundry.ActorIdentity.AspNetCore;
-using ModulithFoundry.Tenancy;
-using ModulithFoundry.Tenancy.AspNetCore;
+using Rootbolt.ActorIdentity.AspNetCore;
+using Rootbolt.Tenancy;
+using Rootbolt.Tenancy.AspNetCore;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo;
 

@@ -5,6 +5,10 @@ and the identity of work performed in those applications.
 
 ## Language
 
+**Rootbolt**:
+The independently adoptable .NET libraries developed in this repository. Modulith Foundry
+remains the repository, template and reference-sample identity.
+
 **Library segment**:
 A selected reusable capability presented to a consumer through its documented contract.
 _Avoid_: Foundry framework

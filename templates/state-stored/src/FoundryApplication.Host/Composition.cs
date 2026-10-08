@@ -1,7 +1,7 @@
 using ConsumerRoot.Catalog;
 using Microsoft.Extensions.DependencyInjection;
-using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Tenancy;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Tenancy;
 
 namespace ConsumerRoot.Host;
 

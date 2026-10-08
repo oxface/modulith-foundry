@@ -1,7 +1,7 @@
 using ConsumerRoot.Catalog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using ModulithFoundry.Tenancy;
+using Rootbolt.Tenancy;
 
 namespace ConsumerRoot.Host;
 

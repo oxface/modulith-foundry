@@ -1,4 +1,4 @@
-using ModulithFoundry.EventSourcing;
+using Rootbolt.EventSourcing;
 
 namespace ModulithFoundry.Samples.EventStorageDemo;
 

@@ -5,8 +5,8 @@ namespace ModulithFoundry.ArchitectureTests;
 public sealed class AdoptionDependencyTests
 {
     [Theory]
-    [InlineData("ModulithFoundry.ActorIdentity.AspNetCore", "ModulithFoundry.ActorIdentity")]
-    [InlineData("ModulithFoundry.Tenancy.AspNetCore", "ModulithFoundry.Tenancy")]
+    [InlineData("Rootbolt.ActorIdentity.AspNetCore", "Rootbolt.ActorIdentity")]
+    [InlineData("Rootbolt.Tenancy.AspNetCore", "Rootbolt.Tenancy")]
     public void HttpAdaptersDeclareOnlyTheirCoreAndNativeFramework(string adapter, string core)
     {
         XDocument declaration = XDocument.Load(
@@ -30,15 +30,15 @@ public sealed class AdoptionDependencyTests
     }
 
     [Theory]
-    [InlineData("ModulithFoundry.ActorIdentity", null)]
-    [InlineData("ModulithFoundry.Tenancy", null)]
-    [InlineData("ModulithFoundry.Events.Serialization", null)]
-    [InlineData("ModulithFoundry.Events.History", null)]
+    [InlineData("Rootbolt.ActorIdentity", null)]
+    [InlineData("Rootbolt.Tenancy", null)]
+    [InlineData("Rootbolt.Events.Serialization", null)]
+    [InlineData("Rootbolt.Events.History", null)]
     [InlineData(
-        "ModulithFoundry.Persistence.EntityFrameworkCore",
+        "Rootbolt.Persistence.EntityFrameworkCore",
         "Microsoft.EntityFrameworkCore.Relational"
     )]
-    [InlineData("ModulithFoundry.EventSourcing", null)]
+    [InlineData("Rootbolt.EventSourcing", null)]
     public void RuntimeLibrariesDeclareOnlyTheirIntendedDependencies(
         string library,
         string? package
@@ -63,11 +63,11 @@ public sealed class AdoptionDependencyTests
             Path.Combine(
                 AppContext.BaseDirectory,
                 "ProjectDeclarations",
-                "ModulithFoundry.EventSourcing.EntityFrameworkCore.csproj"
+                "Rootbolt.EventSourcing.EntityFrameworkCore.csproj"
             )
         );
         Assert.Equal(
-            ["ModulithFoundry.EventSourcing", "ModulithFoundry.Events.History"],
+            ["Rootbolt.EventSourcing", "Rootbolt.Events.History"],
             declaration
                 .Descendants("ProjectReference")
                 .Select(reference =>
@@ -93,7 +93,7 @@ public sealed class AdoptionDependencyTests
             Path.Combine(AppContext.BaseDirectory, "ProjectDeclarations", "EventStorageDemo.csproj")
         );
         Assert.Equal(
-            ["ModulithFoundry.EventSourcing", "ModulithFoundry.EventSourcing.EntityFrameworkCore"],
+            ["Rootbolt.EventSourcing", "Rootbolt.EventSourcing.EntityFrameworkCore"],
             declaration
                 .Descendants("ProjectReference")
                 .Select(reference =>
@@ -121,7 +121,7 @@ public sealed class AdoptionDependencyTests
             )
         );
         Assert.Equal(
-            ["ModulithFoundry.EventSourcing.EntityFrameworkCore"],
+            ["Rootbolt.EventSourcing.EntityFrameworkCore"],
             consumer
                 .Descendants("ProjectReference")
                 .Select(reference =>

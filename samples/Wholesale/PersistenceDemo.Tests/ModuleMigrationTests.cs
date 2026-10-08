@@ -2,12 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
-using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Inventory;
 using ModulithFoundry.Samples.Wholesale.PersistenceDemo.Sales;
-using ModulithFoundry.Tenancy;
 using ModulithFoundry.Tests.Infrastructure;
 using Npgsql;
+using Rootbolt.Persistence.EntityFrameworkCore;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.PersistenceDemo.Tests;
 

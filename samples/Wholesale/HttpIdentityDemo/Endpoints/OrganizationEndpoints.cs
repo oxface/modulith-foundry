@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using ModulithFoundry.ActorIdentity;
 using ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
-using ModulithFoundry.Tenancy;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.Endpoints;
 

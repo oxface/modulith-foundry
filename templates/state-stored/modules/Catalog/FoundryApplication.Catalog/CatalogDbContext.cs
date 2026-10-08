@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.Persistence.EntityFrameworkCore;
-using ModulithFoundry.Tenancy;
+using Rootbolt.Persistence.EntityFrameworkCore;
+using Rootbolt.Tenancy;
 
 namespace ConsumerRoot.Catalog;
 

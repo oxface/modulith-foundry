@@ -4,10 +4,10 @@ using ConsumerRoot.Catalog.Contracts;
 using ConsumerRoot.Host;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.Persistence.EntityFrameworkCore;
-using ModulithFoundry.Tenancy;
 using Npgsql;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Persistence.EntityFrameworkCore;
+using Rootbolt.Tenancy;
 
 namespace ConsumerRoot.Adoption.Tests;
 

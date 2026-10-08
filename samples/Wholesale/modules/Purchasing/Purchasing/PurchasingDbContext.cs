@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
-using ModulithFoundry.Persistence.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Purchasing.PurchaseOrders;
-using ModulithFoundry.Tenancy;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Persistence.EntityFrameworkCore;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing;
 

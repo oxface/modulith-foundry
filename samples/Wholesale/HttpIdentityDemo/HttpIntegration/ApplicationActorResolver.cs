@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using ModulithFoundry.ActorIdentity;
-using ModulithFoundry.ActorIdentity.AspNetCore;
 using ModulithFoundry.Samples.Wholesale.Access.Contracts;
+using Rootbolt.ActorIdentity;
+using Rootbolt.ActorIdentity.AspNetCore;
 
 namespace ModulithFoundry.Samples.Wholesale.HttpIdentityDemo.HttpIntegration;
 

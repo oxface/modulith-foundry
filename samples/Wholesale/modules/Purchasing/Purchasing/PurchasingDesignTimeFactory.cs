@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using ModulithFoundry.Tenancy;
+using Rootbolt.Tenancy;
 
 namespace ModulithFoundry.Samples.Wholesale.Purchasing;
 

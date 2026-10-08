@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ModulithFoundry.Events.Serialization;
-using ModulithFoundry.EventSourcing.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using Rootbolt.Events.Serialization;
+using Rootbolt.EventSourcing.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
