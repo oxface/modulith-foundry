@@ -3,15 +3,9 @@ pre-commit:
     - name: csharpier
       glob: "*.{cs,csx,config,csproj,props,targets,slnx,xml}"
       run: dotnet csharpier check . --include-generated
-    - name: dotnet-style
-      glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet format style archive/proof-sample/ModulithFoundry.slnx --verify-no-changes --no-restore
     - name: active-dotnet-style
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet format style ModulithFoundry.slnx --verify-no-changes --no-restore
-    - name: dotnet-analyzers
-      glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet format analyzers archive/proof-sample/ModulithFoundry.slnx --verify-no-changes --no-restore
     - name: active-dotnet-analyzers
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet format analyzers ModulithFoundry.slnx --verify-no-changes --no-restore
@@ -48,9 +42,6 @@ pre-commit:
     - name: event-rebuilding-postgres-tests
       glob: "*.{cs,csproj,props,targets,slnx}"
       run: dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-restore
-    - name: architecture-tests
-      glob: "*.{cs,csproj,props,targets,slnx}"
-      run: dotnet test --project archive/proof-sample/tests/ArchitectureTests/ArchitectureTests.csproj --no-restore
 
 commit-msg:
   jobs:

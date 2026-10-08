@@ -59,5 +59,8 @@ with uninstalled SDKs/packages/container images.
 - [Messaging extraction comparison](proof-sample/docs/plans/messaging-reuse.md)
 - [Local durability closure and remaining deployment gaps](proof-sample/docs/plans/durability-closure-checklist.md)
 
-CI runs the relocated test lanes through the active root workflow. The workflow snapshot
-inside this archive is reference material and is not discovered by GitHub Actions.
+Active CI and commit hooks do not restore, build, format or execute the archived application.
+CI verifies its frozen source checksums. The retained tests and workflow are historical
+reference material; manual commands above are opt-in investigations and do not promise
+compatibility with a fresh runtime environment. The workflow snapshot inside this archive
+is not discovered by GitHub Actions. See [the CI correction report](../docs/reports/ci-runtime-and-archive-scope.md).

@@ -240,21 +240,27 @@ After restoring/building the active solution, run:
 
 ```bash
 dotnet tool install --global Aspire.Cli --version 13.5.4
-dotnet dev-certs https
+dotnet dev-certs https --trust
+# On Linux, retain OpenSSL's system roots alongside the development-certificate directory.
+export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:${SSL_CERT_DIR:-/etc/ssl/certs}"
+dotnet dev-certs https --check --trust
 pwsh samples/Wholesale/RuntimeComposition.Tests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
 dotnet test --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj --no-build --no-restore
 ```
 
 Use an existing matching CLI instead of reinstalling it. This suite uses native
 Aspire.Hosting.Testing, real Kestrel and PostgreSQL, ephemeral storage and randomized ports.
-It requires a Docker-compatible engine, native development certificate and Chromium matching
+It requires a Docker-compatible engine, a trusted native development certificate and Chromium matching
 the pinned test-only Playwright package, but no running AppHost/provider or personal credentials.
-The provider-free runtime case uses HTTP. Three optional-provider browser journeys use
+The provider-free runtime client uses HTTP; Aspire's native API health check uses HTTPS.
+Three optional-provider browser journeys use
 actual HTTPS login/callback, browser cookies and same-origin fetch. They explicitly ignore
 browser development-certificate trust errors; native API backchannel validation stays enabled.
 On Linux without PowerShell, the package's bundled `.playwright/node/linux-x64/node` can run
 its `.playwright/package/cli.js install chromium` from the same build output; no Node workspace
 is required. CI uses the generated PowerShell installer with system dependencies.
+Certificate creation alone does not establish trust: Aspire otherwise leaves Keycloak on
+HTTP and HTTPS health checks may fail. CI verifies trust before launching any test resources.
 For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
 `DOCKER_HOST` to your user socket and optionally `DOTNET_PROCESSOR_COUNT=4`.
 Keep this container test outside commit hooks. CI has a separate Active Aspire runtime
@@ -285,10 +291,11 @@ Current executable coverage lives in the family/consumer test projects above. Se
 
 ## Archived backend
 
-Run the archived solution and tests from `archive/proof-sample`; see
-[the archive guide](../archive/README.md) for exact commands and provenance. CI's Fast,
-PostgreSQL, RabbitMQ, and Topology lanes use that working directory. Their results are
-reference evidence, not tests of libraries that have not been implemented.
+The archived solution and tests remain historical reference material. Active CI and commit
+hooks exclude archived restore/build/style/analyzer/test commands; the repository checks
+job still verifies all frozen source hashes. Do not add archive tests to active gates.
+See [the archive guide](../archive/README.md) for opt-in manual commands and provenance,
+and [the CI correction report](reports/ci-runtime-and-archive-scope.md) for the boundary.
 
 Use the archived test guide's Docker/Podman setup for container suites. It includes socket
 configuration, keeps the resource reaper enabled, and explains runner concurrency limits.
