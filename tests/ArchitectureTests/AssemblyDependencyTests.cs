@@ -37,6 +37,10 @@ public sealed class AssemblyDependencyTests
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies(
             typeof(ActorId).Assembly,
+            typeof(Rootbolt.Messaging.OutgoingMessage).Assembly,
+            typeof(Rootbolt.Messaging.EntityFrameworkCore.IOutbox<>).Assembly,
+            typeof(Rootbolt.Messaging.EntityFrameworkCore.Postgres.PostgresOutboxDispatcher<>).Assembly,
+            typeof(Samples.OutboxDemo.DemoJourneys).Assembly,
             typeof(ActorContextMiddleware).Assembly,
             typeof(TenantId).Assembly,
             typeof(TenantContextMiddleware).Assembly,
@@ -111,6 +115,62 @@ public sealed class AssemblyDependencyTests
             }
         )
             NoDependency(EventSerialization, forbidden).Check(Architecture);
+    }
+
+    [Fact]
+    public void MessagingStaysIndependentAndProviderCodeDoesNotLeakIntoItsCoreOrEfLayer()
+    {
+        string[] layers =
+        [
+            "Rootbolt.Messaging",
+            "Rootbolt.Messaging.EntityFrameworkCore",
+            "Rootbolt.Messaging.EntityFrameworkCore.Postgres",
+        ];
+        foreach (string layer in layers)
+        {
+            foreach (
+                string forbidden in new[]
+                {
+                    Actor,
+                    ActorHttp,
+                    Tenancy,
+                    TenancyHttp,
+                    Persistence,
+                    EventSerialization,
+                    History,
+                    AggregateCore,
+                    Storage,
+                    ContextSample,
+                    PersistenceSample,
+                    HttpSample,
+                    EventPersistenceSample,
+                    "OutboxDemo",
+                }
+            )
+                NoDependency(layer, forbidden).Check(Architecture);
+        }
+        NoDependency(layers[0], layers[1]).Check(Architecture);
+        NoDependency(layers[0], layers[2]).Check(Architecture);
+        NoDependency(layers[1], layers[2]).Check(Architecture);
+        Assert.DoesNotContain(
+            typeof(Rootbolt.Messaging.EntityFrameworkCore.IOutbox<>).Assembly.GetReferencedAssemblies(),
+            assembly =>
+                assembly.Name!.StartsWith("Npgsql", StringComparison.Ordinal)
+                || assembly.Name.StartsWith("RabbitMQ", StringComparison.Ordinal)
+        );
+        foreach (
+            string forbidden in new[]
+            {
+                Actor,
+                Tenancy,
+                Persistence,
+                EventSerialization,
+                History,
+                AggregateCore,
+                Storage,
+            }
+        )
+            NoDependency("OutboxDemo", forbidden).Check(Architecture);
     }
 
     [Fact]

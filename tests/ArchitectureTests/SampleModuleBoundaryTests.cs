@@ -53,6 +53,9 @@ public sealed class SampleModuleBoundaryTests
         typeof(EventHistory).Assembly,
         typeof(IEventStreamRecord).Assembly,
         typeof(IEventSourcedAggregate<>).Assembly,
+        typeof(Rootbolt.Messaging.OutgoingMessage).Assembly,
+        typeof(Rootbolt.Messaging.EntityFrameworkCore.IOutbox<>).Assembly,
+        typeof(Rootbolt.Messaging.EntityFrameworkCore.Postgres.PostgresOutboxDispatcher<>).Assembly,
     ];
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies([

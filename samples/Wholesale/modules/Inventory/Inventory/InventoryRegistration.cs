@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Inventory.Messaging;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory;
 
@@ -37,6 +39,8 @@ public static class InventoryRegistration
 
     public static IServiceCollection AddStockPositionCommands(this IServiceCollection services)
     {
+        services.AddPostgresOutbox<InventoryDbContext>();
+        services.TryAddScoped<StockIssueMessages>();
         RegisterStore(services);
         services.TryAddScoped(provider => new InlineStateReader<EventStream, StockPositionStateRow>(
             provider.GetRequiredService<InventoryDbContext>()

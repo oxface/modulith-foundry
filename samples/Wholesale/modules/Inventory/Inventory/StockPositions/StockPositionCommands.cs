@@ -1,11 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using ModulithFoundry.Samples.Wholesale.Inventory.Messaging;
 using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 
-internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> store)
-    : IStockPositionCommands
+internal sealed class StockPositionCommands(
+    IEventStore<StockPositionAggregate> store,
+    IOutbox<InventoryDbContext> outbox,
+    StockIssueMessages messages
+) : IStockPositionCommands
 {
     public async Task<StockPositionChangeResult> OpenAsync(
         OpenStockPosition request,
@@ -80,6 +85,8 @@ internal sealed class StockPositionCommands(IEventStore<StockPositionAggregate> 
                     requested
                 );
             var recordedAt = (await store.AppendAsync(aggregate, cancellationToken)).RecordedAt;
+            // Accepted facts and this explicitly selected integration contract share the caller's transaction.
+            outbox.Enqueue(messages.StockIssueRecorded(aggregate, requested, recordedAt));
             return new StockPositionChangeResult.Changed(
                 aggregate.State!.ToHistory(aggregate.Id, aggregate.Version, recordedAt)
             );

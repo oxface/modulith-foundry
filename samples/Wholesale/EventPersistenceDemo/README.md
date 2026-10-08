@@ -5,7 +5,9 @@ module-owned live reads and explicit command writers. The EF reader reuses Event
 integrity checks. Inventory reconstructs stock
 positions and stages receipts/issues; Purchasing reconstructs orders and stages line changes.
 Both use tenant-discriminated rows in separate schemas of one PostgreSQL
-connection, with separate native migration histories. No messaging registration is needed.
+connection, with separate native migration histories. Inventory's command registration now
+includes explicit outbox enqueue for accepted stock issues. No broker or worker registration
+is needed for the existing default journeys; delivery is a separate opt-in operation.
 
 ```sh
 export WHOLESALE_DEMO_CONNECTION_STRING='<disposable PostgreSQL connection string>'
@@ -244,3 +246,38 @@ The executable flag is exercised against PostgreSQL. No automatic read repair or
 is installed. Shape-only decoding compatibility does not require rebuilding already correct
 state. Readers must support the new schema before newer writers are enabled; rollout and
 projection-meaning changes remain consumer responsibilities.
+
+## Transactional stock-issue notification
+
+The explicit `--outbox` journey uses the same state-dependent Inventory command. One accepted
+issue batch maps to a consumer-owned StockIssueRecordedV1 and queues it alongside events,
+stream version and main inline state in the caller's transaction. Rejection queues nothing;
+rebuilding/replaying old facts has no external effects. Existing fixtures, migrations and
+default output remain intact; a new forward migration adds the module's outbox table.
+
+```bash
+export WHOLESALE_DEMO_CONNECTION_STRING='<disposable PostgreSQL connection string>'
+export WHOLESALE_DEMO_RABBITMQ='amqp://guest:guest@localhost:5672/'
+dotnet run --project samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj -- --outbox
+dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-class '*OutboxDispatchTests'
+```
+
+The journey explicitly owns native RabbitMQ connection/channel, durable queue declaration,
+persistent publication, confirmation tracking and mandatory routing. The publisher has a
+five-second publication bound; the transport remains sample source. After native save/commit,
+one separately resolved privileged dispatcher publishes at most one eligible module row.
+It can select older retained work when a backlog exists. No library bus, startup migration,
+automatically enabled worker or immediate producer publication is installed.
+
+MessageId survives retries. The sample sets CorrelationId to the stock-position ID to group
+notifications; that is not a deduplication key. No incoming command ID exists here, so it
+does not invent a CausationId. Owner metadata is retained, but trusted receiver tenant
+admission remains consumer policy. Library dispatch drains the module table across owners
+without rebinding its context or treating a query filter as privileged authorization.
+
+The three PostgreSQL/RabbitMQ proofs cover confirmed acceptance followed by completion
+failure and repeat delivery, mandatory unroutable failure/recovery and this finite executable.
+Their manually acknowledged receiver is a transport observer, not an inbox business handler.
+The next inbox slice must demonstrate committed durable intake before ack and independently
+committed business processing. See [Messaging capabilities and that next slice](../../../src/Rootbolt.Messaging/docs/capabilities.md)
+and [new versus historical evidence](../../../docs/reports/outbox1-transactional-dispatch.md).

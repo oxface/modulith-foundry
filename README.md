@@ -19,6 +19,7 @@ independently selectable; a family folder does not add an umbrella dependency.
 | [Persistence](src/Rootbolt.Persistence/README.md) | EF Core ownership utilities |
 | [Events](src/Rootbolt.Events/README.md) | Independent serialization and history utilities |
 | [EventSourcing](src/Rootbolt.EventSourcing/README.md) | Aggregate core and optional EF Core write store |
+| [Messaging](src/Rootbolt.Messaging/README.md) | Outgoing contracts, EF outbox/optional worker and PostgreSQL dispatch |
 
 The [state-stored template rehearsal](docs/plans/t1-template-rehearsal.md) is owner-approved
 and checkpointed as `8ccf4c8`. Its [creator](tools/template/README.md) generates an independent

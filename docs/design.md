@@ -283,6 +283,13 @@ are stated in their slice.
 ## Dependencies and configuration
 
 Start with explicit EF Core/PostgreSQL persistence and optional Rebus/RabbitMQ integration.
+The owner-authorized [Messaging outbox](plans/outbox1-transactional-dispatch.md) keeps transport
+implementations in consumer source. Used core/EF/provider layers concentrate enqueue/save
+guards, PostgreSQL claims and optional sequential worker hosting. Each module owns its typed
+context/table and final producer commit; dispatch commits its claim before publication and
+fences completion with an unexpired token. No shared Rootbolt transaction runtime is introduced.
+[ADR 0009](adr/0009-module-owned-transactional-outbox.md) records this direction; durable inbox
+intake/processing and receiver commit/ack semantics remain the next reviewed capability.
 Critter Stack is a behavioral reference for messaging and persistence, not a selected runtime
 dependency. Keep provider-specific capabilities available; a provider-neutral promise needs
 evidence from actual alternatives rather than a lowest-common-denominator interface.

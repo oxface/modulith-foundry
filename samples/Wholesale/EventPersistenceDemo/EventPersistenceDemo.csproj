@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" />
     <ProjectReference Include="../modules/Inventory/Inventory/Inventory.csproj" />
     <ProjectReference Include="../modules/Purchasing/Purchasing/Purchasing.csproj" />
     <None

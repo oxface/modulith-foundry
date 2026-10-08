@@ -7,8 +7,10 @@
   <ItemGroup>
     <PackageReference Include="xunit.v3.mtp-v2" />
     <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
     <ProjectReference Include="../EventPersistenceDemo/EventPersistenceDemo.csproj" />
     <Compile Include="../../../tests/Support/PostgreSqlFixture.cs" Link="PostgreSqlFixture.cs" />
+    <Compile Include="../../../tests/Support/RabbitMqFixture.cs" Link="RabbitMqFixture.cs" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

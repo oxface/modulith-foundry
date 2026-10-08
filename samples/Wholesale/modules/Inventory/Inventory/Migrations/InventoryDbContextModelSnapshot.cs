@@ -246,6 +246,94 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
+                "Rootbolt.Messaging.EntityFrameworkCore.OutboxMessageRecord",
+                b =>
+                {
+                    b.Property<Guid>("MessageId").HasColumnType("uuid").HasColumnName("message_id");
+
+                    b.Property<long>("Attempts").HasColumnType("bigint").HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("AvailableAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("available_at")
+                        .HasDefaultValueSql("clock_timestamp()");
+
+                    b.Property<string>("RouteKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("destination");
+
+                    b.Property<DateTimeOffset?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dispatched_at");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_token");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<string>("MessageName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message_name");
+
+                    b.Property<string>("TenantKey")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_key");
+
+                    b.Property<JsonElement>("Payload")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset>("QueuedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("queued_at")
+                        .HasDefaultValueSql("clock_timestamp()");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_version");
+
+                    b.HasKey("MessageId");
+
+                    b.HasIndex("AvailableAt", "LeaseUntil", "MessageId")
+                        .HasFilter("dispatched_at IS NULL");
+
+                    b.ToTable(
+                        "outbox_messages",
+                        "inventory",
+                        t =>
+                        {
+                            t.HasCheckConstraint("ck_outbox_attempts", "attempts >= 0");
+
+                            t.HasCheckConstraint(
+                                "ck_outbox_lease",
+                                "(lease_token IS NULL) = (lease_until IS NULL)"
+                            );
+
+                            t.HasCheckConstraint("ck_outbox_schema", "schema_version > 0");
+                        }
+                    );
+
+                    b.HasAnnotation(
+                            "ModulithFoundry:TenantContextMember",
+                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
+                        )
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipProperty", "TenantKey")
+                        .HasAnnotation("Rootbolt:Outbox", true)
+                        .HasAnnotation("Rootbolt:OutboxProvider", "Postgres");
+                }
+            );
+
+            modelBuilder.Entity(
                 "ModulithFoundry.Samples.Wholesale.Inventory.StockPositions.StockPositionStateRow",
                 b =>
                 {

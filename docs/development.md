@@ -6,11 +6,14 @@ remain under `tests/`. The active solution, hooks and CI use the family paths be
 See [the layout scope](plans/library-family-layout.md).
 
 
-`ModulithFoundry.slnx` contains 43 active projects: independent ActorIdentity and Tenancy
+`ModulithFoundry.slnx` contains 50 active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, the event codec and
 ordered-range validation, package-free aggregate core and EF event-storage utilities, five finite console
 samples, an HTTP identity/Organization host, eight populated Access/Inventory/Sales/Purchasing module projects and
 their proof suites, an Aspire AppHost, sample ServiceDefaults and a runtime composition suite.
+Messaging adds provider-free contracts, native EF outbox/worker, PostgreSQL dispatch and
+an independent state-stored HTTP consumer, with library/adoption tests. Inventory's explicit
+outbox journey also exercises native RabbitMQ; broker dependencies remain sample/test-only.
 The archived solution is independent. Root build defaults target .NET 10; central package
 management pins test/DI packages, EF Core Relational/Design, native Npgsql, Testcontainers,
 sample-only OpenIdConnect, test-only TestHost and ArchUnitNET. The local tool manifest also
@@ -38,7 +41,7 @@ archived suites are excluded from hooks.
 
 ## CI lanes
 
-The [main workflow](../.github/workflows/ci.yml) exposes five separately named Rootbolt
+The [main workflow](../.github/workflows/ci.yml) exposes six separately named Rootbolt
 family checks through a matrix, plus Wholesale consumer composition and repository integrity.
 All run on every PR and push to `main`, without family path filters. A family failure does
 not cancel the other families. Each test invocation restores/builds its project and
@@ -51,6 +54,7 @@ dependencies on that runner; no job consumes another job's build outputs.
 | Rootbolt.Persistence | EF model/write validation and real PostgreSQL GUID ownership consumer. |
 | Rootbolt.Events | Serialization/upcasting, ordered history integrity and independent event-codec consumer tests/executable. |
 | Rootbolt.EventSourcing | Aggregate core, PostgreSQL history/rebuilding/concurrency, independent event-storage consumer and Wholesale event-sourcing adoption. |
+| Rootbolt.Messaging | Provider-free envelopes, PostgreSQL enqueue/claims/worker, standalone HTTP adopter and focused Inventory RabbitMQ proofs. |
 | Wholesale consumer composition | Context tests/executable, module migrations/ownership and persisted HTTP admission/business/telemetry tests. |
 | Repository integrity | Whole-solution restore/style/analyzers/build, architecture boundaries, CSharpier, commitlint and frozen archive checksums. |
 | Template integrity and adoption | TypeScript generator checks and two external generated consumers against PostgreSQL. |
@@ -61,8 +65,10 @@ Every job has a 15-minute limit, including setup/build. The
 [runtime workflow](../.github/workflows/sample-runtime.yml) has PR path filters and a manual
 trigger, with no automatic post-merge push run. All three workflows cancel superseded runs
 on the same PR/ref. Whole-solution validation remains centralized; family jobs build only
-their selected dependency graphs. Library-only changes still run all five families, since
-changes to a shared dependency can affect another family.
+their selected dependency graphs. Library-only changes still run all six families, since
+changes to a shared dependency can affect another family. Wholesale broker class filters
+assign the three focused RabbitMQ tests to Messaging; the remaining event tests stay in
+EventSourcing, including state/events/outbox composition. Neither lane revives archived suites.
 
 Use the always-running family, composition, repository and template checks for branch
 protection. The path-filtered runtime check remains optional globally. Its scheduling
