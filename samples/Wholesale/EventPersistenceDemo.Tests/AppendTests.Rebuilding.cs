@@ -242,7 +242,7 @@ public sealed partial class AppendTests
         await ExecuteAsync(
             connection,
             invalidSequence
-                ? $"UPDATE {table} AS target SET event_name = source.event_name, payload = source.payload FROM {table} AS source WHERE target.stream_version = 1 AND source.stream_version = 2"
+                ? $"UPDATE {table} AS target SET event_name = source.event_name, schema_version = source.schema_version, payload = source.payload FROM {table} AS source WHERE target.stream_version = 1 AND source.stream_version = 2"
                 : $"UPDATE {table} SET schema_version = 999 WHERE stream_version = 1"
         );
         await using var provider = RebuildProvider(connection);

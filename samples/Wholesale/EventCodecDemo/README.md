@@ -105,3 +105,25 @@ current/historical state expectations, repeat reconstruction, codec failure prop
 preservation of consumer domain exceptions. [The E5.1 report](../../../docs/reports/e5-1-event-history.md)
 records fresh history evidence separately from E4. All three focused suites and the console
 run without containers.
+
+## Explicit schema-evolution journey
+
+```sh
+dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj -- --schema-evolution
+```
+
+Output:
+
+```text
+purchasing schemas: v1-to-v3-total=31.25, write-schema=3, replaced-total=62.50
+```
+
+The [separate Purchasing adopter](Purchasing/PurchaseOrderSchemaEvolutionExample.cs) decodes
+retained flat v1, renamed flat v2 and nested v3 into the same current fact. Two explicit
+consumer-owned transformations select v3; current writes are registered at v3. It reuses the
+original sample's domain fold rather than changing line meaning. Independently authored v2/v3
+literals and [tests](../EventCodecDemo.Tests/UpcastingCompatibilityTests.cs) assert fields,
+strict nested decoding and preserved totals. Currency output is formatted explicitly; numeric
+value is preserved, not incidental JSON decimal scale. Original exact-v1 recipes/default output
+remain intact. The [codec README](../../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md)
+also documents the provided PassThrough step for optional-field additions.

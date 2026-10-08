@@ -14,8 +14,9 @@ forward from E10; that rehearsal is now complete and owner-approved.
 | T1 state-stored template rehearsal | Owner-approved checkpoint `8ccf4c8`; two generated consumer proofs, event/messaging omission and bounded initial creation. |
 | ES1 bounded event append | Owner-reviewed and checkpointed as `ab85ec9`; retained native store/append and consumer proofs. |
 | Library family grouping | Owner-approved checkpoint `39c1ab3`; local docs/tests and preserved external template adoption. |
-| ES2 single-stream rebuilding | Owner-approved [native EF replacement](es2-native-ef-simplification.md) is implemented and verified: write-only store, independent full replay and native header stamps. [Current proofs](../reports/es2-single-stream-rebuilding.md#native-ef-replacement-2026-10-07) cover 495 active tests plus 10 external T1 tests. Existing index entries are preserved; new changes are unstaged. |
-| Bounded event-history reader | Owner-approved interface/scope; shared native prefix loading and consumer adoption implemented. [Reader report](../reports/event-history-reader-extraction.md) records fresh checks independently of earlier ES2 evidence. |
+| ES2 single-stream rebuilding | Owner-approved [native EF replacement](es2-native-ef-simplification.md) and reader checkpoint `91542a6`: write-only store, independent full replay and native stream stamps. [ES2 report](../reports/es2-single-stream-rebuilding.md) retains separately dated proof results. |
+| Bounded event-history reader | Owner-approved and checkpointed as `91542a6`; shared native prefix loading and consumer adoption. [Reader report](../reports/event-history-reader-extraction.md) records fresh checks independently of earlier ES2 evidence. |
+| Explicit JSON payload upcasting | Owner-approved [interface/scope](event-payload-upcasting.md), including PassThrough. Implemented with Inventory and standalone chained/nested adoption; [new evidence](../reports/event-payload-upcasting.md). Changes remain unstaged for implementation review. |
 
 T1 implements one fixed event-free Catalog/console composition with configurable application
 name/root namespace, local library source snapshots and TypeScript/npm creation tooling around
@@ -56,14 +57,14 @@ retain the supported contract, bounded rebuilding/remaining async/multi-stream c
 adapter investigation. Other packages retain their own local setup/limits/deferred directions.
 The default-envelope refinement did not move projects; see [its proof and scope report](../reports/es1-envelope-and-library-docs.md).
 The subsequent owner-authorized [family relocation](library-family-layout.md) groups all five
-library families with local documentation and tests. ES2 adds the separately reviewed optional Postgres adapter.
+library families with local documentation and tests. ES2's initial optional Postgres adapter
+was subsequently replaced by the reviewed native concurrency implementation.
 
-ES1 and the family relocation are now owner-approved checkpoints. The current bounded implementation
-is [ES2 single-stream rebuilding](es2-single-stream-rebuilding.md), corresponding to part of
-the deferred E6.2 direction. The owner reviewed its interfaces/provider dependency/behavior/file map
-and authorized implementation; the complete changes await review. Follow-up edits remain
-unstaged and existing index entries are preserved. The E0–E10 sections below preserve the original
-sequence and evidence; they do not authorize broader repair, async processing or E7.
+ES1, family relocation, native ES2 and the bounded reader are owner-approved checkpoints.
+[ES2 single-stream rebuilding](es2-single-stream-rebuilding.md) corresponds to part of the
+deferred E6.2 direction. The current unstaged capability is the separately approved payload
+upcasting slice. The E0–E10 sections below preserve the original sequence and evidence; they
+do not authorize broader repair, async processing or E7.
 
 ## Bounded event-history reader (owner-approved)
 
@@ -77,8 +78,9 @@ payload decoding, tenant admission and final save/commit remain consumer-owned.
 The owner approved the interface and exact scope. The implementation adds one dependency on
 existing Events.History integrity checks and reader injection for the independently registered
 rebuilder. It adds no serialization/provider dependency, projector engine or automatic catch-up.
-[The slice report](../reports/event-history-reader-extraction.md) records new verification and the
-consumer complexity removed, separately from historical ES2 evidence. New edits remain unstaged.
+[The slice report](../reports/event-history-reader-extraction.md) records its verification and
+consumer complexity removed, separately from historical ES2 evidence. The reader is checkpointed
+as `91542a6`; current upcasting edits remain unstaged.
 
 ## Current ES2: reviewed native EF replacement
 
@@ -186,6 +188,14 @@ projection-meaning changes need a rollout plan, while shape-only upgrades need n
 No upcaster, event v2 fixture, background job or broader rebuilding capability is authorized here.
 The [library-local catalog](../../src/ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
 retains this priority and proof context beside the package.
+
+The next slice has an owner-approved [payload-upcasting scope](event-payload-upcasting.md)
+against checkpoint `91542a6`: one JSON transformation abstraction, optional explicit paths in
+the existing codec, a real Inventory schema transition and an independent chained/nested
+adopter. Its public interface, errors, ownership, exact file map and verification obligations
+were reviewed before implementation, including the provided PassThrough helper for compatible
+optional-field additions. This slice does not add a store/history interface,
+rewrite historical payloads or authorize maintenance workers.
 
 ## ES2 lane separation follow-up (superseded proposal)
 

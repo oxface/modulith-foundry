@@ -5,6 +5,16 @@ string connection =
     ?? throw new InvalidOperationException(
         "Set WHOLESALE_DEMO_CONNECTION_STRING to a disposable demo database."
     );
+if (args.Contains("--schema-evolution", StringComparer.Ordinal))
+{
+    await SchemaEvolutionJourney.RunAsync(
+        connection,
+        Path.Combine(AppContext.BaseDirectory, "Fixtures"),
+        Console.Out,
+        CancellationToken.None
+    );
+    return;
+}
 await DemoJourneys.RunAsync(
     connection,
     Path.Combine(AppContext.BaseDirectory, "Fixtures"),

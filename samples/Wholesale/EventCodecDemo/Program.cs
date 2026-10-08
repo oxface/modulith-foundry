@@ -1,3 +1,6 @@
 using ModulithFoundry.Samples.Wholesale.EventCodecDemo;
 
-DemoJourneys.Run(Path.Combine(AppContext.BaseDirectory, "Fixtures"), Console.Out);
+if (args.Contains("--schema-evolution", StringComparer.Ordinal))
+    SchemaEvolutionJourneys.Run(Path.Combine(AppContext.BaseDirectory, "Fixtures"), Console.Out);
+else
+    DemoJourneys.Run(Path.Combine(AppContext.BaseDirectory, "Fixtures"), Console.Out);

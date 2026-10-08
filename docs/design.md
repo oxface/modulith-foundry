@@ -294,6 +294,16 @@ stay outside the codec. [Its report](reports/e4-event-serialization.md) records 
 two-family compatibility and dependency proofs; the owner-reviewed implementation is
 checkpointed as `2a49ef3b`. Codec support does not establish event-store or delivery guarantees.
 
+The owner-approved [payload-upcasting extension](plans/event-payload-upcasting.md) adds explicit
+forward JSON transformations and a PassThrough helper to the optional codec. Current writes
+retain one registered identity per CLR type. Every declared historical source must resolve to
+an exact registered terminal; no inferred fallback, alias rewrite or stored event mutation is
+introduced. Consumers own transformation meaning, native JSON policy and reader-before-writer
+rollout. Inventory exercises mixed JSONB schemas through the existing history reader and
+independent rebuilding; a standalone adopter exercises chained/nested shapes. The EF adapter
+and Events.History gain no Serialization dependency. [New evidence](reports/event-payload-upcasting.md)
+is separate from the earlier codec/history/store checkpoints.
+
 [E5.1](plans/e5-1-event-history.md) implements independently adoptable
 `ModulithFoundry.Events.History` for consumer-selected ordered-range validation. The owner
 approved removing the initial complete-history snapshot/selection object. The utility has

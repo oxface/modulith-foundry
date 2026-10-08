@@ -12,7 +12,7 @@ internal sealed record StockPositionOpened(
 
 // The durable alias stays stock-position.received; CLR naming is consumer-owned.
 internal sealed record StockPositionReceived(
-    [property: JsonRequired] decimal Quantity,
+    [property: JsonRequired, JsonPropertyName("receivedQuantity")] decimal Quantity,
     string? DeliveryReference = null
 ) : IStockPositionEvent;
 

@@ -20,3 +20,9 @@ Inventory `received-second.v1.json` and Purchasing `line-replaced.v1.json` are n
 literals using the existing v1 schemas. The receipt adds 2.875 and a delivery reference;
 the replacement line uses quantity 5 and unit price 12.5. Independently expected current
 results are on-hand 13 and order total 62.50. The four E4 payload files are unchanged.
+
+The upcasting slice adds independently authored `Inventory/received.v2.json` and
+`Purchasing/line-set.v2.json` / `line-set.v3.json`. The Inventory quantity is unchanged at
+10.125 but the field is `receivedQuantity`. Purchasing v2 renames flat fields; v3 nests the
+same line facts. Each line still independently implies total 31.25. These are new schemas,
+not migrated archive fixtures. Every earlier v1 JSON file remains byte-for-byte unchanged.

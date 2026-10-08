@@ -214,3 +214,33 @@ SQL or external writers. Module ownership, authorization and final completion re
 records setup, native errors and recovery limits. A maintenance worker remains planned and needed
 eventually; consumers can host reconciliation now and own scheduling, scaling and locking/windows.
 Ordinary reads/writes remain strict; no silent repair, snapshot catch-up or automatic retry.
+
+## Mixed historical and current schemas
+
+```sh
+dotnet run --project samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj -- --schema-evolution
+```
+
+With the same disposable connection setting, the separate
+[SchemaEvolutionJourney](SchemaEvolutionJourney.cs) seeds unchanged v1 stock fixtures, appends
+one current v2 receipt, then explicitly rebuilds through the module maintenance Contract and
+native save/commit. Fresh live and inline reads agree:
+
+```text
+inventory schemas: retained-v1=10.125, current-version=4, inline=15.000, rebuilt=15.000
+```
+
+Inventory's [v1 transformation](../modules/Inventory/Inventory/StockPositions/ReceiptV1ToV2.cs)
+renames quantity to receivedQuantity while preserving other fields. Production CLR/domain
+Quantity, decisions, reducers and inline-state JSON are unchanged. Only newly encoded receipts
+use schema 2; opening/issue events retain schema 1. Retained rows still contain their exact old
+payload/schema. The journey compares complete event rows before/after rebuilding and permits
+ordinary sequential reruns; it adds no concurrent bootstrap guarantee.
+
+The [PostgreSQL proofs](../EventPersistenceDemo.Tests/AppendTests.Upcasting.cs) cover mixed-schema
+live/temporal reads, missing/corrupt aggregate reconstruction, rejected old payloads before
+tracking, native repair failure/rollback, unchanged retained event facts and fresh recovery.
+The executable flag is exercised against PostgreSQL. No automatic read repair or data migration
+is installed. Shape-only decoding compatibility does not require rebuilding already correct
+state. Readers must support the new schema before newer writers are enabled; rollout and
+projection-meaning changes remain consumer responsibilities.

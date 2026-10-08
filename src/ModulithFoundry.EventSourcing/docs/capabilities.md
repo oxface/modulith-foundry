@@ -23,14 +23,19 @@ Queries/Filters can filter and join stored aggregate state without persisting se
 Secondary inline and multi-stream projections are deferred until a concrete query/storage need
 justifies them. Main aggregate state must remain current within every successful append transaction.
 
+Optional Events.Serialization now provides explicit forward JSON upcasting and PassThrough
+for compatible schema changes. Inventory composes it during historical decoding and full replay;
+ordinary inline loading still reads saved state without replay or repair. Event rows are never
+rewritten. Shape-only changes need not rebuild correct state; projection-meaning changes and
+reader-before-writer rollout remain consumer decisions. See the [codec contract](../../../src/ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md)
+and [upcasting evidence](../../../docs/reports/event-payload-upcasting.md). This EF package gains
+no serialization dependency.
+
 ## Planned capabilities and their proof obligations
 
 - Maintenance worker: still needed eventually; deferred to keep this change focused. Consumers
   can host reconciliation now, owning scheduling, locking/windows, authorization, retries and
   scaling. Future jobs must prove crash recovery, idempotence and safe coordination with writers.
-- Upcasting/versioned event transformations: important next maintenance-related direction;
-  stable aliases and schema dispatch exist, upcasters do not. Prove retained historical payloads,
-  transformation order, lossless evolution and reconstruction before treating them as supported.
 - Async projections and durable checkpoints: prove ordering, duplicate handling, rollback,
   restart and fault recovery. Not just an implementation exercise.
 - Multi-stream projections and extra inline views: reassess native EF joins/filter translation

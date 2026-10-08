@@ -46,12 +46,13 @@ fallback, CLR-derived alias or additional payload discriminator is supplied. Ser
 contains its registered name/version and native `JsonElement`. `SerializedEvent` is an ordinary
 data record, not a validator for envelopes manually constructed by a consumer.
 
-Deserialization selects only an exact registered pair. Unknown names and unsupported versions
+Deserialization selects an exact registered pair or an explicitly configured upcasting path.
+Unknown names and unsupported versions
 raise `EventDecodingException` with `UnknownEvent = 1`; null results, undefined payloads and
 native `JsonException` failures use `InvalidPayload = 2`. The requested name/version are
 available on the exception. The outer message does not include the payload; native inner
 JSON exceptions are retained and can carry converter diagnostics. Consumers choose logging
-and attach stream/event position or product error context. No event is skipped or upgraded.
+and attach stream/event position or product error context. No event is skipped or implicitly upgraded.
 
 Other converter/configuration exceptions retain their native type. Null arguments are caller
 errors. The caller parses source JSON and supplies a live element during decoding; malformed
@@ -75,23 +76,80 @@ registry/options. There is no disposal, operation scope or I/O inside the codec.
 
 Use ordinary construction or your chosen DI lifetime. The codec provides no discovery,
 registration middleware, domain-event collection, dispatch, persistence, transaction, retry,
-generated application code or stream metadata. Multiple read schemas per CLR type, upcasting,
-other serialization engines, AOT support and transport compatibility require separate proofs.
+generated application code or stream metadata. Other serialization engines, AOT support and
+transport compatibility require separate proofs.
 
 The typed registration factory has one local CA1000 suppression: the family type belongs on
 the registration and the method selects its concrete event type. There is no global analyzer
 disable or extra factory facade. Review it with [the interface plan](../../../docs/plans/e4-event-serialization.md)
 and [proof report](../../../docs/reports/e4-event-serialization.md).
 
-## Deferred direction and event-store composition
+## Explicit historical schema upgrades
+
+Register the current CLR event's write schema once, then supply consumer-owned upcasters as
+the optional third constructor argument:
+
+```csharp
+var codec = new JsonEventCodec<IStockPositionEvent>(options,
+[
+    EventRegistration<IStockPositionEvent>.For<StockPositionReceived>(
+        "inventory.stock-position.received", 2),
+],
+[
+    new ReceiptV1ToV2(),
+]);
+```
+
+Derive from `JsonEventUpcaster`, passing the durable name and source/target schema versions
+to its protected constructor, and override `JsonElement Upcast(JsonElement payload)`.
+The Inventory [receipt transformation](../../../samples/Wholesale/modules/Inventory/Inventory/StockPositions/ReceiptV1ToV2.cs)
+renames `quantity` to `receivedQuantity` without changing domain facts. The standalone
+[Purchasing example](../../../samples/Wholesale/EventCodecDemo/Purchasing/PurchaseOrderSchemaEvolutionExample.cs)
+chains a flat v1 through renamed v2 fields into a nested v3 shape. These transformations belong
+to their consumers; the codec owns route selection, ordered execution and terminal CLR dispatch.
+
+An additive optional field usually needs no transformation or version bump:
+`string? DeliveryReference = null` supplies null when absent under the sample's native options.
+Nullable alone need not make a constructor argument optional. If your schema convention requires
+a bump, register the current type at v2 and supply
+`JsonEventUpcaster.PassThrough("inventory.stock-position.received", 1, 2)`.
+This declares compatible JSON; it neither inserts fields nor bypasses required-field validation.
+
+Every step keeps its exact ordinal event name and increases its schema version. Explicit
+jumps are allowed. Duplicate sources, a source also registered as an exact CLR schema, and
+paths without an exact terminal registration fail construction with `ArgumentException`.
+Declared intermediate sources can be decoded directly. There is no nearest-version fallback,
+assembly discovery or order-dependent branching. Existing exact registrations for distinct CLR
+types at different versions remain valid; a single CLR type still has one write registration.
+
+For an upgrade, the codec clones the live source and each live intermediate element. Upcasters
+must return defined, nonnull JSON and keep their result alive until the codec receives it;
+returning an already disposed document is a programmer error. `SerializeToElement` is a simple
+way to return owned JSON. Cloning owns document lifetime, not EF tracking or JSON mutation.
+Transforms must be pure and safe for concurrent use; the codec does not enforce consumer
+determinism, converter/transform thread safety or domain semantics.
+
+Undefined/null upgrade input or output and native `JsonException` from a step or terminal
+decode use existing `InvalidPayload`. Unknown/future/undeclared identities use `UnknownEvent`
+before payload inspection. Failures retain the original requested stored name/version.
+Other consumer failures and disposed elements propagate natively. Serialization never invokes
+upcasters: the registered runtime type determines the current write identity.
+
+## Event-store composition and deferred direction
 
 Wholesale uses this codec for event-store envelope encoding and explicit historical decoding.
 It maps each exact durable name/schema pair back to the concrete registered CLR fact shape.
 The provided event store does not depend on this package: direct JSON/other explicit encoders
 remain possible. No domain-event bus or handler registry follows from these registrations.
 
-Multiple historical schemas for one CLR type, deterministic upcasting, generated registration,
-alternative serializers and AOT remain deferred. Any selected extension must preserve literal
-old payload compatibility and establish errors for unsupported schemas/missing upgrade paths.
+Upcasting changes read-time interpretation only. Stored JSONB, event IDs, positions and times
+remain untouched. Compatible readers must be deployed before newer-schema writers; older codecs
+cannot read those writes. A shape-only upgrade need not rebuild already correct inline state.
+Projection-meaning changes need consumer-controlled rollout and maintenance; this codec does
+not orchestrate either. There is no reverse conversion, alias rename, split/merge, row migration
+or automatic acceptance of historical schemas.
+
+Generated registration, alternative serializers and AOT remain deferred. See the
+[package capability record](docs/capabilities.md) for the supported boundary and proof links.
 See the [event-store capability context](../../ModulithFoundry.EventSourcing/ModulithFoundry.EventSourcing.EntityFrameworkCore/docs/capabilities.md)
-for related persisted-history/projection obligations; no extension is implemented by that plan.
+for related persisted-history/projection obligations and separately deferred maintenance work.

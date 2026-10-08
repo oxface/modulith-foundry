@@ -7,7 +7,7 @@ public contract and dependencies; the family is not an umbrella runtime package.
 
 | Package | Responsibility and dependencies |
 | --- | --- |
-| [ModulithFoundry.Events.Serialization](ModulithFoundry.Events.Serialization/README.md) | Package-free explicit durable name/schema registry and native System.Text.Json codec. |
+| [ModulithFoundry.Events.Serialization](ModulithFoundry.Events.Serialization/README.md) | Package-free explicit durable name/schema registry, native System.Text.Json codec and opt-in forward payload upcasting. |
 | [ModulithFoundry.Events.History](ModulithFoundry.Events.History/README.md) | Package-free selected-range position/time integrity validation; no JSON or codec dependency. |
 
 [Current capabilities, consumer obligations and deferred context](docs/capabilities.md)

@@ -91,7 +91,10 @@ observed prefix; only a fresh stream observation discovers it.
 Argument errors and unsupported native mappings propagate as native argument/operation exceptions.
 Range gaps/order/time regression use EventHistoryException from Events.History. Invalid stream,
 UTC or endpoint metadata uses InvalidDataException. Decoder/EF/provider faults and cancellation
-propagate. There is no retry, streaming/page limit, global ordering, upcasting, catch-up or repair.
+propagate. There is no retry, streaming/page limit, global ordering, catch-up or repair in the
+reader. Payload upcasting can be supplied in the consumer's decoder through optional
+[Events.Serialization](../../ModulithFoundry.Events/ModulithFoundry.Events.Serialization/README.md);
+it adds no dependency or automatic repair to this package.
 The entire selected prefix is materialized; no capacity/performance guarantee is made.
 
 ## Encoding and EF tracking
