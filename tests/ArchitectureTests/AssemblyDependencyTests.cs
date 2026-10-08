@@ -41,6 +41,8 @@ public sealed class AssemblyDependencyTests
             typeof(Rootbolt.Messaging.EntityFrameworkCore.IOutbox<>).Assembly,
             typeof(Rootbolt.Messaging.EntityFrameworkCore.Postgres.PostgresOutboxDispatcher<>).Assembly,
             typeof(Samples.OutboxDemo.DemoJourneys).Assembly,
+            typeof(Samples.InboxDemo.InboxDemoHost).Assembly,
+            typeof(Samples.MessagingDemo.MessagingJourney).Assembly,
             typeof(ActorContextMiddleware).Assembly,
             typeof(TenantId).Assembly,
             typeof(TenantContextMiddleware).Assembly,
@@ -145,6 +147,8 @@ public sealed class AssemblyDependencyTests
                     HttpSample,
                     EventPersistenceSample,
                     "OutboxDemo",
+                    "InboxDemo",
+                    "MessagingDemo",
                 }
             )
                 NoDependency(layer, forbidden).Check(Architecture);
@@ -170,7 +174,11 @@ public sealed class AssemblyDependencyTests
                 Storage,
             }
         )
+        {
             NoDependency("OutboxDemo", forbidden).Check(Architecture);
+            NoDependency("InboxDemo", forbidden).Check(Architecture);
+        }
+        NoDependency("InboxDemo", "OutboxDemo").Check(Architecture);
     }
 
     [Fact]

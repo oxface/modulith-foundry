@@ -110,6 +110,11 @@ public sealed class AdoptionDependencyTests
             ["Rootbolt.Messaging.EntityFrameworkCore.Postgres"],
             ["Microsoft.EntityFrameworkCore.Design"]
         );
+        Check(
+            "InboxDemo",
+            ["Rootbolt.Messaging.EntityFrameworkCore.Postgres"],
+            ["Microsoft.EntityFrameworkCore.Design"]
+        );
 
         static void Check(string project, string[] projects, string[] packages)
         {

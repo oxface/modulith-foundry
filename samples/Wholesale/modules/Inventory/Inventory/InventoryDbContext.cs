@@ -25,6 +25,13 @@ public sealed class InventoryDbContext(
         HistoryMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
         InlineStateMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
         modelBuilder
+            .ConfigurePostgresInbox("inventory", "inbox_messages")
+            .HasTenantOwnership(
+                row => row.TenantKey!,
+                () => RequiredOrganizationKey,
+                "OrganizationScope"
+            );
+        modelBuilder
             .ConfigurePostgresOutbox("inventory", "outbox_messages")
             .HasTenantOwnership(
                 row => row.TenantKey!,
@@ -54,6 +61,7 @@ public sealed class InventoryDbContext(
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
         this.ValidateEventStreamChanges();
         this.ValidateOutboxChanges();
+        this.ValidateInboxChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -65,6 +73,7 @@ public sealed class InventoryDbContext(
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
         this.ValidateEventStreamChanges();
         this.ValidateOutboxChanges();
+        this.ValidateInboxChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 }

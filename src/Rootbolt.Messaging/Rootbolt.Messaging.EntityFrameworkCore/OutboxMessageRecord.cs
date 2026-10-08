@@ -16,6 +16,8 @@ public sealed class OutboxMessageRecord
             SchemaVersion = message.SchemaVersion,
             Payload = message.Payload,
             TenantKey = message.TenantKey,
+            CorrelationId = message.CorrelationId,
+            CausationId = message.CausationId,
         };
 
     /// <summary>Retained delivery identity and primary key within this module's outbox.</summary>
@@ -35,6 +37,12 @@ public sealed class OutboxMessageRecord
 
     /// <summary>Optional opaque tenant metadata; does not establish trusted tenant admission.</summary>
     public string? TenantKey { get; private set; }
+
+    /// <summary>Optional retained conversation identity; not a deduplication key.</summary>
+    public string? CorrelationId { get; private set; }
+
+    /// <summary>Optional retained identity of the immediate cause.</summary>
+    public string? CausationId { get; private set; }
 
     /// <summary>Database-assigned insertion time, not the business event's occurrence time.</summary>
     public DateTimeOffset QueuedAt { get; private set; }

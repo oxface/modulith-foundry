@@ -12,13 +12,17 @@ public sealed class OutgoingMessage
     /// <param name="schemaVersion">Positive version of the named wire contract.</param>
     /// <param name="payload">Already serialized, non-null JSON; serialization policy belongs to the consumer.</param>
     /// <param name="tenantKey">Optional opaque tenant metadata. This neither admits a tenant nor grants authority.</param>
+    /// <param name="correlationId">Optional conversation identity; does not deduplicate delivery.</param>
+    /// <param name="causationId">Optional identity of the immediate cause of this message.</param>
     public OutgoingMessage(
         Guid messageId,
         string routeKey,
         string messageName,
         int schemaVersion,
         JsonElement payload,
-        string? tenantKey = null
+        string? tenantKey = null,
+        string? correlationId = null,
+        string? causationId = null
     )
     {
         ArgumentOutOfRangeException.ThrowIfEqual(messageId, Guid.Empty);
@@ -32,6 +36,10 @@ public sealed class OutgoingMessage
             );
         if (tenantKey is not null)
             ArgumentException.ThrowIfNullOrWhiteSpace(tenantKey);
+        if (correlationId is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(correlationId);
+        if (causationId is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(causationId);
 
         MessageId = messageId;
         RouteKey = routeKey;
@@ -40,6 +48,8 @@ public sealed class OutgoingMessage
         // Own the payload independently of the caller's JsonDocument lifetime.
         Payload = payload.Clone();
         TenantKey = tenantKey;
+        CorrelationId = correlationId;
+        CausationId = causationId;
     }
 
     /// <summary>Serializes a typed payload using explicit consumer options and returns a non-generic envelope.</summary>
@@ -51,6 +61,8 @@ public sealed class OutgoingMessage
     /// <param name="payload">The non-null wire payload to serialize.</param>
     /// <param name="serializerOptions">Consumer-selected JSON policy, including converters and type metadata.</param>
     /// <param name="tenantKey">Optional opaque tenant metadata; grants no authority.</param>
+    /// <param name="correlationId">Optional conversation identity.</param>
+    /// <param name="causationId">Optional identity of the immediate cause.</param>
     public static OutgoingMessage FromPayload<TPayload>(
         Guid messageId,
         string routeKey,
@@ -58,7 +70,9 @@ public sealed class OutgoingMessage
         int schemaVersion,
         TPayload payload,
         JsonSerializerOptions serializerOptions,
-        string? tenantKey = null
+        string? tenantKey = null,
+        string? correlationId = null,
+        string? causationId = null
     )
     {
         ArgumentNullException.ThrowIfNull(serializerOptions);
@@ -68,7 +82,9 @@ public sealed class OutgoingMessage
             messageName,
             schemaVersion,
             JsonSerializer.SerializeToElement(payload, serializerOptions),
-            tenantKey
+            tenantKey,
+            correlationId,
+            causationId
         );
     }
 
@@ -89,4 +105,10 @@ public sealed class OutgoingMessage
 
     /// <summary>Optional opaque tenant metadata. Does not admit a tenant or grant access.</summary>
     public string? TenantKey { get; }
+
+    /// <summary>Optional conversation identity, independent of delivery deduplication.</summary>
+    public string? CorrelationId { get; }
+
+    /// <summary>Optional identity of the immediate cause, usually the preceding MessageId.</summary>
+    public string? CausationId { get; }
 }

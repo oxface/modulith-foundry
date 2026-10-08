@@ -1,0 +1,314 @@
+using System.Data.Common;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using ModulithFoundry.Samples.MessagingDemo;
+using ModulithFoundry.Samples.OutboxDemo;
+using ModulithFoundry.Tests.Infrastructure;
+using Npgsql;
+using RabbitMQ.Client;
+using Rootbolt.Messaging;
+using Rootbolt.Messaging.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
+using static ModulithFoundry.Samples.InboxDemo.Tests.AdoptionTests;
+
+namespace ModulithFoundry.Samples.InboxDemo.Tests;
+
+[Collection("Rendering PostgreSQL")]
+public sealed class BrokerTests(PostgreSqlFixture postgres, RabbitMqFixture rabbit)
+    : IClassFixture<RabbitMqFixture>
+{
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task ExecutableRoundTripUsesIndependentDatabasesAndNoReceiverOutbox()
+    {
+        string sender = await postgres.CreateDatabaseAsync(Token);
+        string receiver = await postgres.CreateDatabaseAsync(Token);
+        using var output = new StringWriter();
+        await MessagingJourney.RunAsync(
+            sender,
+            receiver,
+            new Uri(rabbit.ConnectionString),
+            output,
+            Token
+        );
+        Assert.Contains("local job=Processed", output.ToString());
+        await using var exports = ExportDbContext.Create(sender);
+        await using var rendering = RenderDbContext.Create(receiver);
+        Assert.True((await exports.Set<ExportRequest>().SingleAsync(Token)).Submitted);
+        Assert.NotNull((await exports.Set<OutboxMessageRecord>().SingleAsync(Token)).DispatchedAt);
+        Assert.NotNull((await rendering.Set<InboxMessageRecord>().SingleAsync(Token)).ProcessedAt);
+        Assert.Equal(3, (await rendering.Set<RenderJob>().SingleAsync(Token)).Pages);
+        Assert.Null(exports.Model.FindEntityType(typeof(InboxMessageRecord)));
+        Assert.Null(rendering.Model.FindEntityType(typeof(OutboxMessageRecord)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RollbackBeforeAckAndChannelLossAfterCommittedIntakeBothRecoverByNativeRedelivery(
+        bool committed
+    )
+    {
+        string receiver = await ReceiverAsync();
+        await using var connection = await ConnectAsync();
+        await using var channel = await ChannelAsync(connection);
+        string queue = await QueueAsync(channel);
+        var outgoing = OutgoingMessage.FromPayload(
+            Guid.NewGuid(),
+            "exports.render",
+            "exports.render",
+            1,
+            new RenderExportV1(Guid.NewGuid(), 3),
+            new JsonSerializerOptions(),
+            correlationId: "workflow",
+            causationId: "parent"
+        );
+        await new RabbitMqExportPublisher(channel, queue).PublishAsync(outgoing, Token);
+        var delivery = await DeliveryAsync(channel, queue);
+        var services = new ServiceCollection();
+        InboxDemoHost.Register(services, receiver);
+        services.AddDbContext<RenderDbContext>(options =>
+            options.AddInterceptors(new IntakeCommitFault(channel, committed))
+        );
+        await using (var provider = services.BuildServiceProvider())
+            await Assert.ThrowsAnyAsync<Exception>(() =>
+                new RabbitMqRenderReceiver(
+                    channel,
+                    provider.GetRequiredService<IServiceScopeFactory>()
+                ).ReceiveAsync(delivery, Token)
+            );
+        await using (var observer = RenderDbContext.Create(receiver))
+        {
+            Assert.Equal(
+                committed ? 1 : 0,
+                await observer.Set<InboxMessageRecord>().CountAsync(Token)
+            );
+            Assert.Empty(await observer.Set<RenderJob>().ToArrayAsync(Token));
+        }
+        if (channel.IsOpen)
+            await channel.CloseAsync(200, "proof requeue", abort: false, cancellationToken: Token);
+        await using var recovered = await ChannelAsync(connection);
+        var redelivery = await DeliveryAsync(recovered, queue);
+        Assert.True(redelivery.Redelivered);
+        Assert.Equal(delivery.BasicProperties.MessageId, redelivery.BasicProperties.MessageId);
+        var recoveredServices = new ServiceCollection();
+        InboxDemoHost.Register(recoveredServices, receiver);
+        await using var recovery = recoveredServices.BuildServiceProvider();
+        Assert.Equal(
+            committed ? InboxReceiveResult.AlreadyReceived : InboxReceiveResult.Queued,
+            await new RabbitMqRenderReceiver(
+                recovered,
+                recovery.GetRequiredService<IServiceScopeFactory>()
+            ).ReceiveAsync(redelivery, Token)
+        );
+        Assert.Null(await recovered.BasicGetAsync(queue, autoAck: false, Token));
+        Assert.Equal(InboxProcessingResult.Processed, await ProcessAsync(recovery));
+        await using var fresh = RenderDbContext.Create(receiver);
+        Assert.Single(await fresh.Set<RenderJob>().ToArrayAsync(Token));
+        var row = await fresh.Set<InboxMessageRecord>().SingleAsync(Token);
+        Assert.Equal("workflow", row.CorrelationId);
+        Assert.Equal("parent", row.CausationId);
+    }
+
+    [Fact]
+    public async Task SenderCompletionFailureRepeatsDeliveryButCompletedInboxDoesNotRepeatBusinessWork()
+    {
+        string sender = await postgres.CreateDatabaseAsync(Token);
+        string receiver = await ReceiverAsync();
+        await using (var database = ExportDbContext.Create(sender))
+        {
+            await database.Database.MigrateAsync(Token);
+            Guid id = Guid.NewGuid();
+            database.Add(ExportRequest.Create(id, 3));
+            await database.SaveChangesAsync(Token);
+            await using var transaction = await database.Database.BeginTransactionAsync(Token);
+            Assert.Equal(
+                ExportSubmissionResult.Accepted,
+                await new ExportRequestCommands(
+                    database,
+                    new EfOutbox<ExportDbContext>(database)
+                ).SubmitAsync(id, 1, Token)
+            );
+            await database.SaveChangesAsync(Token);
+            await transaction.CommitAsync(Token);
+        }
+        await SqlAsync(
+            sender,
+            "ALTER TABLE exports.outgoing_work ADD CONSTRAINT proof_completion CHECK (dispatched_at IS NULL)"
+        );
+        await using var connection = await ConnectAsync();
+        await using var channel = await ChannelAsync(connection);
+        string queue = await QueueAsync(channel);
+        var services = new ServiceCollection();
+        InboxDemoHost.Register(services, receiver);
+        await using var provider = services.BuildServiceProvider();
+        await using (var database = ExportDbContext.Create(sender))
+            await Assert.ThrowsAsync<PostgresException>(() =>
+                Dispatcher(database, channel, queue).DispatchNextAsync(Token)
+            );
+        var first = await DeliveryAsync(channel, queue);
+        var intake = new RabbitMqRenderReceiver(
+            channel,
+            provider.GetRequiredService<IServiceScopeFactory>()
+        );
+        Assert.Equal(InboxReceiveResult.Queued, await intake.ReceiveAsync(first, Token));
+        Assert.Equal(InboxProcessingResult.Processed, await ProcessAsync(provider));
+        await SqlAsync(
+            sender,
+            "ALTER TABLE exports.outgoing_work DROP CONSTRAINT proof_completion; UPDATE exports.outgoing_work SET lease_until = clock_timestamp() - interval '1 second'"
+        );
+        await using (var fresh = ExportDbContext.Create(sender))
+            Assert.Equal(
+                OutboxDispatchResult.Published,
+                await Dispatcher(fresh, channel, queue).DispatchNextAsync(Token)
+            );
+        var second = await DeliveryAsync(channel, queue);
+        Assert.Equal(first.BasicProperties.MessageId, second.BasicProperties.MessageId);
+        Assert.Equal(InboxReceiveResult.AlreadyReceived, await intake.ReceiveAsync(second, Token));
+        Assert.Equal(InboxProcessingResult.NoWork, await ProcessAsync(provider));
+        await using var read = RenderDbContext.Create(receiver);
+        Assert.Single(await read.Set<RenderJob>().ToArrayAsync(Token));
+        Assert.Single(await read.Set<InboxMessageRecord>().ToArrayAsync(Token));
+    }
+
+    [Fact]
+    public async Task AcknowledgedIntakeRetainsFailedHandlerWorkAndFreshProcessingNeedsNoBrokerRedelivery()
+    {
+        string receiver = await ReceiverAsync();
+        await SqlAsync(
+            receiver,
+            "ALTER TABLE rendering.jobs ADD CONSTRAINT proof_render CHECK (\"Pages\" > 3)"
+        );
+        await using var connection = await ConnectAsync();
+        await using var channel = await ChannelAsync(connection);
+        string queue = await QueueAsync(channel);
+        await new RabbitMqExportPublisher(channel, queue).PublishAsync(
+            OutgoingMessage.FromPayload(
+                Guid.NewGuid(),
+                "exports.render",
+                "exports.render",
+                1,
+                new RenderExportV1(Guid.NewGuid(), 3),
+                new JsonSerializerOptions()
+            ),
+            Token
+        );
+        var services = new ServiceCollection();
+        InboxDemoHost.Register(services, receiver);
+        await using var provider = services.BuildServiceProvider();
+        await new RabbitMqRenderReceiver(
+            channel,
+            provider.GetRequiredService<IServiceScopeFactory>()
+        ).ReceiveAsync(await DeliveryAsync(channel, queue), Token);
+        Assert.Null(await channel.BasicGetAsync(queue, autoAck: false, Token));
+        await Assert.ThrowsAsync<DbUpdateException>(() => ProcessAsync(provider));
+        await using (var observer = RenderDbContext.Create(receiver))
+        {
+            Assert.Empty(await observer.Set<RenderJob>().ToArrayAsync(Token));
+            Assert.Null((await observer.Set<InboxMessageRecord>().SingleAsync(Token)).ProcessedAt);
+        }
+        await SqlAsync(
+            receiver,
+            "ALTER TABLE rendering.jobs DROP CONSTRAINT proof_render; UPDATE rendering.incoming_work SET available_at = clock_timestamp() - interval '1 second'"
+        );
+        Assert.Equal(InboxProcessingResult.Processed, await ProcessAsync(provider));
+        Assert.Null(await channel.BasicGetAsync(queue, autoAck: false, Token));
+        await using var read = RenderDbContext.Create(receiver);
+        Assert.Single(await read.Set<RenderJob>().ToArrayAsync(Token));
+    }
+
+    private async Task<string> ReceiverAsync()
+    {
+        string connection = await postgres.CreateDatabaseAsync(Token);
+        await using var database = RenderDbContext.Create(connection);
+        await database.Database.MigrateAsync(Token);
+        return connection;
+    }
+
+    private Task<IConnection> ConnectAsync() =>
+        new ConnectionFactory
+        {
+            Uri = new Uri(rabbit.ConnectionString),
+            AutomaticRecoveryEnabled = false,
+        }.CreateConnectionAsync(Token);
+
+    private static Task<IChannel> ChannelAsync(IConnection connection) =>
+        connection.CreateChannelAsync(
+            new CreateChannelOptions(
+                publisherConfirmationsEnabled: true,
+                publisherConfirmationTrackingEnabled: true
+            ),
+            Token
+        );
+
+    private static async Task<string> QueueAsync(IChannel channel)
+    {
+        string queue = "exports.proof." + Guid.NewGuid().ToString("N");
+        await channel.QueueDeclareAsync(
+            queue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            cancellationToken: Token
+        );
+        return queue;
+    }
+
+    private static async Task<BasicGetResult> DeliveryAsync(IChannel channel, string queue)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        while (true)
+        {
+            var delivery = await channel.BasicGetAsync(queue, autoAck: false, timeout.Token);
+            if (delivery is not null)
+                return delivery;
+            await Task.Delay(10, timeout.Token);
+        }
+    }
+
+    private static PostgresOutboxDispatcher<ExportDbContext> Dispatcher(
+        ExportDbContext context,
+        IChannel channel,
+        string queue
+    ) =>
+        new(
+            context,
+            new RabbitMqExportPublisher(channel, queue),
+            new(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(1))
+        );
+
+    private sealed class IntakeCommitFault(IChannel channel, bool afterCommit)
+        : DbTransactionInterceptor
+    {
+        public override ValueTask<InterceptionResult> TransactionCommittingAsync(
+            DbTransaction transaction,
+            TransactionEventData eventData,
+            InterceptionResult result,
+            CancellationToken cancellationToken = default
+        )
+        {
+            if (!afterCommit)
+                throw new IOException("intake transaction failed before commit");
+            return ValueTask.FromResult(result);
+        }
+
+        public override async Task TransactionCommittedAsync(
+            DbTransaction transaction,
+            TransactionEndEventData eventData,
+            CancellationToken cancellationToken = default
+        )
+        {
+            if (afterCommit)
+                await channel.CloseAsync(
+                    200,
+                    "committed intake before ack",
+                    abort: false,
+                    cancellationToken: cancellationToken
+                );
+        }
+    }
+}

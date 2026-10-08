@@ -9,6 +9,8 @@
     <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/Rootbolt.Messaging.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/Rootbolt.Messaging.EntityFrameworkCore.Postgres.csproj" />
     <ProjectReference Include="../../samples/OutboxDemo/OutboxDemo.csproj" />
+    <ProjectReference Include="../../samples/InboxDemo/InboxDemo.csproj" />
+    <ProjectReference Include="../../samples/MessagingDemo/MessagingDemo.csproj" />
     <ProjectReference Include="../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing/Rootbolt.EventSourcing.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Events/Rootbolt.Events.History/Rootbolt.Events.History.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Events/Rootbolt.Events.Serialization/Rootbolt.Events.Serialization.csproj" />
@@ -30,6 +32,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None
+      Include="../../samples/InboxDemo/InboxDemo.csproj"
+      Link="ProjectDeclarations/InboxDemo.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
     <None
       Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging/Rootbolt.Messaging.csproj"
       Link="ProjectDeclarations/Rootbolt.Messaging.csproj"

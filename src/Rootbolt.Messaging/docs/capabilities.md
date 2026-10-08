@@ -3,15 +3,19 @@
 O1 supplies one bounded transactional-outbox capability. [Family setup](../README.md)
 and the three package READMEs define the public surface; [the O1 proposal](../../../docs/plans/outbox1-transactional-dispatch.md)
 records owner review and [the report](../../../docs/reports/outbox1-transactional-dispatch.md)
-records dated executions. No inbox runtime is present yet.
+records dated executions. O1 is owner-approved at checkpoint `2d7a865` and merged as
+`beafa4e`. I1 adds independently selected durable intake and separate transactional processing.
+Its [interface/scope](../../../docs/plans/inbox1-durable-intake-processing.md) is owner-approved;
+the implementation remains unstaged for review. [Inbox setup and guarantees](inbox.md) and
+[the fresh execution report](../../../docs/reports/inbox1-durable-intake-processing.md) describe the current contract.
 
 ## Current composition
 
 Each module selects its own typed DbContext, schema/table, business/integration contracts,
 publisher and optional worker. A state-stored adopter needs no event sourcing or context
 libraries. An event-sourced adopter enqueues deliberately, alongside facts and the required
-inline aggregate. Rebuild/replay does not publish old effects. Native SaveChanges and Commit
-remain explicit. Atomicity does not replace concurrency predicates protecting business decisions.
+inline aggregate. Rebuild/replay does not publish old effects. Producer SaveChanges and Commit
+remain explicit; the separately invoked inbox processor owns its local save/completion/commit. Atomicity does not replace concurrency predicates protecting business decisions.
 
 Enqueue preserves the producer's native isolation. ReadCommitted is the sample baseline;
 RepeatableRead/Serializable commit/rollback are exercised separately. Native serialization
@@ -90,10 +94,9 @@ A publisher may implement a database handoff as its transport. It must commit re
 before returning acceptance; the sender can still fail to record completion and repeat delivery.
 Receiving deduplication remains necessary. No database-handoff runtime is provided in O1.
 
-## Next: durable inbox intake and processing
+## Durable inbox intake and processing
 
-The owner requested a retained incoming queue, not just a processed-receipt table. Propose
-this next as a separate reviewed capability with independently selected tables/registration:
+The owner approved a retained incoming queue with independently selected tables/registration:
 
 1. Consumer receives a complete integration envelope, validates its trusted origin and
    persists a unique intake identity/payload in the receiving module's native transaction.
@@ -101,12 +104,13 @@ this next as a separate reviewed capability with independently selected tables/r
    recognizes the retained identity and does not queue duplicate work.
 3. Callable processing and an optional worker invoke explicitly registered handlers in fresh
    scopes. Local business effects, processing completion and newly produced outbox work must
-   commit together, with losing/expired claims unable to commit partial local effects.
+   commit together. I1 holds a native row lock through bounded local
+   processing rather than using an expiring claim; external effects are outgoing work.
 
 The receiving module owns its context and commit independently of the sender. A native
-RabbitMQ two-module sample must prove rollback without ack, committed intake before ack
-failure, duplicate/racing intake, handler failure/recovery, stale leases and fresh-context
-processing. This becomes a useful service-splitting pattern without a distributed transaction.
+RabbitMQ two-module sample proves rollback without ack and committed intake before ack
+failure. PostgreSQL and consumer proofs additionally cover duplicate/racing intake, handler
+failure/recovery, connection-loss rollback and fresh-context processing. This becomes a useful service-splitting pattern without a distributed transaction.
 A local durable handoff adapter can be compared later.
 
 MessageId identifies one delivery and must remain stable on retry. Define deduplication
@@ -126,7 +130,7 @@ semantics remain visible in the sample. Additional helpers must earn their inter
 
 ## Deferred capabilities
 
-Durable inbox and its handler registration/worker; receipt-only mode if an adopter needs it;
+Receipt-only mode if an adopter needs it;
 queued-message compatibility/upcasting rollout proofs; retention/deduplication windows;
 identity-preserving redrive; poison/attempt-cap policy; lease renewal; parallel/batch dispatch;
 per-stream ordering; other DBMS providers; additional transports and local module handoff;

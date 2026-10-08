@@ -11,6 +11,26 @@ namespace Rootbolt.Messaging.Tests;
 [Collection("Messaging PostgreSQL")]
 public sealed class ProducerTests(PostgreSqlFixture postgres)
 {
+    [Theory]
+    [InlineData("CorrelationId")]
+    [InlineData("CausationId")]
+    public async Task RetainedReplyMetadataCannotBeChangedAfterEnqueue(string property)
+    {
+        string connection = await DatabaseAsync(postgres);
+        await using var writer = Context(connection);
+        await using var transaction = await writer.Database.BeginTransactionAsync(Token);
+        new EfOutbox<OutboxConsumer>(writer).Enqueue(Message());
+        writer
+            .ChangeTracker.Entries<OutboxMessageRecord>()
+            .Single()
+            .Property(property)
+            .CurrentValue = "changed";
+        await Assert.ThrowsAsync<InvalidOperationException>(() => writer.SaveChangesAsync(Token));
+        await transaction.RollbackAsync(Token);
+        await using var fresh = Context(connection);
+        Assert.Empty(await fresh.Set<OutboxMessageRecord>().ToArrayAsync(Token));
+    }
+
     [Fact]
     public async Task CancelledLaterSaveRollsBackEarlierBusinessSqlAndFreshContextCanRetry()
     {

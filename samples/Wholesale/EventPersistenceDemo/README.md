@@ -278,6 +278,34 @@ without rebinding its context or treating a query filter as privileged authoriza
 The three PostgreSQL/RabbitMQ proofs cover confirmed acceptance followed by completion
 failure and repeat delivery, mandatory unroutable failure/recovery and this finite executable.
 Their manually acknowledged receiver is a transport observer, not an inbox business handler.
-The next inbox slice must demonstrate committed durable intake before ack and independently
-committed business processing. See [Messaging capabilities and that next slice](../../../src/Rootbolt.Messaging/docs/capabilities.md)
+The separate `--inbox` journey below demonstrates committed durable intake before ack and
+independently committed business processing. See [Messaging capabilities](../../../src/Rootbolt.Messaging/docs/capabilities.md)
 and [new versus historical evidence](../../../docs/reports/outbox1-transactional-dispatch.md).
+
+## Durable stock-issue command intake
+
+```bash
+export WHOLESALE_DEMO_CONNECTION_STRING='<disposable PostgreSQL connection string>'
+export WHOLESALE_DEMO_RABBITMQ='amqp://guest:guest@localhost:5672/'
+dotnet run --project samples/Wholesale/EventPersistenceDemo/EventPersistenceDemo.csproj -- --inbox
+dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-class '*InboxDispatchTests'
+```
+
+The explicit [InboxJourney](InboxJourney.cs) publishes an IssueStockV1 command, validates the
+configured producer/schema/Organization, commits retained intake and only then acknowledges
+its native RabbitMQ delivery. Separate processing evolves the stock aggregate, saves facts,
+queues StockIssueRecordedV1 and completes the inbox row in one local transaction. A handled
+not-found/conflict/shortage instead completes with StockIssueDeclinedV1 and no new stock facts.
+The module initializes a fresh admitted tenant scope before business queries; a TenantKey or
+producer header is not authentication. The finite demo admits only wholesale-alpha/beta from
+its configured demo.stock-commands source; production trust/broker permissions remain host policy.
+
+Incoming correlation is carried to the reply; causation is the incoming MessageId. Direct
+commands retain the stock-position correlation fallback and omit invented causation. The
+receiver and optional processor are explicitly registered; existing default/browser behavior
+does not subscribe to a broker or enable a worker. New forward migrations preserve older ones.
+
+Eight real PostgreSQL/broker cases cover accepted/refused decisions, event/state/reply/completion
+rollback, fresh recovery, tenant admission and this executable. Read the
+[Inbox contract](../../../src/Rootbolt.Messaging/docs/inbox.md) for native row-lock processing
+and remaining operational limits.

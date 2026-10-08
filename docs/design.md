@@ -506,3 +506,15 @@ under `src/Rootbolt.{Family}/`. Detailed package setup remains with each project
 ADRs/plans/reports keep cross-cutting decisions and dated evidence; consumers can discover
 essential integration obligations beside the library. Shared architecture/support and sample
 proofs stay with their owners. See [the relocation scope](plans/library-family-layout.md).
+
+## Durable incoming work and local processing
+
+I1's interface and scope received owner approval on 2026-10-08. Each receiving module owns its
+typed native context and inbox table. Transport adapters commit retained intake before native
+acknowledgement or successful HTTP acceptance. Delivery identity is subscription/producer/ID;
+incompatible reuse fails explicitly. Independently invoked processing holds a PostgreSQL row
+lock through bounded local handler work, native save, completion and commit; outgoing effects
+are explicitly queued in that transaction. This avoids inbox leases without changing the outbox's
+external-publication lease protocol. No transport/ack facade or common Rootbolt unit of work is
+introduced. [ADR 0010](adr/0010-durable-inbox-local-processing.md) records the settled boundary;
+[the family contract](../src/Rootbolt.Messaging/docs/inbox.md) gives standalone setup and limits.

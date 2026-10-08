@@ -41,6 +41,8 @@ public sealed class DispatchTests(PostgreSqlFixture postgres)
         Assert.Equal(message.MessageId, delivered.MessageId);
         Assert.True(JsonElement.DeepEquals(message.Payload, delivered.Payload));
         Assert.Equal(message.TenantKey, delivered.TenantKey);
+        Assert.Equal(message.CorrelationId, delivered.CorrelationId);
+        Assert.Equal(message.CausationId, delivered.CausationId);
         Assert.Equal(
             OutboxDispatchResult.NoWork,
             await Dispatcher(dispatcherContext, publisher).DispatchNextAsync(Token)

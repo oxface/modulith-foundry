@@ -177,3 +177,18 @@ There is no pre-read admission gate, silent catch-up, scheduler or worker. A mai
 remains planned; consumers can host reconciliation and own authorization, windows/locks, retries,
 scheduling and scaling. [The current library contract](../../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing.EntityFrameworkCore/README.md)
 provides self-sufficient setup, errors and limits.
+
+## Inventory durable incoming stock commands
+
+Inventory owns IssueStockV1 and StockIssueDeclinedV1 alongside its existing recorded reply.
+AddStockIssueInbox is separate opt-in after AddStockPositionCommands. The handler admits its
+configured producer/Organization, establishes one fresh tenant context and invokes the existing
+state-dependent command. Accepted event/state changes, outgoing reply and inbox completion share
+the processor's native transaction. Handled business refusals complete with a decline reply;
+technical/admission failures remain pending. Library inbox identity is delivery deduplication,
+not Inventory authorization or stock eligibility.
+
+Operational selection can span this module's tenant queue, but business access occurs only
+after admission. No peer DbContext, shared cross-module transaction or automatic domain-event
+publisher is introduced. [Executable adoption](../EventPersistenceDemo/README.md#durable-stock-issue-command-intake)
+and [library setup](../../../src/Rootbolt.Messaging/docs/inbox.md) describe the explicit lanes.

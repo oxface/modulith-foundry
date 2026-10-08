@@ -5,6 +5,16 @@ string connection =
     ?? throw new InvalidOperationException(
         "Set WHOLESALE_DEMO_CONNECTION_STRING to a disposable demo database."
     );
+if (args.Contains("--inbox", StringComparer.Ordinal))
+{
+    string broker =
+        Environment.GetEnvironmentVariable("WHOLESALE_DEMO_RABBITMQ")
+        ?? throw new InvalidOperationException(
+            "Set WHOLESALE_DEMO_RABBITMQ to a disposable RabbitMQ broker URI."
+        );
+    await InboxJourney.RunAsync(connection, new Uri(broker), Console.Out, CancellationToken.None);
+    return;
+}
 if (args.Contains("--outbox", StringComparer.Ordinal))
 {
     string broker =

@@ -4,6 +4,7 @@ using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.Inventory.Messaging;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
 using Rootbolt.EventSourcing.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
 namespace ModulithFoundry.Samples.Wholesale.Inventory;
@@ -40,12 +41,22 @@ public static class InventoryRegistration
     public static IServiceCollection AddStockPositionCommands(this IServiceCollection services)
     {
         services.AddPostgresOutbox<InventoryDbContext>();
+        services.TryAddScoped<InventoryMessageContext>();
         services.TryAddScoped<StockIssueMessages>();
         RegisterStore(services);
         services.TryAddScoped(provider => new InlineStateReader<EventStream, StockPositionStateRow>(
             provider.GetRequiredService<InventoryDbContext>()
         ));
         return services.AddScoped<IStockPositionCommands, StockPositionCommands>();
+    }
+
+    public static IServiceCollection AddStockIssueInbox(this IServiceCollection services)
+    {
+        services.AddPostgresInbox<InventoryDbContext>();
+        services.AddPostgresInboxProcessor<InventoryDbContext>(new(TimeSpan.FromSeconds(1)));
+        return services.AddInboxHandler<InventoryDbContext, StockIssueInboxHandler>(
+            StockIssueMessageAdmission.Subscription
+        );
     }
 
     public static IServiceCollection AddStockPositionQueries(this IServiceCollection services)

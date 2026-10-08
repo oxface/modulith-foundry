@@ -46,13 +46,15 @@ jobs:
               dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj
               dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj
               dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj
-              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-not-class '*OutboxDispatchTests'
+              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-not-class '*DispatchTests'
           - family: Messaging
             commands: |
               dotnet test --project src/Rootbolt.Messaging/tests/MessagingTests/MessagingTests.csproj
               dotnet test --project src/Rootbolt.Messaging/tests/OutboxPostgresTests/OutboxPostgresTests.csproj
+              dotnet test --project src/Rootbolt.Messaging/tests/InboxPostgresTests/InboxPostgresTests.csproj
               dotnet test --project samples/OutboxDemo.Tests/OutboxDemo.Tests.csproj
-              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-class '*OutboxDispatchTests'
+              dotnet test --project samples/InboxDemo.Tests/InboxDemo.Tests.csproj
+              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-class '*DispatchTests'
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

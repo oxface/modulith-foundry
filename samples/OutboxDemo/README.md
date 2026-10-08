@@ -13,7 +13,10 @@ submitted drafts emit no outgoing work. This is consumer policy, not a generic w
 The consumer-owned HTTP publisher maps one logical destination to a configured endpoint,
 sends stable message identity/name/schema headers and waits for a successful response with
 a ten-second sample timeout. Acceptance does not mean rendering completed. The receiver
-must handle repeated delivery; no durable inbox is supplied by this sample.
+must handle repeated delivery. [InboxDemo](../InboxDemo/README.md) supplies a separately owned
+HTTP inbox receiver; [MessagingDemo](../MessagingDemo/README.md) composes the contexts over RabbitMQ.
+This sender itself registers no inbox. Optional correlation/causation/tenant metadata is retained
+in the outbox and carried explicitly to the receiver.
 
 ```bash
 export OUTBOX_DEMO_CONNECTION_STRING='Host=localhost;Database=outbox_demo;Username=demo;Password=demo'
@@ -30,4 +33,4 @@ including acceptance-before-completion failure followed by identity-preserving r
 They also prove eligibility, competing submissions, rollback and fresh-context recovery.
 
 See [the family contract](../../src/Rootbolt.Messaging/docs/capabilities.md) for setup/errors
-and deferred inbox/worker/ordering policy. PostgreSQL is currently the supported provider.
+and independent inbox composition, workers and deferred ordering policy. PostgreSQL is currently the supported provider.

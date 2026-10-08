@@ -55,10 +55,13 @@ namespace OutboxDemo.Migrations
                         .HasColumnName("available_at")
                         .HasDefaultValueSql("clock_timestamp()");
 
-                    b.Property<string>("RouteKey")
-                        .IsRequired()
+                    b.Property<string>("CausationId")
                         .HasColumnType("text")
-                        .HasColumnName("destination");
+                        .HasColumnName("causation_id");
+
+                    b.Property<string>("CorrelationId")
+                        .HasColumnType("text")
+                        .HasColumnName("correlation_id");
 
                     b.Property<DateTimeOffset?>("DispatchedAt")
                         .HasColumnType("timestamp with time zone")
@@ -77,10 +80,6 @@ namespace OutboxDemo.Migrations
                         .HasColumnType("text")
                         .HasColumnName("message_name");
 
-                    b.Property<string>("TenantKey")
-                        .HasColumnType("text")
-                        .HasColumnName("owner_key");
-
                     b.Property<JsonElement>("Payload")
                         .HasColumnType("jsonb")
                         .HasColumnName("payload");
@@ -91,9 +90,18 @@ namespace OutboxDemo.Migrations
                         .HasColumnName("queued_at")
                         .HasDefaultValueSql("clock_timestamp()");
 
+                    b.Property<string>("RouteKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("destination");
+
                     b.Property<int>("SchemaVersion")
                         .HasColumnType("integer")
                         .HasColumnName("schema_version");
+
+                    b.Property<string>("TenantKey")
+                        .HasColumnType("text")
+                        .HasColumnName("owner_key");
 
                     b.HasKey("MessageId");
 

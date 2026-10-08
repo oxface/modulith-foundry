@@ -1,4 +1,4 @@
-# Native EF outbox composition
+# Native EF messaging composition
 
 References Messaging and native EF Core Relational, DI, Hosting and Logging abstractions.
 No Npgsql, broker, Events, EventSourcing, Persistence or Tenancy dependency.
@@ -31,5 +31,20 @@ NoWork; both delays must be positive and within native Task.Delay bounds. Cooper
 cancellation stops new work and reaches the publisher. A non-cooperative publisher can still
 hold shutdown; leases do not forcibly terminate code. Callable dispatch requires no worker.
 
-Keep domain eligibility, whole-operation retry, tenant admission, final save/commit and
-deployment policy with the consumer. See [complete obligations](../docs/capabilities.md).
+Inbox composition is independent: IInbox<TDbContext> retains delivery in a caller-owned
+native transaction; IInboxProcessor<TDbContext> owns the separate processing save/commit.
+AddInboxHandler<TDbContext,THandler>(subscriptionKey) binds a consumer-owned scoped handler
+through native keyed DI. The handler stages bounded local effects on that context, including
+optional outbox work. It does not commit or perform external effects. No public lease or
+prepared-message handle is introduced. AddInboxWorker<TDbContext>(subscriptionKey,options)
+is separately selected and uses fresh scopes, native logging and cooperative cancellation.
+
+ConfigureInbox supplies relational mapping, specialized by ConfigurePostgresInbox for the
+supported runtime. Call ValidateInboxChanges in both save overrides: tracked inserts/edits/
+deletes of provided records reject. Native intake/completion owns lifecycle SQL; no inbox weak
+registry or transaction field is needed. DbSet properties are optional.
+
+Keep domain eligibility, whole-operation retry, tenant admission and deployment policy with
+the consumer. Producer/intake final save/commit remain explicit; the processor owns its bounded
+local processing transaction. See [inbox setup](../docs/inbox.md) and
+[complete obligations](../docs/capabilities.md).

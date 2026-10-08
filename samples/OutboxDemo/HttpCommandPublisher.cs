@@ -19,6 +19,12 @@ public sealed class HttpCommandPublisher(HttpClient client, Uri receiver) : IMes
         using var request = new HttpRequestMessage(HttpMethod.Post, receiver);
         request.Headers.Add("X-Message-Id", message.MessageId.ToString());
         request.Headers.Add("X-Message-Name", message.MessageName);
+        if (message.TenantKey is not null)
+            request.Headers.Add("X-Tenant-Key", message.TenantKey);
+        if (message.CorrelationId is not null)
+            request.Headers.Add("X-Correlation-Id", message.CorrelationId);
+        if (message.CausationId is not null)
+            request.Headers.Add("X-Causation-Id", message.CausationId);
         request.Headers.Add(
             "X-Message-Schema",
             message.SchemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)

@@ -18,13 +18,23 @@ forward from E10; that rehearsal is now complete and owner-approved.
 | Bounded event-history reader | Owner-approved and checkpointed as `91542a6`; shared native prefix loading and consumer adoption. [Reader report](../reports/event-history-reader-extraction.md) records fresh checks independently of earlier ES2 evidence. |
 | Explicit JSON payload upcasting | Owner-approved and checkpointed as `b597717`, including PassThrough, Inventory and standalone chained/nested adoption; [new evidence](../reports/event-payload-upcasting.md). |
 | Rootbolt library naming | Owner selected and authorized the rename and checkpoint. All nine reusable projects use `Rootbolt.*`; [scope and verification](../reports/rootbolt-library-renaming.md). No runtime capability added. |
-| Transactional outbox O1 | Owner authorized the revised interface/scope. [Implementation and executable adoption](../../src/Rootbolt.Messaging/README.md) on `codex/transactional-outbox`, unstaged for line-by-line review; [fresh proofs and remaining gaps](../reports/outbox1-transactional-dispatch.md). |
+| Transactional outbox O1 | Owner-reviewed and checkpointed as `2d7a865`; merged through PR #1 as `beafa4e`. [Implementation and executable adoption](../../src/Rootbolt.Messaging/README.md); [fresh proofs and remaining gaps](../reports/outbox1-transactional-dispatch.md). |
+| Durable inbox I1 | [Concrete interface and scope proposal](inbox1-durable-intake-processing.md) on `codex/durable-inbox`, based on `beafa4e`. Interface and scope owner-approved; implemented intake-before-ack and separate transactional local processing, unstaged for implementation review. [Fresh evidence](../reports/inbox1-durable-intake-processing.md). |
 
-The current slice is [O1 transactional enqueue and callable recoverable dispatch](outbox1-transactional-dispatch.md).
-It narrows E7 below to outbox mechanics, with a state-stored standalone adopter and an
-event-sourced Inventory consumer. O1 includes a simple opt-in hosted
-outbox worker and consumer-owned RabbitMQ publication proof; durable inbox intake, transactional
-processing and a full module-to-module acknowledgement sample remain the next increment.
+The current implemented slice is [I1 durable inbox intake and transactional local processing](inbox1-durable-intake-processing.md).
+It follows the completed [O1 transactional enqueue and callable recoverable dispatch](outbox1-transactional-dispatch.md),
+with independent inbox opt-in, an Inventory command receiver and an ordinary EF Rendering
+receiver. Consumer transport code commits retained intake before acknowledgement/HTTP acceptance.
+Separate callable processing owns one local native transaction covering handler effects,
+completion and optional outgoing replies. Processing uses a row lock through local processing,
+not an expiring inbox lease; the outbox publication protocol remains unchanged. The concrete
+public types, errors, consumer ownership and file/behavior map received owner review before
+implementation. The complete implementation remains unstaged for line-by-line review.
+
+O1 narrowed E7 below to outbox mechanics, with a state-stored standalone adopter and an
+event-sourced Inventory consumer. It includes a simple opt-in hosted outbox worker and
+consumer-owned RabbitMQ publication proof. Durable inbox intake, transactional processing
+and a full module-to-module acknowledgement sample are implemented in I1.
 Reuse the existing codec/ownership utilities at consumer composition points;
 no event-sourcing dependency or automatic domain-event publication is
 proposed for the outbox. Owner follow-up groups inbox/outbox in `Rootbolt.Messaging` and
@@ -33,7 +43,7 @@ small provider-free Messaging package supplies the used envelope/publisher contr
 `Rootbolt.Messaging.EntityFrameworkCore` contains used row/mapping/enqueue/save validation,
 typed contracts and optional worker, while PostgreSQL supplies native model specialization
 and claim/completion SQL. No generic SQL dialect or second-provider guarantee is proposed.
-Independent inbox opt-in remains a later slice. Each module owns its context, tables and
+Independent inbox opt-in is implemented in I1. Each module owns its context, tables and
 typed dependencies; receiving work commits separately from sending work. Transport
 implementation/configuration remains consumer-owned. Existing Persistence ownership utilities
 and Events codec remain independently composed, with no relocation or mandatory dependency.

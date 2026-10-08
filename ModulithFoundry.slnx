@@ -5,6 +5,7 @@
     <Project Path="src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/Rootbolt.Messaging.EntityFrameworkCore.Postgres.csproj" />
   </Folder>
   <Folder Name="/Libraries/Messaging/Tests/">
+    <Project Path="src/Rootbolt.Messaging/tests/InboxPostgresTests/InboxPostgresTests.csproj" />
     <Project Path="src/Rootbolt.Messaging/tests/MessagingTests/MessagingTests.csproj" />
     <Project Path="src/Rootbolt.Messaging/tests/OutboxPostgresTests/OutboxPostgresTests.csproj" />
   </Folder>
@@ -48,6 +49,9 @@
     <Project Path="src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/InboxDemo/InboxDemo.csproj" />
+    <Project Path="samples/InboxDemo.Tests/InboxDemo.Tests.csproj" />
+    <Project Path="samples/MessagingDemo/MessagingDemo.csproj" />
     <Project Path="samples/OutboxDemo/OutboxDemo.csproj" />
     <Project Path="samples/OutboxDemo.Tests/OutboxDemo.Tests.csproj" />
     <Project Path="samples/EventStorageDemo/EventStorageDemo.csproj" />
