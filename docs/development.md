@@ -240,9 +240,9 @@ After restoring/building the active solution, run:
 
 ```bash
 dotnet tool install --global Aspire.Cli --version 13.5.4
-dotnet dev-certs https --trust
-# On Linux, retain OpenSSL's system roots alongside the development-certificate directory.
+# On Linux, configure trust before running dev-certs, retaining OpenSSL's system roots.
 export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:${SSL_CERT_DIR:-/etc/ssl/certs}"
+dotnet dev-certs https --trust
 dotnet dev-certs https --check --trust
 pwsh samples/Wholesale/RuntimeComposition.Tests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
 dotnet test --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj --no-build --no-restore
@@ -263,9 +263,20 @@ Certificate creation alone does not establish trust: Aspire otherwise leaves Key
 HTTP and HTTPS health checks may fail. CI verifies trust before launching any test resources.
 For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
 `DOCKER_HOST` to your user socket and optionally `DOTNET_PROCESSOR_COUNT=4`.
-Keep this container test outside commit hooks. CI has a separate Active Aspire runtime
-composition lane. External provider, proxy/subdomain and production trust/session guarantees
-remain outside these local proofs.
+Keep this container test outside commit hooks. The separate
+[Sample runtime workflow](../.github/workflows/sample-runtime.yml) runs on PRs and main pushes
+changing `samples/Wholesale/**`, the workflow itself or the listed shared build/toolchain inputs.
+It also supports manual dispatch from GitHub Actions. Library-only changes run their focused
+contract, PostgreSQL and HTTP consumer proofs; they do not automatically run the complete
+sample deployment. Manually dispatch this workflow when a library change warrants testing
+the full sample composition. External provider, proxy/subdomain and production trust/session
+guarantees remain outside these local proofs.
+
+When adding branch protection, require the always-running CI and Template creation jobs.
+A path-filtered sample workflow should not be a global required check: on unrelated changes
+GitHub does not run it, leaving required checks pending. See
+[GitHub's path-filter behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#using-filters-to-target-specific-paths-for-pull-request-or-push-events).
+This scheduling policy preserves the sample suite and its assertions.
 
 ## Single-stream rebuilding proofs
 

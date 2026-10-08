@@ -68,3 +68,48 @@ limits its coverage to the active libraries/application plus frozen-source integ
 Archived tests remain available for deliberate manual investigation, with their historical
 compatibility and recovery limitations. Their exclusion is explicit coverage policy, not
 a claim that their reported failures were fixed.
+
+## Fresh-runner follow-up
+
+Date: 2026-10-08. Base checkpoint: `919c52d`.
+
+The owner reported a new failure before test startup: `dotnet dev-certs https --trust`
+exited with code 4 and warned that its directory was absent from `SSL_CERT_DIR`.
+The preceding four-test local success used an already trusted certificate store; it did
+not prove that certificate setup worked for a fresh runner. The workflow set the variable
+after the command that required it, and `GITHUB_ENV` only supplied it to later steps.
+
+An isolated Ubuntu 24.04 container reproduced the exact warning and exit code with an
+empty user certificate store. It ran the repository SDK 10.0.112's certificate CLI on
+the container's compatible .NET 10.0.12 runtime, with `libnss3-tools` installed. A second
+fresh user passed certificate creation and `--check --trust` after changing only the
+order: export `SSL_CERT_DIR` before trusting. No host certificate store was changed.
+This directly verifies the previously missing setup obligation; it is not a hosted
+GitHub or complete deployment result.
+
+The actual updated workflow setup block also passed for a third fresh user, including
+`--check --trust` in a separate process after loading the persisted `GITHUB_ENV` value.
+Actionlint 1.7.12 and YAML parsing passed for all three active workflows, 127 local links
+in the changed documents resolved, whitespace checks passed, and the archive verifier
+matched all 800 frozen originals. The temporary container and setup script were removed.
+
+| Files | Follow-up behavior |
+| --- | --- |
+| `.github/workflows/ci.yml` | Retain always-running context, PostgreSQL and repository jobs; move the full sample runtime job to its own workflow. |
+| `.github/workflows/sample-runtime.yml` | Run automatically on Wholesale sample and listed shared build/toolchain changes, and on manual dispatch. Export OpenSSL trust in the current shell before `--trust`, then persist that same value for later steps and verify it. Preserve all four runtime cases and the 15-minute limit. |
+| `README.md`, `docs/development.md` | Explain focused library coverage versus sample deployment coverage, correct local setup order and document manual dispatch and branch-protection implications. |
+| This report | Record the fresh-store failure, repair, and limits of the preceding verification. |
+
+The deployment suite proves explicit setup/readiness, API survival during database outage,
+and real Keycloak/browser login, tenant admission and protected profile changes. It is
+sample composition evidence, rather than an independently adoptable library contract.
+Library-only changes retain their focused library, HTTP consumer, PostgreSQL and external
+generated-template gates. They no longer automatically exercise this full deployment;
+manual dispatch supplies that broader check when warranted. Path-filtered runtime checks
+must remain optional in global branch protection to avoid waiting on a workflow that
+does not run for an unrelated change.
+
+No library, sample C# implementation, template behavior, dependency pin or archived file
+changed. **No new reusable mechanism was proven.** The new evidence concerns fresh-user
+certificate setup; the earlier complete runtime result remains historical evidence for
+this follow-up. Hosted execution still needs verification after review and push.

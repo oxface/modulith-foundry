@@ -140,7 +140,9 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-CI checks active architecture, context, HTTP identity, EF models, event codecs and history,
-with separate PostgreSQL ownership and Aspire runtime composition lanes. Repository checks
+Every push to main and PR checks active architecture, context, HTTP identity, EF models,
+event codecs and history, with a separate PostgreSQL ownership lane and external generated-template
+proofs. The [sample runtime workflow](.github/workflows/sample-runtime.yml) tests Aspire startup
+and real browser login on Wholesale sample or shared build changes, or by manual request. Repository checks
 verify formatting, commit messages and archive checksums. Archived builds/tests are excluded
 from CI and commit hooks; their files remain available as historical reference material.
