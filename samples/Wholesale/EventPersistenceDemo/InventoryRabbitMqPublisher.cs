@@ -11,12 +11,13 @@ public sealed class InventoryRabbitMqPublisher(IChannel channel) : IMessagePubli
     {
         if (
             message.RouteKey != "inventory.stock-issues"
-            || message.MessageName != "inventory.stock-issue-recorded"
+            || message.MessageName
+                is not ("inventory.stock-issue-recorded" or "inventory.stock-issue-declined")
             || message.SchemaVersion != 1
             || message.TenantKey is null
         )
             throw new InvalidDataException(
-                "This publisher accepts tenant-scoped inventory.stock-issue-recorded v1 only."
+                "This publisher accepts tenant-scoped stock issue recorded/declined v1 only."
             );
         var properties = new BasicProperties
         {
@@ -25,13 +26,16 @@ public sealed class InventoryRabbitMqPublisher(IChannel channel) : IMessagePubli
             MessageId = message.MessageId.ToString(),
             Type = message.MessageName,
             // Sample policy: group notifications by stock position. Correlation is not a deduplication identity.
-            CorrelationId = message.Payload.GetProperty("stockPositionId").GetGuid().ToString(),
+            CorrelationId = message.CorrelationId,
             Headers = new Dictionary<string, object?>
             {
                 ["schema-version"] = message.SchemaVersion,
                 ["owner-key"] = message.TenantKey,
+                ["producer-module"] = "inventory",
             },
         };
+        if (message.CausationId is not null)
+            properties.Headers["causation-id"] = message.CausationId;
         using var bounded = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         bounded.CancelAfter(TimeSpan.FromSeconds(5));
         // The owning host enables confirmation tracking; native BasicPublishAsync then awaits acceptance

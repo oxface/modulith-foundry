@@ -1,4 +1,4 @@
-# PostgreSQL transactional outbox
+# PostgreSQL transactional messaging
 
 References the Messaging EF layer and native Npgsql EF. No RabbitMQ/Rebus transport or
 business contract dependency. PostgreSQL is explicit: incompatible provider/model setup
@@ -62,3 +62,19 @@ Duplicate effects remain receiver-owned. There is no FIFO, global concurrency ca
 renewal, poison policy, pruning, redrive or exactly-once promise. See the
 [supported and deferred contract](../docs/capabilities.md) and actual
 [Inventory RabbitMQ publisher](../../../samples/Wholesale/EventPersistenceDemo/InventoryRabbitMqPublisher.cs).
+
+Inbox-only consumers configure/register the inbox independently and need no outbox table or
+publisher. Intake requires caller-owned native ReadCommitted isolation. A retained key combines
+subscription, producer and message ID; incompatible envelope redelivery throws rather than
+silently deduplicates. A separate comparison statement observes a concurrent winning insert.
+Payload equality uses PostgreSQL JSONB values, including numeric equality, not a lexical hash.
+
+Processing holds FOR UPDATE SKIP LOCKED through bounded local handler work, SaveChanges,
+completion and native commit. No inbox lease expires while the handler owns that transaction.
+On failure before commit the transaction rolls back; a separate conditional database-clock
+retry write defers pending work. Positive RetryDelay is required. Cancellation does not force
+a retry write. Connection loss releases the lock; a commit response may be ambiguous.
+
+This protocol does not make another module/context or external side effect atomic. Native
+business concurrency predicates remain necessary for different deliveries touching shared state.
+See [full inbox setup/errors/limits](../docs/inbox.md).

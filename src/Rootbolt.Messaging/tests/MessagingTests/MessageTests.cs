@@ -5,6 +5,67 @@ namespace Rootbolt.Messaging.Tests;
 public sealed class MessageTests
 {
     [Fact]
+    public void IncomingPayloadOutlivesTransportDocumentAndRetainsIndependentIdentityMetadata()
+    {
+        IncomingMessage incoming;
+        Guid id = Guid.NewGuid();
+        using (var document = JsonDocument.Parse("{\"quantity\":3}"))
+            incoming = new(
+                id,
+                "inventory",
+                "issued",
+                1,
+                document.RootElement,
+                "alpha",
+                "conversation",
+                "cause"
+            );
+        Assert.Equal(id, incoming.MessageId);
+        Assert.Equal("inventory", incoming.ProducerKey);
+        Assert.Equal("alpha", incoming.TenantKey);
+        Assert.Equal("conversation", incoming.CorrelationId);
+        Assert.Equal("cause", incoming.CausationId);
+        Assert.Equal(3, incoming.Payload.GetProperty("quantity").GetInt32());
+        var outgoing = OutgoingMessage.FromPayload(
+            Guid.NewGuid(),
+            "reply",
+            "handled",
+            1,
+            new WireItem("ok"),
+            new JsonSerializerOptions(),
+            incoming.TenantKey,
+            incoming.CorrelationId,
+            incoming.MessageId.ToString()
+        );
+        Assert.Equal("conversation", outgoing.CorrelationId);
+        Assert.Equal(id.ToString(), outgoing.CausationId);
+    }
+
+    [Fact]
+    public void IncomingEnvelopeAndOptionalCorrelationMetadataRejectInvalidValues()
+    {
+        var payload = JsonSerializer.SerializeToElement(new { value = 1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new IncomingMessage(Guid.Empty, "p", "m", 1, payload)
+        );
+        Assert.Throws<ArgumentException>(() =>
+            new IncomingMessage(Guid.NewGuid(), " ", "m", 1, payload)
+        );
+        Assert.Throws<ArgumentException>(() =>
+            new IncomingMessage(Guid.NewGuid(), "p", "m", 1, default)
+        );
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new IncomingMessage(Guid.NewGuid(), "p", "m", 0, payload)
+        );
+        Assert.Throws<ArgumentException>(() =>
+            new IncomingMessage(Guid.NewGuid(), "p", "m", 1, payload, correlationId: " ")
+        );
+        Assert.Throws<ArgumentException>(() =>
+            new OutgoingMessage(Guid.NewGuid(), "r", "m", 1, payload, causationId: " ")
+        );
+    }
+
+    [Fact]
     public void TypedConstructionUsesConsumerJsonPolicyAndCapturesThePayloadBeforeLaterChanges()
     {
         var payload = new List<WireItem> { new("first") };

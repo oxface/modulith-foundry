@@ -27,6 +27,8 @@ public static class OutboxModelExtensions
         row.Property(item => item.SchemaVersion).HasColumnName("schema_version");
         row.Property(item => item.Payload).HasColumnName("payload");
         row.Property(item => item.TenantKey).HasColumnName("owner_key");
+        row.Property(item => item.CorrelationId).HasColumnName("correlation_id");
+        row.Property(item => item.CausationId).HasColumnName("causation_id");
         row.Property(item => item.QueuedAt).HasColumnName("queued_at").ValueGeneratedOnAdd();
         row.Property(item => item.AvailableAt).HasColumnName("available_at").ValueGeneratedOnAdd();
         row.Property(item => item.DispatchedAt).HasColumnName("dispatched_at");
@@ -75,6 +77,8 @@ public static class OutboxModelExtensions
                 || row.MessageName != message.MessageName
                 || row.SchemaVersion != message.SchemaVersion
                 || row.TenantKey != message.TenantKey
+                || row.CorrelationId != message.CorrelationId
+                || row.CausationId != message.CausationId
                 || row.Payload.ValueKind == System.Text.Json.JsonValueKind.Undefined
                 || row.Payload.GetRawText() != message.Payload.GetRawText()
                 || row.QueuedAt != default

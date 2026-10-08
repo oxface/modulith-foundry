@@ -1,6 +1,6 @@
-# Transport-independent outgoing messages
+# Transport-independent message envelopes
 
-Package-free .NET 10 message envelope and `IMessagePublisher`. No EF, hosting, transport,
+Package-free .NET 10 incoming/outgoing envelopes and `IMessagePublisher`. No EF, hosting, transport,
 tenancy, actor identity or event-sourcing dependency.
 
 ```csharp
@@ -10,8 +10,8 @@ var message = OutgoingMessage.FromPayload(
 ```
 
 Consumers choose stable delivery IDs, logical RouteKey values, exact durable names/schema
-versions, explicit JSON policy and optional opaque TenantKey. IDs must be nonempty, names/routes
-nonblank, schema positive and payload defined/non-null. An optional tenant key must be nonblank.
+versions, explicit JSON policy and optional opaque TenantKey/CorrelationId/CausationId. IDs must be nonempty, names/routes
+nonblank, schema positive and payload defined/non-null. Optional metadata must be nonblank when supplied.
 Accepted strings are preserved. The constructor clones JSON; the source JsonDocument may
 then be disposed. Get-only properties prevent mutation through record `with` syntax.
 
@@ -27,6 +27,16 @@ confirmation policy remain explicit consumer code. No publisher is globally regi
 
 MessageId identifies one delivery and survives retries. Correlation groups related work;
 causation identifies the immediate message/command causing new work. Neither is a replacement
-for MessageId or business-operation idempotency. O1 has no required correlation/causation
-properties or handler registry; consumer contracts/adapters may carry these values. Durable
-inbox scope and metadata evolution are recorded in [the capability plan](../docs/capabilities.md).
+for MessageId or business-operation idempotency. Optional correlation/causation are retained
+through storage and publication. A handler's new reply commonly inherits CorrelationId and
+uses the incoming MessageId as CausationId; no ambient metadata runtime supplies this automatically.
+
+IncomingMessage adds ProducerKey, assigned by the receiving adapter after validating its
+trusted transport binding. Its payload is cloned before the transport document/buffer is
+released. It carries no native delivery tag/channel or physical route. A subscription belongs
+to receiver registration, not untrusted payload data. Neither producer/tenant metadata nor
+constructing an envelope authenticates a producer or admits a tenant.
+
+InboxMessageConflictException identifies delivery identity reused with incompatible retained
+content, with SubscriptionKey/ProducerKey/MessageId properties and no payload/tenant details
+in its error text. See [the complete contract](../docs/capabilities.md).

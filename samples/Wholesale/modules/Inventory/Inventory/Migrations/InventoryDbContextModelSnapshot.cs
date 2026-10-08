@@ -246,6 +246,88 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
+                "Rootbolt.Messaging.EntityFrameworkCore.InboxMessageRecord",
+                b =>
+                {
+                    b.Property<string>("SubscriptionKey")
+                        .HasColumnType("text")
+                        .HasColumnName("subscription_key");
+
+                    b.Property<string>("ProducerKey")
+                        .HasColumnType("text")
+                        .HasColumnName("producer_key");
+
+                    b.Property<Guid>("MessageId").HasColumnType("uuid").HasColumnName("message_id");
+
+                    b.Property<DateTimeOffset>("AvailableAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("available_at")
+                        .HasDefaultValueSql("clock_timestamp()");
+
+                    b.Property<string>("CausationId")
+                        .HasColumnType("text")
+                        .HasColumnName("causation_id");
+
+                    b.Property<string>("CorrelationId")
+                        .HasColumnType("text")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("MessageName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message_name");
+
+                    b.Property<JsonElement>("Payload")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at")
+                        .HasDefaultValueSql("clock_timestamp()");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_version");
+
+                    b.Property<string>("TenantKey")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_key");
+
+                    b.HasKey("SubscriptionKey", "ProducerKey", "MessageId");
+
+                    b.HasIndex("SubscriptionKey", "AvailableAt", "ReceivedAt")
+                        .HasFilter("processed_at IS NULL");
+
+                    b.ToTable(
+                        "inbox_messages",
+                        "inventory",
+                        t =>
+                        {
+                            t.HasCheckConstraint("ck_inbox_schema", "schema_version > 0");
+                        }
+                    );
+
+                    b.HasAnnotation(
+                            "ModulithFoundry:TenantContextMember",
+                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
+                        )
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipProperty", "TenantKey")
+                        .HasAnnotation("Rootbolt:Inbox", true)
+                        .HasAnnotation("Rootbolt:InboxProvider", "Postgres");
+                }
+            );
+
+            modelBuilder.Entity(
                 "Rootbolt.Messaging.EntityFrameworkCore.OutboxMessageRecord",
                 b =>
                 {
@@ -259,10 +341,13 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                         .HasColumnName("available_at")
                         .HasDefaultValueSql("clock_timestamp()");
 
-                    b.Property<string>("RouteKey")
-                        .IsRequired()
+                    b.Property<string>("CausationId")
                         .HasColumnType("text")
-                        .HasColumnName("destination");
+                        .HasColumnName("causation_id");
+
+                    b.Property<string>("CorrelationId")
+                        .HasColumnType("text")
+                        .HasColumnName("correlation_id");
 
                     b.Property<DateTimeOffset?>("DispatchedAt")
                         .HasColumnType("timestamp with time zone")
@@ -281,12 +366,6 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                         .HasColumnType("text")
                         .HasColumnName("message_name");
 
-                    b.Property<string>("TenantKey")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("owner_key");
-
                     b.Property<JsonElement>("Payload")
                         .HasColumnType("jsonb")
                         .HasColumnName("payload");
@@ -297,9 +376,20 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                         .HasColumnName("queued_at")
                         .HasDefaultValueSql("clock_timestamp()");
 
+                    b.Property<string>("RouteKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("destination");
+
                     b.Property<int>("SchemaVersion")
                         .HasColumnType("integer")
                         .HasColumnName("schema_version");
+
+                    b.Property<string>("TenantKey")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_key");
 
                     b.HasKey("MessageId");
 

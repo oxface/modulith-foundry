@@ -117,6 +117,8 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
             [nameof(OutboxMessageRecord.SchemaVersion)] = "schema_version",
             [nameof(OutboxMessageRecord.Payload)] = "payload",
             [nameof(OutboxMessageRecord.TenantKey)] = "owner_key",
+            [nameof(OutboxMessageRecord.CorrelationId)] = "correlation_id",
+            [nameof(OutboxMessageRecord.CausationId)] = "causation_id",
             [nameof(OutboxMessageRecord.QueuedAt)] = "queued_at",
             [nameof(OutboxMessageRecord.AvailableAt)] = "available_at",
             [nameof(OutboxMessageRecord.DispatchedAt)] = "dispatched_at",
@@ -172,7 +174,8 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
             SET lease_token = @token, lease_until = clock_timestamp() + @duration,
                 attempts = outgoing.attempts + 1
             FROM candidate WHERE outgoing.message_id = candidate.message_id
-            RETURNING outgoing.message_id, destination, message_name, schema_version, payload, owner_key
+            RETURNING outgoing.message_id, destination, message_name, schema_version, payload, owner_key,
+                      correlation_id, causation_id
             """
         );
         Guid token = Guid.NewGuid();
@@ -191,7 +194,9 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
                         reader.GetString(2),
                         reader.GetInt32(3),
                         payload.RootElement,
-                        reader.IsDBNull(5) ? null : reader.GetString(5)
+                        reader.IsDBNull(5) ? null : reader.GetString(5),
+                        reader.IsDBNull(6) ? null : reader.GetString(6),
+                        reader.IsDBNull(7) ? null : reader.GetString(7)
                     ),
                     token
                 );

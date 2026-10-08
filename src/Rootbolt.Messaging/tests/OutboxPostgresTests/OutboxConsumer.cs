@@ -80,7 +80,9 @@ internal static class OutboxProof
                     optional = (string?)null,
                 }
             ),
-            "tenant-alpha"
+            "tenant-alpha",
+            "conversation",
+            "cause"
         );
 
     internal static PostgresOutboxDispatcher<OutboxConsumer> Dispatcher(
