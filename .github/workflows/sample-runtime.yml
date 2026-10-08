@@ -63,3 +63,8 @@ jobs:
           --project samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj
           --no-build
           --no-restore
+          --no-progress
+          --no-ansi
+          --output Normal
+          --show-stdout Failed
+          --show-stderr Failed

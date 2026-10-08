@@ -25,36 +25,36 @@ jobs:
         include:
           - family: ActorIdentity
             commands: |
-              dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj
-              dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj
+              dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityAspNetCoreTests/ActorIdentityAspNetCoreTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
           - family: Tenancy
             commands: |
-              dotnet test --project src/Rootbolt.Tenancy/tests/TenantTests/TenantTests.csproj
-              dotnet test --project src/Rootbolt.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj
+              dotnet test --project src/Rootbolt.Tenancy/tests/TenantTests/TenantTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.Tenancy/tests/TenancyAspNetCoreTests/TenancyAspNetCoreTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
           - family: Persistence
             commands: |
-              dotnet test --project src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj
-              dotnet test --project src/Rootbolt.Persistence/tests/PersistenceTests/PersistenceTests.csproj
+              dotnet test --project src/Rootbolt.Persistence/tests/EntityFrameworkCoreTests/EntityFrameworkCoreTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.Persistence/tests/PersistenceTests/PersistenceTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
           - family: Events
             commands: |
-              dotnet test --project src/Rootbolt.Events/tests/EventSerializationTests/EventSerializationTests.csproj
-              dotnet test --project src/Rootbolt.Events/tests/EventHistoryTests/EventHistoryTests.csproj
-              dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj
+              dotnet test --project src/Rootbolt.Events/tests/EventSerializationTests/EventSerializationTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.Events/tests/EventHistoryTests/EventHistoryTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project samples/Wholesale/EventCodecDemo.Tests/EventCodecDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
               dotnet run --project samples/Wholesale/EventCodecDemo/EventCodecDemo.csproj --no-build --no-restore
           - family: EventSourcing
             commands: |
-              dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj
-              dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj
-              dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj
-              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-not-class '*DispatchTests'
+              dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.EventSourcing/tests/EventSourcingPostgresTests/EventSourcingPostgresTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project samples/EventStorageDemo.Tests/EventStorageDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-not-class '*DispatchTests' --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
           - family: Messaging
             commands: |
-              dotnet test --project src/Rootbolt.Messaging/tests/MessagingTests/MessagingTests.csproj
-              dotnet test --project src/Rootbolt.Messaging/tests/OutboxPostgresTests/OutboxPostgresTests.csproj
-              dotnet test --project src/Rootbolt.Messaging/tests/InboxPostgresTests/InboxPostgresTests.csproj
-              dotnet test --project samples/OutboxDemo.Tests/OutboxDemo.Tests.csproj
-              dotnet test --project samples/InboxDemo.Tests/InboxDemo.Tests.csproj
-              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-class '*DispatchTests'
+              dotnet test --project src/Rootbolt.Messaging/tests/MessagingTests/MessagingTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.Messaging/tests/OutboxPostgresTests/OutboxPostgresTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project src/Rootbolt.Messaging/tests/InboxPostgresTests/InboxPostgresTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project samples/OutboxDemo.Tests/OutboxDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project samples/InboxDemo.Tests/InboxDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
+              dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersistenceDemo.Tests.csproj --filter-class '*DispatchTests' --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -66,6 +66,7 @@ jobs:
           global-json-file: global.json
       - name: Test family and independent consumers
         # Each test restores/builds its project and dependencies on this runner.
+        # Native CLI flags suppress progress; captured output is shown for failed tests.
         run: ${{ matrix.commands }}
 
   wholesale:
@@ -82,13 +83,13 @@ jobs:
         with:
           global-json-file: global.json
       - name: Test context composition
-        run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj
+        run: dotnet test --project samples/Wholesale/ContextDemo.Tests/ContextDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
       - name: Run context sample
         run: dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj --no-build --no-restore
       - name: Test module migrations and persistence ownership
-        run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj
+        run: dotnet test --project samples/Wholesale/PersistenceDemo.Tests/PersistenceDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
       - name: Test persisted admission, isolated business operations and native telemetry through HTTP
-        run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj
+        run: dotnet test --project samples/Wholesale/HttpIdentityDemo.Tests/HttpIdentityDemo.Tests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
 
   repository:
     name: Repository integrity
@@ -120,7 +121,7 @@ jobs:
         run: dotnet build ModulithFoundry.slnx --no-restore
 
       - name: Test architecture, module schemas and independent adoption
-        run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore
+        run: dotnet test --project tests/ArchitectureTests/ArchitectureTests.csproj --no-build --no-restore --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
 
       - name: Set up Node.js for repository checks
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
