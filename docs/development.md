@@ -41,14 +41,19 @@ archived suites are excluded from hooks.
 
 ## CI lanes
 
-The [main workflow](../.github/workflows/ci.yml) exposes six separately named Rootbolt
-family checks through a matrix, plus Wholesale consumer composition and repository integrity.
-All run on every PR and push to `main`, without family path filters. A family failure does
-not cancel the other families. Each test invocation restores/builds its project and
-dependencies on that runner; no job consumes another job's build outputs.
+The [main workflow](../.github/workflows/ci.yml) exposes seven separately named Rootbolt
+family checks, plus Wholesale consumer composition and repository integrity. Workflows
+start on PRs/main pushes, but expensive jobs run only for relevant changed paths. Family
+selection uses SHA-pinned `dorny/paths-filter` and the explicit
+[lane input map](../.github/ci-paths.yml), including dependent consumers and linked fixtures.
+Update that map when project references or generator inputs change; no custom project parser
+or selection script is maintained.
+Unselected jobs are reported as skipped without allocating their runners. Each selected
+test restores/builds its project and dependencies; no job consumes another job's build outputs.
 
 | Check | Responsibility |
 | --- | --- |
+| Rootbolt.Auditing | Explicit transactional accepted-change audit and PostgreSQL mapping proofs. |
 | Rootbolt.ActorIdentity | Core identity and native HTTP adapter proofs. |
 | Rootbolt.Tenancy | Core tenant context and independent HTTP adapter proofs. |
 | Rootbolt.Persistence | EF model/write validation and real PostgreSQL GUID ownership consumer. |
@@ -56,23 +61,34 @@ dependencies on that runner; no job consumes another job's build outputs.
 | Rootbolt.EventSourcing | Aggregate core, PostgreSQL history/rebuilding/concurrency, independent event-storage consumer and Wholesale event-sourcing adoption. |
 | Rootbolt.Messaging | Provider-free envelopes, PostgreSQL enqueue/claims/worker, standalone HTTP adopter and focused Inventory RabbitMQ proofs. |
 | Wholesale consumer composition | Context tests/executable, module migrations/ownership and persisted HTTP admission/business/telemetry tests. |
-| Repository integrity | Whole-solution restore/style/analyzers/build, architecture boundaries, CSharpier, commitlint and frozen archive checksums. |
+| Repository integrity | Always: commitlint and frozen archive checksums. Relevant code/build changes also run whole-solution restore/style/analyzers/build, architecture boundaries and CSharpier. |
 | Template integrity and adoption | TypeScript generator checks and two external generated consumers against PostgreSQL. |
 | Wholesale runtime | Full Aspire setup/readiness/outage and real Keycloak/Chromium journeys on relevant PRs or manual dispatch. |
 
-Every job has a 15-minute limit, including setup/build. The
-[template workflow](../.github/workflows/template.yml) runs on every PR/main push; the
-[runtime workflow](../.github/workflows/sample-runtime.yml) has PR path filters and a manual
-trigger, with no automatic post-merge push run. All three workflows cancel superseded runs
-on the same PR/ref. Whole-solution validation remains centralized; family jobs build only
-their selected dependency graphs. Library-only changes still run all six families, since
-changes to a shared dependency can affect another family. Wholesale broker class filters
+Test jobs have a 15-minute limit, including setup/build; scope selection has a five-minute
+limit. All three workflows use the same [filter workflow](../.github/workflows/changes.yml)
+and path map. The action reads PR changes through GitHub's paginated API and push changes
+through Git. Markdown-only changes, including
+library-local and sample READMEs, omit .NET, database, template and browser execution.
+Shared build/toolchain, project-graph and CI-tooling changes select all checks; unknown
+inputs outside mapped roots also select full coverage. A detection/configuration failure
+fails required Repository integrity rather than silently skipping verification.
+
+Template adoption runs for generator/template changes and the three core library source
+snapshots it copies. Wholesale runtime runs for Wholesale implementation or shared inputs
+on PRs; it still has no post-merge push run. All workflows support manual full verification
+and cancel superseded runs on the same PR/ref. Scope selection still incurs lightweight
+runner/setup work in each workflow; no exact hosted duration/minute reduction is claimed.
+Whole-solution validation remains centralized. Wholesale broker class filters
 assign the three focused RabbitMQ tests to Messaging; the remaining event tests stay in
 EventSourcing, including state/events/outbox composition. Neither lane revives archived suites.
 
-Use the always-running family, composition, repository and template checks for branch
-protection. The path-filtered runtime check remains optional globally. Its scheduling
-policy preserves all deployment assertions. See the
+Existing family, composition, repository and template check names remain suitable for branch
+protection: conditional jobs report skipped instead of leaving a workflow-level required
+check pending. Repository integrity fails if its selector job fails. The runtime check can
+remain optional under the existing ruleset. This scheduling policy preserves deployment
+assertions when selected. See the [path-scoping report](reports/ci-path-scoping.md) for new
+filter verification and the
 [family-lane verification report](reports/ci-family-lanes.md) for coverage accounting,
 fresh executions and remaining hosted/performance limits.
 
@@ -308,16 +324,18 @@ For rootless Podman, set `ASPIRE_CONTAINER_RUNTIME=podman`,
 `DOCKER_HOST` to your user socket and optionally `DOTNET_PROCESSOR_COUNT=4`.
 Keep this container test outside commit hooks. The separate
 [Sample runtime workflow](../.github/workflows/sample-runtime.yml) runs on PRs
-changing `samples/Wholesale/**`, the workflow itself or the listed shared build/toolchain inputs.
+changing Wholesale implementation or shared build/toolchain/CI inputs. Markdown changes
+under Wholesale are omitted by the shared job selector.
 It also supports manual dispatch from GitHub Actions. Library-only changes run their focused
 contract, PostgreSQL and HTTP consumer proofs; they do not automatically run the complete
 sample deployment. Manually dispatch this workflow when a library change warrants testing
 the full sample composition. External provider, proxy/subdomain and production trust/session
 guarantees remain outside these local proofs.
 
-When adding branch protection, require the always-running CI and Template creation jobs.
-A path-filtered sample workflow should not be a global required check: on unrelated changes
-GitHub does not run it, leaving required checks pending. See
+The workflows now start on every PR and conditionally skip unrelated jobs, so existing
+required check names still receive a result. Keep Repository integrity required so selection
+failures cannot bypass it. Workflow-level path exclusions would leave absent required
+checks pending; see
 [GitHub's path-filter behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#using-filters-to-target-specific-paths-for-pull-request-or-push-events).
 This scheduling policy preserves the sample suite and its assertions.
 

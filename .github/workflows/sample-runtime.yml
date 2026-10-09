@@ -3,25 +3,23 @@ name: Sample runtime
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'samples/Wholesale/**'
-      - '.github/workflows/sample-runtime.yml'
-      - 'global.json'
-      - 'Directory.Build.props'
-      - 'Directory.Build.targets'
-      - 'Directory.Packages.props'
-      - 'NuGet.Config'
-      - 'ModulithFoundry.slnx'
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: sample-runtime-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Runtime scope
+    uses: ./.github/workflows/changes.yml
+
   runtime:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.runtime == 'true') }}
     name: Wholesale runtime
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -29,6 +27,9 @@ jobs:
       run:
         working-directory: ${{ github.workspace }}
     steps:
+      - name: Require successful check selection
+        if: needs.changes.result != 'success'
+        run: exit 1
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

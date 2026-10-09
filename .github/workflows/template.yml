@@ -1,19 +1,27 @@
 name: Template creation
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: template-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Template scope
+    uses: ./.github/workflows/changes.yml
+
   state-stored:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.template == 'true') }}
     name: Template integrity and adoption
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -32,6 +40,9 @@ jobs:
     env:
       CATALOG_TEST_ADMIN_CONNECTION_STRING: Host=127.0.0.1;Port=5432;Database=postgres;Username=postgres;Password=t1-local-only;Pooling=false
     steps:
+      - name: Require successful check selection
+        if: needs.changes.result != 'success'
+        run: exit 1
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

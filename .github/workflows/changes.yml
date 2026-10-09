@@ -1,0 +1,63 @@
+name: CI scope
+
+on:
+  workflow_call:
+    outputs:
+      Auditing:
+        value: ${{ jobs.changes.outputs.Auditing }}
+      ActorIdentity:
+        value: ${{ jobs.changes.outputs.ActorIdentity }}
+      Tenancy:
+        value: ${{ jobs.changes.outputs.Tenancy }}
+      Persistence:
+        value: ${{ jobs.changes.outputs.Persistence }}
+      Events:
+        value: ${{ jobs.changes.outputs.Events }}
+      EventSourcing:
+        value: ${{ jobs.changes.outputs.EventSourcing }}
+      Messaging:
+        value: ${{ jobs.changes.outputs.Messaging }}
+      wholesale:
+        value: ${{ jobs.changes.outputs.wholesale }}
+      template:
+        value: ${{ jobs.changes.outputs.template }}
+      runtime:
+        value: ${{ jobs.changes.outputs.runtime }}
+      repository_dotnet:
+        value: ${{ jobs.changes.outputs.repository_dotnet }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Select relevant checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      Auditing: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.Auditing == 'true') && 'true' || 'false' }}
+      ActorIdentity: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.ActorIdentity == 'true') && 'true' || 'false' }}
+      Tenancy: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.Tenancy == 'true') && 'true' || 'false' }}
+      Persistence: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.Persistence == 'true') && 'true' || 'false' }}
+      Events: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.Events == 'true') && 'true' || 'false' }}
+      EventSourcing: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.EventSourcing == 'true') && 'true' || 'false' }}
+      Messaging: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.Messaging == 'true') && 'true' || 'false' }}
+      wholesale: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.wholesale == 'true') && 'true' || 'false' }}
+      template: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.template == 'true') && 'true' || 'false' }}
+      runtime: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.runtime == 'true') && 'true' || 'false' }}
+      repository_dotnet: ${{ (github.event_name == 'workflow_dispatch' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.unmapped == 'true' || steps.filter.outputs.repository_dotnet == 'true') && 'true' || 'false' }}
+    steps:
+      - name: Check out filters and push history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Match changed paths
+        if: github.event_name != 'workflow_dispatch'
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: .github/ci-paths.yml
+          predicate-quantifier: some-with-excludes
+          base: ${{ github.event_name == 'push' && github.ref || '' }}
