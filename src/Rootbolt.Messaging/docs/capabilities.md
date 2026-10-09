@@ -6,7 +6,8 @@ records owner review and [the report](../../../docs/reports/outbox1-transactiona
 records dated executions. O1 is owner-approved at checkpoint `2d7a865` and merged as
 `beafa4e`. I1 adds independently selected durable intake and separate transactional processing.
 Its [interface/scope](../../../docs/plans/inbox1-durable-intake-processing.md) is owner-approved;
-the implementation remains unstaged for review. [Inbox setup and guarantees](inbox.md) and
+the implementation is checkpointed as `ecab884`, refined as `863456b` and merged as `0f4d8bf`.
+[Inbox setup and guarantees](inbox.md) and
 [the fresh execution report](../../../docs/reports/inbox1-durable-intake-processing.md) describe the current contract.
 
 ## Current composition
@@ -129,6 +130,18 @@ and belongs after the applicable database commit. Broker tags/channels and nativ
 semantics remain visible in the sample. Additional helpers must earn their interface.
 
 ## Deferred capabilities
+
+Separate worker hosts are possible with the existing Hosting abstractions; current API
+placement is sample composition. Multi-process deployment/recovery proofs and richer durable
+tracing are planned in the [remaining roadmap](../../../docs/plans/remaining-capability-roadmap.md)
+and [observability proposal](../../../docs/plans/durable-message-observability.md).
+No W3C trace context is currently retained by the envelope/rows.
+
+New-service snapshot/feed repopulation is a distinct planned capability. Current dispatch
+ordering and retained delivery rows do not provide a safe replay cursor or snapshot boundary.
+A producer-owned replay/export contract, retention rules and transactional receiver progress
+need separate proof; no bootstrap runtime is supplied. Durable workflows likewise begin with
+module-owned state and the existing messaging contracts, not an implemented saga engine.
 
 Receipt-only mode if an adopter needs it;
 queued-message compatibility/upcasting rollout proofs; retention/deduplication windows;

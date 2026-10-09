@@ -43,6 +43,11 @@ no serialization dependency.
   belong before a general projection maintenance engine.
 - Snapshot plus delta catch-up: deferred. Current inline state is required at the exact head;
   ordinary fetch does not repair or apply missing events. Full replay repairs data explicitly.
+- New-service repopulation: separately planned for state-stored and event-sourced sources in
+  the [remaining roadmap](../../../docs/plans/remaining-capability-roadmap.md). A public export
+  snapshot plus retained integration changes needs a consistent boundary and safe progress
+  cursor; timestamps or allocated global sequences alone do not establish it. The existing
+  bounded per-stream reader/full rebuilder does not supply this cross-service protocol.
 - Projection backfill/rebuild orchestration: new views need an explicit population step, not
   automatic read repair. Prove serving behavior, cutover and concurrency before adding workers.
 - Stream lifecycle/deletion, branching, global ordering, pessimistic write modes, subscriptions,
