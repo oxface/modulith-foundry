@@ -33,6 +33,9 @@ dotnet test --project samples/InboxDemo.Tests/InboxDemo.Tests.csproj
 
 PostgreSQL tests require a Docker-compatible runtime; Podman works via DOCKER_HOST pointing
 to its user socket. Focused Inventory broker proofs additionally require RabbitMQ containers.
+The inbox PostgreSQL suite shares one assembly-level container, creates a fresh database
+for each test and runs at most two tests concurrently. The outbox suite retains its sequential
+collection fixture; its measured parallel candidates did not show a reliable speed improvement.
 Architecture tests remain repository-owned. [The O1 report](../../docs/reports/outbox1-transactional-dispatch.md)
 separates its results from archived evidence; [I1's report](../../docs/reports/inbox1-durable-intake-processing.md)
 records the new inbox/adoption proofs separately.

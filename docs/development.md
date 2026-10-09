@@ -78,6 +78,11 @@ or selection script is maintained.
 Unselected jobs are reported as skipped without allocating their runners. Each selected
 test restores/builds its project and dependencies; no job consumes another job's build outputs.
 
+Independent family jobs run concurrently. Inbox PostgreSQL proofs share one assembly-level
+container and allocate a separate database per test, with at most two tests running at once.
+This explicit scheduling policy does not apply to other suites. Outbox keeps its collection
+fixture: measured parallel candidates did not establish a speed improvement.
+
 | Check | Responsibility |
 | --- | --- |
 | Rootbolt.Auditing | Explicit transactional accepted-change audit and PostgreSQL mapping proofs. |
@@ -390,6 +395,13 @@ The provider-free runtime client uses HTTP; Aspire's native API health check use
 Three optional-provider browser journeys use
 actual HTTPS login/callback, browser cookies and same-origin fetch. They explicitly ignore
 browser development-certificate trust errors; native API backchannel validation stays enabled.
+The runtime test assembly runs sequentially: concurrent Aspire graph startup/teardown can
+change the machine's container networks while another test is navigating in Chromium.
+Each test still creates and disposes its own graph. Authentication assertions, test deadlines
+and failure reporting remain in place; failed browser journeys are not automatically retried.
+The runtime CI job restores/builds this test project and its native project references,
+including the AppHost and HTTP API, rather than the whole solution. Repository integrity
+continues to check the complete active solution independently.
 On Linux without PowerShell, the package's bundled `.playwright/node/linux-x64/node` can run
 its `.playwright/package/cli.js install chromium` from the same build output; no Node workspace
 is required. CI uses the generated PowerShell installer with system dependencies.
