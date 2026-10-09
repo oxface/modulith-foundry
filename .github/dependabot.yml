@@ -71,6 +71,11 @@ updates:
 
   - package-ecosystem: npm
     directory: /tools/template
+    # Typings must match the supported Node 24 runtime, including in CI.
+    # Remove this boundary as part of a deliberate tooling runtime upgrade.
+    ignore:
+      - dependency-name: "@types/node"
+        versions: [">=25.0.0"]
     schedule:
       interval: weekly
       day: monday

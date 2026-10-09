@@ -115,6 +115,12 @@ manifests together. Groups express review boundaries, not compatibility guarante
 release notes, provider/framework compatibility and transitive lockfile changes. Existing
 preview dependencies, such as the sample's Keycloak integration, still need explicit review.
 
+Template tooling supports Node 24; its `@types/node` updates exclude versions 25 and above.
+Keep 24.x minor/patch updates eligible. Remove that version boundary when deliberately
+upgrading the tooling's runtime, engines and CI together. Version-range exclusions also
+limit security-update candidates; a fix available only outside the supported range requires
+reviewing the runtime upgrade rather than silently changing the type definitions.
+
 Each update configuration permits three open routine PRs, not three across the repository.
 Security fixes remain individual and separate from routine batches. Do not enable broad
 repository-level grouped security updates if that separation is to be preserved. If a routine

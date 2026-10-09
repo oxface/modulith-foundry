@@ -69,6 +69,28 @@ The new `.github` configuration selects full coverage under current CI path rule
 Routine dependency PRs subsequently follow those same rules. Frozen archive checksum
 verification remains in place. Changes are unstaged; no commit or push was performed.
 
+## Follow-up: Node typings runtime boundary
+
+The first hosted PRs demonstrated initial bot activity: [SDK #7](https://github.com/oxface/modulith-foundry/pull/7)
+updates both SDK manifests, [typings #8](https://github.com/oxface/modulith-foundry/pull/8)
+proposes Node 26 types, and [Lefthook #9](https://github.com/oxface/modulith-foundry/pull/9)
+updates the hook tool and its platform packages. This does not yet prove the other
+ecosystems' discovery or future security-update behavior.
+
+Added an npm version-range exclusion for `@types/node >=25.0.0` in `/tools/template`,
+matching its existing Node 24 engines and CI runtime. Eligible 24.x minor/patch updates
+retain the existing group and cooldown. Other packages keep their major-update policy.
+Version exclusions also apply to security-update candidates; an out-of-range fix needs
+an explicit runtime upgrade decision. The boundary must be revisited with that upgrade.
+No package versions, lockfiles or CI paths were changed in this follow-up.
+
+Fresh public API results showed all 14 checks successful for current #7 revision
+`3e810e8` and #9 revision `2d5421e`. On #8 revision `1fb14a3`, five checks succeeded
+and nine were skipped, demonstrating template-only job selection despite 14 visible
+results. Those hosted results belong to the bot PRs, not this local configuration edit.
+This follow-up's YAML/schema, npm range and whitespace validation passed; the existing
+index remains unchanged. No commit, push, remote review, merge or closure was performed.
+
 ## References
 
 - [GitHub Dependabot options](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference)
