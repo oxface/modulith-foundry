@@ -9,5 +9,7 @@
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.Keycloak" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" VersionOverride="1.19.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" VersionOverride="1.19.1" />
   </ItemGroup>
 </Project>
