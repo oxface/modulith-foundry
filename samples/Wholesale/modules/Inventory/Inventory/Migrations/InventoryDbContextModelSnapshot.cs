@@ -246,6 +246,87 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
             );
 
             modelBuilder.Entity(
+                "Rootbolt.Auditing.EntityFrameworkCore.AuditRecord",
+                b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid").HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("action");
+
+                    b.Property<string>("ActorKey").HasColumnType("text").HasColumnName("actor_key");
+
+                    b.Property<int>("ActorKind")
+                        .HasColumnType("integer")
+                        .HasColumnName("actor_kind");
+                    b.Property<JsonElement>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("InitiatorKey")
+                        .HasColumnType("text")
+                        .HasColumnName("initiator_key");
+
+                    b.Property<int?>("InitiatorKind")
+                        .HasColumnType("integer")
+                        .HasColumnName("initiator_kind");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("ReasonCode")
+                        .HasColumnType("text")
+                        .HasColumnName("reason_code");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_version");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<string>("SubjectKey")
+                        .HasColumnType("text")
+                        .HasColumnName("subject_key");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject_type");
+
+                    b.Property<string>("TenantKey")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_key");
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantKey", "SubjectType", "SubjectKey", "OccurredAt", "Id")
+                        .HasDatabaseName("ix_audit_subject_timeline");
+
+                    b.ToTable("audit_entries", "inventory");
+
+                    b.HasAnnotation(
+                            "ModulithFoundry:TenantContextMember",
+                            "ModulithFoundry.Samples.Wholesale.Inventory.InventoryDbContext, Inventory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null|Property|RequiredOrganizationKey"
+                        )
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipFilter", "OrganizationScope")
+                        .HasAnnotation("ModulithFoundry:TenantOwnershipProperty", "TenantKey")
+                        .HasAnnotation("Rootbolt:Audit", true);
+                }
+            );
+
+            modelBuilder.Entity(
                 "Rootbolt.Messaging.EntityFrameworkCore.InboxMessageRecord",
                 b =>
                 {

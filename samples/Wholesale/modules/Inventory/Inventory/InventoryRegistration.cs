@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.Inventory.Messaging;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
+using Rootbolt.ActorIdentity;
+using Rootbolt.Auditing.EntityFrameworkCore;
 using Rootbolt.EventSourcing.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
@@ -52,6 +54,15 @@ public static class InventoryRegistration
 
     public static IServiceCollection AddStockIssueInbox(this IServiceCollection services)
     {
+        services.TryAddScoped<ActorContextAccessor>();
+        services.TryAddScoped<IActorContextAccessor>(provider =>
+            provider.GetRequiredService<ActorContextAccessor>()
+        );
+        services.TryAddScoped<IActorContextInitializer>(provider =>
+            provider.GetRequiredService<ActorContextAccessor>()
+        );
+        services.AddScoped<IAudit<InventoryDbContext>, EfAudit<InventoryDbContext>>();
+        services.AddScoped<InventoryAudit>();
         services.AddPostgresInbox<InventoryDbContext>();
         services.AddPostgresInboxProcessor<InventoryDbContext>(new(TimeSpan.FromSeconds(1)));
         return services.AddInboxHandler<InventoryDbContext, StockIssueInboxHandler>(

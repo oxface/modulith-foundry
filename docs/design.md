@@ -288,8 +288,9 @@ implementations in consumer source. Used core/EF/provider layers concentrate enq
 guards, PostgreSQL claims and optional sequential worker hosting. Each module owns its typed
 context/table and final producer commit; dispatch commits its claim before publication and
 fences completion with an unexpired token. No shared Rootbolt transaction runtime is introduced.
-[ADR 0009](adr/0009-module-owned-transactional-outbox.md) records this direction; durable inbox
-intake/processing and receiver commit/ack semantics remain the next reviewed capability.
+[ADR 0009](adr/0009-module-owned-transactional-outbox.md) records this direction. Outbox O1
+is merged through PR #1 as `beafa4e`; durable inbox I1 is merged through PR #2 as `0f4d8bf`,
+including intake-before-ack and separate local transactional processing described below.
 Critter Stack is a behavioral reference for messaging and persistence, not a selected runtime
 dependency. Keep provider-specific capabilities available; a provider-neutral promise needs
 evidence from actual alternatives rather than a lowest-common-denominator interface.
@@ -518,3 +519,28 @@ are explicitly queued in that transaction. This avoids inbox leases without chan
 external-publication lease protocol. No transport/ack facade or common Rootbolt unit of work is
 introduced. [ADR 0010](adr/0010-durable-inbox-local-processing.md) records the settled boundary;
 [the family contract](../src/Rootbolt.Messaging/docs/inbox.md) gives standalone setup and limits.
+
+## Explicit accepted-change audit
+
+The owner approved [E9's public interface and bounded consumer scope](plans/e9-explicit-transactional-audit.md)
+on 2026-10-09. `Rootbolt.Auditing.EntityFrameworkCore` explicitly captures consumer-supplied
+ActorIdentity attribution and owned JSON, maps a provided row and validates staged envelopes
+against their owning native context/transaction. No hidden save/commit, context fallback,
+automatic entity auditing or product classification is introduced. Native DI stays consumer
+wiring; only ActorIdentity and EF Relational are dependencies of the provider-independent EF
+package. The optional `Rootbolt.Auditing.EntityFrameworkCore.Postgres` package composes its
+mapping with JSONB details. Sample wrappers capture actor/tenant, generated ID and clock;
+business calls provide accepted changes. SubjectKey is
+nullable for events without an individual item. ConfigureAudit supplies the portable subject
+timeline index by default; consumers retain native customization. Named
+V1 payload records keep schema constants beside their fields in the sample wrappers.
+The owner subsequently removed correlation, causation and trace IDs from the audit envelope
+under YAGNI. Audit is business history; diagnostic telemetry and existing messaging metadata
+retain their separate seams. Neither sample audit wrapper needs request/message context.
+
+Sales profile changes and Inventory inbox stock issues exercise accepted-change participation
+in their existing transactions. Business selection, Human/System trust, action/reason vocabulary,
+detail disclosure, query visibility and retention stay consumer-owned. Denial auditing and
+cross-module atomicity remain separate proof gates. [ADR 0011](adr/0011-explicit-transactional-audit.md)
+records this boundary; [the library-local contract](../src/Rootbolt.Auditing/docs/transactional-audit.md)
+and [E9 report](reports/e9-explicit-transactional-audit.md) document current evidence and limits.

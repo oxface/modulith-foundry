@@ -5,6 +5,51 @@ namespace ModulithFoundry.ArchitectureTests;
 public sealed class AdoptionDependencyTests
 {
     [Theory]
+    [InlineData(
+        "Rootbolt.Auditing.EntityFrameworkCore",
+        "Rootbolt.ActorIdentity",
+        "Microsoft.EntityFrameworkCore.Relational"
+    )]
+    [InlineData(
+        "Rootbolt.Auditing.EntityFrameworkCore.Postgres",
+        "Rootbolt.Auditing.EntityFrameworkCore",
+        "Npgsql.EntityFrameworkCore.PostgreSQL"
+    )]
+    [InlineData(
+        "AuditPostgresTests",
+        "Rootbolt.Auditing.EntityFrameworkCore.Postgres",
+        "Npgsql.EntityFrameworkCore.PostgreSQL",
+        "Testcontainers.PostgreSql",
+        "xunit.v3.mtp-v2"
+    )]
+    public void AuditLibraryAndIndependentConsumerDeclareOnlyUsedDependencies(
+        string project,
+        string dependency,
+        params string[] packages
+    )
+    {
+        var declaration = XDocument.Load(
+            Path.Combine(AppContext.BaseDirectory, "ProjectDeclarations", project + ".csproj")
+        );
+        Assert.Equal(
+            [dependency],
+            declaration
+                .Descendants("ProjectReference")
+                .Select(reference =>
+                    Path.GetFileNameWithoutExtension((string)reference.Attribute("Include")!)
+                )
+        );
+        Assert.Equal(
+            packages.Order(StringComparer.Ordinal),
+            declaration
+                .Descendants("PackageReference")
+                .Select(reference => (string)reference.Attribute("Include")!)
+                .Order(StringComparer.Ordinal)
+        );
+        Assert.Empty(declaration.Descendants("FrameworkReference"));
+    }
+
+    [Theory]
     [InlineData("Rootbolt.ActorIdentity.AspNetCore", "Rootbolt.ActorIdentity")]
     [InlineData("Rootbolt.Tenancy.AspNetCore", "Rootbolt.Tenancy")]
     public void HttpAdaptersDeclareOnlyTheirCoreAndNativeFramework(string adapter, string core)

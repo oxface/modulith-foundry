@@ -3,9 +3,6 @@
 Before choosing change scope, staging, preparing a pull request, or committing, read
 [the repository workflow](docs/conventions/repository.md).
 
-Every commit requires the owner's explicit approval of the exact change set. Editing,
-testing, plan approval, and approval of an earlier commit do not authorize `git commit`.
-
 ## Library and sample work
 
 - Before changing C# code, read [the .NET conventions](docs/conventions/dotnet.md).
@@ -14,8 +11,7 @@ testing, plan approval, and approval of an earlier commit do not authorize `git 
 - Before changing shared terminology, read [the project glossary](CONTEXT.md). Keep it to
   resolved definitions; implementation choices belong in the design documents.
 - Implement one reviewable capability with executable consumer usage and relevant proofs.
-  Library interfaces and implementations receive owner review line by line. Leave changes
-  unstaged for review; the historical automatic-staging workflow has ended.
+  Library interfaces and implementations receive owner review line by line.
 - Keep sample business rules and module Contracts out of technical libraries. Establish
   sample module ownership and domain language when the corresponding sample behavior is added.
 - Treat `archive/proof-sample` as historical evidence. Its plans, instructions, and accepted

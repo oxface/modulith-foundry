@@ -13,6 +13,9 @@ internal sealed class StockIssueMessages(
     InventoryMessageContext metadata
 )
 {
+    // Direct commands start a conversation per operation scope. Inbox replies preserve
+    // the admitted conversation, including its deliberate absence; an item ID is separate.
+    private readonly string operationCorrelationId = Guid.CreateVersion7().ToString("D");
     private static readonly JsonSerializerOptions WireJson = new(JsonSerializerDefaults.Web);
     private static readonly JsonEventCodec<StockIssueRecordedV1> Codec = new(
         WireJson,
@@ -49,7 +52,7 @@ internal sealed class StockIssueMessages(
             encoded.SchemaVersion,
             encoded.Payload,
             owner,
-            metadata.Message?.CorrelationId ?? aggregate.Id.ToString(),
+            metadata.Message is { } incoming ? incoming.CorrelationId : operationCorrelationId,
             metadata.Message?.MessageId.ToString()
         );
     }
@@ -79,7 +82,7 @@ internal sealed class StockIssueMessages(
             ),
             WireJson,
             owner,
-            metadata.Message?.CorrelationId ?? command.StockPositionId.ToString(),
+            metadata.Message is { } incoming ? incoming.CorrelationId : operationCorrelationId,
             metadata.Message?.MessageId.ToString()
         );
     }

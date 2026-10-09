@@ -5,6 +5,8 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore.Postgres/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj" />
+    <ProjectReference Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore/Rootbolt.Auditing.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging/Rootbolt.Messaging.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/Rootbolt.Messaging.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/Rootbolt.Messaging.EntityFrameworkCore.Postgres.csproj" />
@@ -32,6 +34,21 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None
+      Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore.Postgres/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj"
+      Link="ProjectDeclarations/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore/Rootbolt.Auditing.EntityFrameworkCore.csproj"
+      Link="ProjectDeclarations/Rootbolt.Auditing.EntityFrameworkCore.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
+      Include="../../src/Rootbolt.Auditing/tests/AuditPostgresTests/AuditPostgresTests.csproj"
+      Link="ProjectDeclarations/AuditPostgresTests.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
     <None
       Include="../../samples/InboxDemo/InboxDemo.csproj"
       Link="ProjectDeclarations/InboxDemo.csproj"

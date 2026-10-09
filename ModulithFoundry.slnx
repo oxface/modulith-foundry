@@ -1,4 +1,11 @@
 <Solution>
+  <Folder Name="/Libraries/Auditing/">
+    <Project Path="src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore.Postgres/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj" />
+    <Project Path="src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore/Rootbolt.Auditing.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/Libraries/Auditing/Tests/">
+    <Project Path="src/Rootbolt.Auditing/tests/AuditPostgresTests/AuditPostgresTests.csproj" />
+  </Folder>
   <Folder Name="/Libraries/Messaging/">
     <Project Path="src/Rootbolt.Messaging/Rootbolt.Messaging/Rootbolt.Messaging.csproj" />
     <Project Path="src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/Rootbolt.Messaging.EntityFrameworkCore.csproj" />

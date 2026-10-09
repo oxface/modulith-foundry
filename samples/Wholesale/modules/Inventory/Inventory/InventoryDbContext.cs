@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
+using Rootbolt.Auditing.EntityFrameworkCore;
+using Rootbolt.Auditing.EntityFrameworkCore.Postgres;
 using Rootbolt.EventSourcing.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
@@ -22,6 +24,12 @@ public sealed class InventoryDbContext(
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("inventory");
+        var audit = modelBuilder.ConfigurePostgresAudit("inventory", "audit_entries");
+        audit.HasTenantOwnership(
+            row => row.TenantKey!,
+            () => RequiredOrganizationKey,
+            "OrganizationScope"
+        );
         HistoryMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
         InlineStateMapping.Configure(modelBuilder, () => RequiredOrganizationKey);
         modelBuilder
@@ -59,6 +67,7 @@ public sealed class InventoryDbContext(
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateAuditChanges();
         this.ValidateEventStreamChanges();
         this.ValidateOutboxChanges();
         this.ValidateInboxChanges();
@@ -71,6 +80,7 @@ public sealed class InventoryDbContext(
     )
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateAuditChanges();
         this.ValidateEventStreamChanges();
         this.ValidateOutboxChanges();
         this.ValidateInboxChanges();

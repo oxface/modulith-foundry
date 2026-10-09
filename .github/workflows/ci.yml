@@ -23,6 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - family: Auditing
+            commands: |
+              dotnet test --project src/Rootbolt.Auditing/tests/AuditPostgresTests/AuditPostgresTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed
           - family: ActorIdentity
             commands: |
               dotnet test --project src/Rootbolt.ActorIdentity/tests/ActorIdentityTests/ActorIdentityTests.csproj --no-progress --no-ansi --output Normal --show-stdout Failed --show-stderr Failed

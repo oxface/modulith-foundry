@@ -5,6 +5,22 @@ and [tenancy](../../../src/Rootbolt.Tenancy/Rootbolt.Tenancy.AspNetCore/README.m
 cookie/OIDC authentication and separate PostgreSQL-backed Access/Inventory/Sales modules.
 Business reads and profile edits use module Contracts and tenant-owned rows.
 
+Accepted Sales profile edits now explicitly stage a [transactional audit](../../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore/README.md)
+in the same native transaction as the customer/version and address changes. Sales requires an
+established Human actor, retains canonical actor/tenant and the affected address/version transition,
+and deliberately excludes name/address text. The module's new forward migration creates
+`sales.audit_entries`; apply finite setup/migrations before using this capability. Failures,
+conflicts, admission/antiforgery rejection and cancellation produce no accepted-change audit.
+Direct non-HTTP callers explicitly establish their trusted actor as well as tenant and own
+authorization. Profile reads do not require actor-context establishment. Audit completeness,
+classification, visibility and retention remain Sales policy; no denial auditing is introduced.
+The internal SalesAudit wrapper captures established actor/tenant, clock and generated entry
+ID. Its named ProfileChangedDetailsV1 record keeps the payload fields and version constant
+together; business code supplies only the profile/version change. Audit stores no correlation,
+causation or trace IDs; native HTTP telemetry remains separate. ConfigurePostgresAudit maps JSONB; native module
+mapping owns tenant visibility and
+the opt-in HasSubjectTimelineIndex helper and its native index customization.
+
 For local orchestration, use the [active Aspire runtime guide](../AppHost/README.md).
 The standalone commands below remain supported. [ServiceDefaults](../ServiceDefaults/README.md)
 is explicitly registered by the HTTP branch; finite setup starts no host or exporters.

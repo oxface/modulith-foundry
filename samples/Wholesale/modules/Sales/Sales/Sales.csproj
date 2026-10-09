@@ -3,6 +3,8 @@
     <RootNamespace>ModulithFoundry.Samples.Wholesale.Sales</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore.Postgres/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj" />
+    <ProjectReference Include="../../../../../src/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity/Rootbolt.ActorIdentity.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />

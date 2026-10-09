@@ -140,7 +140,10 @@ public sealed partial class CompositionTests
         await using var sales = new SalesDbContext(salesOptions.Options, tenant);
         await sales.Database.MigrateAsync(Token);
         Assert.False(sales.Database.HasPendingModelChanges());
-        Assert.Single(await sales.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Equal(
+            sales.Database.GetMigrations(),
+            await sales.Database.GetAppliedMigrationsAsync(Token)
+        );
         Assert.Equal(accessHistory, await access.Database.GetAppliedMigrationsAsync(Token));
         Assert.Equal(inventoryHistory, await inventory.Database.GetAppliedMigrationsAsync(Token));
         await using var app = await StartAsync(connectionString: connection, initialize: false);

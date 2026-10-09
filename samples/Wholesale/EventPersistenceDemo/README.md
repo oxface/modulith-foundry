@@ -179,7 +179,8 @@ claim is made. The as-of query's index/performance needs depend on actual worklo
 
 The availability catalog remains a separate state-stored Inventory demonstration. This
 increment does not make it an event projection. One required inline aggregate and explicit
-bounded repair are implemented; audit and reliable messaging remain deferred. The retained E6
+bounded repair were the scope of that checkpoint. Outbox/inbox and explicit accepted-change
+audit are now exercised by the finite journey below. The retained E6
 migrations create empty state tables; they do not automatically populate them for existing streams.
 The finite seed now adds matching main state from the unchanged literals and
 saves each module in its own explicit native transaction. Command-created streams establish
@@ -269,8 +270,8 @@ one separately resolved privileged dispatcher publishes at most one eligible mod
 It can select older retained work when a backlog exists. No library bus, startup migration,
 automatically enabled worker or immediate producer publication is installed.
 
-MessageId survives retries. The sample sets CorrelationId to the stock-position ID to group
-notifications; that is not a deduplication key. No incoming command ID exists here, so it
+MessageId survives retries. The sample creates one business CorrelationId per operation scope to group
+related work/messages; that is not a deduplication key. No incoming command ID exists here, so it
 does not invent a CausationId. Owner metadata is retained, but trusted receiver tenant
 admission remains consumer policy. Library dispatch drains the module table across owners
 without rebinding its context or treating a query filter as privileged authorization.
@@ -294,18 +295,34 @@ dotnet test --project samples/Wholesale/EventPersistenceDemo.Tests/EventPersiste
 The explicit [InboxJourney](InboxJourney.cs) publishes an IssueStockV1 command, validates the
 configured producer/schema/Organization, commits retained intake and only then acknowledges
 its native RabbitMQ delivery. Separate processing evolves the stock aggregate, saves facts,
-queues StockIssueRecordedV1 and completes the inbox row in one local transaction. A handled
+stages an explicit accepted-change audit, queues StockIssueRecordedV1 and completes the inbox
+row in one local transaction. A handled
 not-found/conflict/shortage instead completes with StockIssueDeclinedV1 and no new stock facts.
 The module initializes a fresh admitted tenant scope before business queries; a TenantKey or
 producer header is not authentication. The finite demo admits only wholesale-alpha/beta from
 its configured demo.stock-commands source; production trust/broker permissions remain host policy.
 
+The receiver establishes a separate ActorIdentity scope with its trusted System identity
+`inventory.stock-issue-worker`. No human initiator is present in the current wire contract.
+The internal InventoryAudit wrapper gathers actor/tenant, clock and generated entry ID. The named StockIssuedDetailsV1 record keeps payload fields and its version constant together;
+the business call supplies stock ID/version/quantity only.
+ConfigurePostgresAudit maps JSONB; native module mapping owns tenant visibility and its
+opt-in HasSubjectTimelineIndex helper and its native index customization.
+Audit retains stock identity, version and quantity without correlation, causation or trace
+IDs. The executable prints the committed action/actor and reply identity/cause.
+`inventory.audit_entries` is module-owned through a
+new forward migration and native tenant filter/save validation. Direct commands, seeds,
+refusals, duplicate deliveries and rebuilding do not gain automatic accepted-change audits.
+Classification, authorization, query visibility and retention remain consumer policy.
+
 Incoming correlation is carried to the reply; causation is the incoming MessageId. Direct
-commands retain the stock-position correlation fallback and omit invented causation. The
-receiver and optional processor are explicitly registered; existing default/browser behavior
+commands create a conversation per operation scope and omit invented causation. Missing
+incoming correlation remains absent in the reply. The receiver and optional processor are explicitly registered; existing default/browser behavior
 does not subscribe to a broker or enable a worker. New forward migrations preserve older ones.
 
-Eight real PostgreSQL/broker cases cover accepted/refused decisions, event/state/reply/completion
-rollback, fresh recovery, tenant admission and this executable. Read the
+Fourteen real PostgreSQL/broker cases cover accepted/refused decisions, independent commit
+requirements and header/event/state/audit/reply/completion rollback, fresh recovery, tenant
+admission, populated pre-audit migration preservation and this executable. Read the
 [Inbox contract](../../../src/Rootbolt.Messaging/docs/inbox.md) for native row-lock processing
-and remaining operational limits.
+and remaining operational limits, and the [audit contract](../../../src/Rootbolt.Auditing/docs/transactional-audit.md)
+for explicit participation and its consumer obligations.

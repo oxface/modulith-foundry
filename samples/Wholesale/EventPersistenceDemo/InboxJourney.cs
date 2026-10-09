@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using RabbitMQ.Client;
+using Rootbolt.Auditing.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore;
 using Rootbolt.Tenancy;
 
@@ -75,13 +76,14 @@ public static class InboxJourney
             cancellationToken: cancellationToken
         );
         Guid messageId = Guid.NewGuid();
+        string correlationId = Guid.CreateVersion7().ToString("D");
         var properties = new BasicProperties
         {
             Persistent = true,
             ContentType = "application/json",
             MessageId = messageId.ToString(),
             Type = StockIssueMessageAdmission.Subscription,
-            CorrelationId = stock.ToString(),
+            CorrelationId = correlationId,
             Headers = new Dictionary<string, object?>
             {
                 ["producer-module"] = StockIssueMessageAdmission.Producer,
@@ -110,8 +112,20 @@ public static class InboxJourney
         var result = await processing
             .ServiceProvider.GetRequiredService<IInboxProcessor<InventoryDbContext>>()
             .ProcessNextAsync(StockIssueMessageAdmission.Subscription, cancellationToken);
+        await using var read = Scope(provider);
+        var audit = await read
+            .ServiceProvider.GetRequiredService<InventoryDbContext>()
+            .Set<AuditRecord>()
+            .SingleAsync(
+                row => row.SubjectType == "stock-position" && row.SubjectKey == stock.ToString("D"),
+                cancellationToken
+            );
+        var reply = await read
+            .ServiceProvider.GetRequiredService<InventoryDbContext>()
+            .Set<OutboxMessageRecord>()
+            .SingleAsync(row => row.CausationId == messageId.ToString("D"), cancellationToken);
         output.WriteLine(
-            $"command {messageId}: intake={intake}; processing={result}; stock events/state/reply saved together"
+            $"command {messageId}: intake={intake}; processing={result}; audit={audit.Action} actor={audit.ActorKey}; reply={reply.MessageId} reply-cause={reply.CausationId}; stock events/state/audit/reply saved together"
         );
         await channel.QueueDeleteAsync(queue, ifUnused: false, ifEmpty: true, cancellationToken);
     }

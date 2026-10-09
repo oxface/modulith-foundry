@@ -55,7 +55,9 @@ public sealed class OutboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixt
         Assert.Equal(first.Owner, second.Owner);
         Assert.Equal(first.Payload.GetRawText(), second.Payload.GetRawText());
         Assert.Equal(first.MessageId, first.Payload.GetProperty("messageId").GetGuid().ToString());
-        Assert.Equal(
+        Assert.True(Guid.TryParse(first.CorrelationId, out var conversation));
+        Assert.NotEqual(Guid.Empty, conversation);
+        Assert.NotEqual(
             first.CorrelationId,
             first.Payload.GetProperty("stockPositionId").GetGuid().ToString()
         );

@@ -25,7 +25,7 @@ public sealed class InventoryRabbitMqPublisher(IChannel channel) : IMessagePubli
             ContentType = "application/json",
             MessageId = message.MessageId.ToString(),
             Type = message.MessageName,
-            // Sample policy: group notifications by stock position. Correlation is not a deduplication identity.
+            // Preserve the producer's conversation identity across native publication/retries.
             CorrelationId = message.CorrelationId,
             Headers = new Dictionary<string, object?>
             {

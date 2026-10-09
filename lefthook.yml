@@ -1,5 +1,8 @@
 pre-commit:
   jobs:
+    - name: audit-postgres-tests
+      glob: "*.{cs,csproj,props,targets,slnx}"
+      run: dotnet test --project src/Rootbolt.Auditing/tests/AuditPostgresTests/AuditPostgresTests.csproj --no-restore
     - name: csharpier
       glob: "*.{cs,csx,config,csproj,props,targets,slnx,xml}"
       run: dotnet csharpier check . --include-generated

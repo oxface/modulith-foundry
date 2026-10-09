@@ -1,4 +1,5 @@
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
+using Rootbolt.ActorIdentity;
 using Rootbolt.Messaging;
 using Rootbolt.Messaging.EntityFrameworkCore;
 using Rootbolt.Tenancy;
@@ -7,6 +8,8 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Messaging;
 
 internal sealed class StockIssueInboxHandler(
     ITenantContextInitializer tenancy,
+    IActorContextInitializer actorInitializer,
+    InventoryAudit audit,
     InventoryMessageContext metadata,
     IStockPositionCommands commands,
     IOutbox<InventoryDbContext> outbox,
@@ -17,6 +20,10 @@ internal sealed class StockIssueInboxHandler(
     {
         var command = StockIssueMessageAdmission.Validate(message);
         tenancy.Initialize(TenantContext.ForTenant(new TenantId(message.TenantKey!)));
+        // Receiver-owned identity; wire correlation and causation do not establish a human initiator.
+        actorInitializer.Initialize(
+            new ActorContext(Actor.System(new ActorId("inventory.stock-issue-worker")))
+        );
         metadata.Initialize(message);
 
         var result = await commands.IssueAsync(
@@ -27,8 +34,11 @@ internal sealed class StockIssueInboxHandler(
             ),
             cancellationToken
         );
-        if (result is StockPositionChangeResult.Changed)
+        if (result is StockPositionChangeResult.Changed accepted)
+        {
+            audit.StockIssued(command.StockPositionId, accepted.Proposed.Version, command.Quantity);
             return;
+        }
 
         var reason = result switch
         {

@@ -279,7 +279,10 @@ public sealed partial class CompositionTests
             inventory.Database.GetMigrations(),
             await inventory.Database.GetAppliedMigrationsAsync(Token)
         );
-        Assert.Single(await sales.Database.GetAppliedMigrationsAsync(Token));
+        Assert.Equal(
+            sales.Database.GetMigrations(),
+            await sales.Database.GetAppliedMigrationsAsync(Token)
+        );
         using var profileRequest = Request(
             app,
             $"/organizations/north-supply/customers/{SalesDemoSeed.AlphaCustomerId}/profile",

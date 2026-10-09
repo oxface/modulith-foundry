@@ -7,23 +7,15 @@ tests, and documentation. Keep the repository valid and the outcome understandab
 owner review. Split independent outcomes rather than introducing empty layers or broken
 intermediate states.
 
-The owner approved archiving without line-by-line review of the relocation. Review focuses
-on what remains at the root, new documentation, and any changed tooling or behavior. The
-archive's checksum manifest distinguishes relocation from source changes.
-
 Library interfaces and implementations receive line-by-line review. Sample usage and proof
 changes accompany the library so the consumer obligations can be assessed together. A new
 template file is needed only when the increment establishes a reusable setup pattern.
 
-Leave all changes unstaged for owner review. The old pattern-focused automatic-staging
-workflow is historical and no longer applies.
-
 ## Repository scripts
 
 Use TypeScript for new durable repository scripts and proof harnesses, and when actively
-reworking such tooling. The owner reviews TypeScript; Python is not the preferred language
-for maintained scripting. Document the runtime and invocation, and verify types and formatting.
-Preserve archived tooling and unrelated existing scripts; this preference does not authorize
+reworking such tooling. Document the runtime and invocation, and verify types and formatting.
+Preserve archived tooling and unrelated existing scripts; this convention does not authorize
 a repository-wide migration.
 
 ## Handoff

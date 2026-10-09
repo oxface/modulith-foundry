@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Rootbolt.Auditing.EntityFrameworkCore;
+using Rootbolt.Auditing.EntityFrameworkCore.Postgres;
 using Rootbolt.Persistence.EntityFrameworkCore;
 using Rootbolt.Tenancy;
 
@@ -16,6 +18,12 @@ public sealed class SalesDbContext(
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("sales");
+        var audit = modelBuilder.ConfigurePostgresAudit("sales", "audit_entries");
+        audit.HasTenantOwnership(
+            row => row.TenantKey!,
+            () => RequiredOrganizationKey,
+            "OrganizationScope"
+        );
         var customer = modelBuilder.Entity<CustomerRow>();
         customer.ToTable(
             "customer_profiles",
@@ -70,6 +78,7 @@ public sealed class SalesDbContext(
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateAuditChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -79,6 +88,7 @@ public sealed class SalesDbContext(
     )
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
+        this.ValidateAuditChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 }

@@ -1,9 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Samples.Wholesale.Sales.Contracts;
+using Rootbolt.ActorIdentity;
 
 namespace ModulithFoundry.Samples.Wholesale.Sales;
 
-internal sealed class CustomerProfiles(SalesDbContext database) : ICustomerProfiles
+internal sealed class CustomerProfiles(
+    SalesDbContext database,
+    IActorContextAccessor actor,
+    SalesAudit audit
+) : ICustomerProfiles
 {
     public async Task<CustomerProfile?> ReadAsync(
         Guid customerId,
@@ -43,6 +48,11 @@ internal sealed class CustomerProfiles(SalesDbContext database) : ICustomerProfi
         ArgumentOutOfRangeException.ThrowIfGreaterThan(change.DisplayName.Length, 256);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(change.AddressLine.Length, 512);
         _ = database.RequiredOrganizationKey;
+        var attribution = actor.Current;
+        if (attribution.Actor.Kind != ActorKind.Human)
+            throw new InvalidOperationException(
+                "Sales profile changes require an established human actor."
+            );
 
         await using var transaction = await database.Database.BeginTransactionAsync(
             cancellationToken
@@ -71,6 +81,7 @@ internal sealed class CustomerProfiles(SalesDbContext database) : ICustomerProfi
             database.Entry(customer).Property(row => row.Version).IsModified = true;
             await database.SaveChangesAsync(cancellationToken);
             address.AddressLine = change.AddressLine;
+            audit.ProfileChanged(customer.Id, address.Id, change.ExpectedVersion, customer.Version);
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return new ProfileChangeResult.Updated(

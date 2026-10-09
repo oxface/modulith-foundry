@@ -19,6 +19,8 @@ namespace ModulithFoundry.ArchitectureTests;
 public sealed class AssemblyDependencyTests
 {
     private const string Actor = "Rootbolt.ActorIdentity";
+    private const string Audit = "Rootbolt.Auditing.EntityFrameworkCore";
+    private const string AuditPostgres = "Rootbolt.Auditing.EntityFrameworkCore.Postgres";
     private const string ActorHttp = "Rootbolt.ActorIdentity.AspNetCore";
     private const string Tenancy = "Rootbolt.Tenancy";
     private const string TenancyHttp = "Rootbolt.Tenancy.AspNetCore";
@@ -37,6 +39,8 @@ public sealed class AssemblyDependencyTests
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies(
             typeof(ActorId).Assembly,
+            typeof(Rootbolt.Auditing.EntityFrameworkCore.AuditRecord).Assembly,
+            typeof(Rootbolt.Auditing.EntityFrameworkCore.Postgres.PostgresAuditModelExtensions).Assembly,
             typeof(Rootbolt.Messaging.OutgoingMessage).Assembly,
             typeof(Rootbolt.Messaging.EntityFrameworkCore.IOutbox<>).Assembly,
             typeof(Rootbolt.Messaging.EntityFrameworkCore.Postgres.PostgresOutboxDispatcher<>).Assembly,
@@ -61,6 +65,9 @@ public sealed class AssemblyDependencyTests
         .Build();
 
     [Theory]
+    [InlineData(Actor, Audit)]
+    [InlineData(Tenancy, Audit)]
+    [InlineData(Persistence, Audit)]
     [InlineData(Actor, Tenancy)]
     [InlineData(Tenancy, Actor)]
     [InlineData(Persistence, Actor)]
@@ -93,6 +100,53 @@ public sealed class AssemblyDependencyTests
         string library,
         string forbidden
     ) => NoDependency(library, forbidden).Check(Architecture);
+
+    [Fact]
+    public void AuditUsesActorValuesAndNativeEfWithoutOtherSegmentsOrConsumers()
+    {
+        foreach (
+            string forbidden in new[]
+            {
+                ActorHttp,
+                Tenancy,
+                TenancyHttp,
+                Persistence,
+                EventSerialization,
+                History,
+                AggregateCore,
+                Storage,
+                ContextSample,
+                PersistenceSample,
+                HttpSample,
+                CodecSample,
+                EventPersistenceSample,
+                StorageSample,
+                "Rootbolt.Messaging",
+                "Rootbolt.Messaging.EntityFrameworkCore",
+                "Rootbolt.Messaging.EntityFrameworkCore.Postgres",
+                "OutboxDemo",
+                "InboxDemo",
+                "MessagingDemo",
+            }
+        )
+        {
+            NoDependency(Audit, forbidden).Check(Architecture);
+            NoDependency(AuditPostgres, forbidden).Check(Architecture);
+            if (forbidden.StartsWith("Rootbolt.", StringComparison.Ordinal))
+            {
+                NoDependency(forbidden, Audit).Check(Architecture);
+                NoDependency(forbidden, AuditPostgres).Check(Architecture);
+            }
+        }
+
+        NoDependency(Audit, AuditPostgres).Check(Architecture);
+        Assert.DoesNotContain(
+            typeof(Rootbolt.Auditing.EntityFrameworkCore.AuditRecord).Assembly.GetReferencedAssemblies(),
+            assembly =>
+                assembly.Name!.StartsWith("Npgsql", StringComparison.Ordinal)
+                || assembly.Name.StartsWith("RabbitMQ", StringComparison.Ordinal)
+        );
+    }
 
     [Fact]
     public void EventSerializationUsesNoOtherSegmentsOrConsumerTypes()
