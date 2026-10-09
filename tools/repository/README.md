@@ -9,6 +9,12 @@ npm ci --prefix tools/repository --ignore-scripts
 Commitlint uses `commitlint.config.mjs`; the existing archive verifier remains Python and
 checks the frozen original manifest.
 
+Commit messages follow Conventional Commits: a recognized lowercase type, optional
+scope and nonempty subject. Subject capitalization is unrestricted, so both
+`chore: bump dependencies` and `chore: Bump dependencies` pass. Other rules from
+`@commitlint/config-conventional` remain enabled. CI and the local commit hook use
+the same configuration; dependency bots receive no validation bypass.
+
 ## CI selection
 
 The [reusable scope workflow](../../.github/workflows/changes.yml) uses SHA-pinned
