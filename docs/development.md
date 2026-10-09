@@ -19,6 +19,33 @@ management pins test/DI packages, EF Core Relational/Design, native Npgsql, Test
 sample-only OpenIdConnect, test-only TestHost and ArchUnitNET. The local tool manifest also
 pins native `dotnet-ef` 10.0.12.
 
+## Local .NET SDK
+
+Use the SDK selected by root `global.json`; the template has a matching SDK manifest.
+Ubuntu's apt feed can provide a different feature band: the repository currently
+requires 10.0.401, while the inspected Ubuntu 26.04 feed offers 10.0.112. The
+`latestPatch` policy stays within the selected feature band, so 10.0.112 cannot
+satisfy a 10.0.401 request. Keep the pin rather than rolling it back for local
+package availability. CI's `actions/setup-dotnet` installs from `global.json`
+independently of the Ubuntu package feed.
+
+For a per-user installation when apt does not provide the required SDK, run from
+the repository root:
+
+```bash
+curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+bash /tmp/dotnet-install.sh --jsonfile global.json --install-dir "$HOME/.dotnet" --no-path
+export DOTNET_ROOT="$HOME/.dotnet"
+export PATH="$DOTNET_ROOT:$PATH:$DOTNET_ROOT/tools"
+dotnet --version
+```
+
+Persist the environment in your shell configuration. Per-user SDKs coexist with
+apt's installation, but selecting the per-user `dotnet` host does not automatically
+discover SDKs under `/usr/lib/dotnet`; install any older SDKs required by other
+repositories into the same per-user directory. Repeat installation when a reviewed SDK update changes
+the manifest. See [Microsoft's installer reference](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-install-script).
+
 ## Repository tooling
 
 Follow [the .NET conventions](conventions/dotnet.md) when changing C# code.
@@ -345,7 +372,8 @@ It remains editable host source and is not required by any technical library.
 After restoring/building the active solution, run:
 
 ```bash
-dotnet tool install --global Aspire.Cli --version 13.5.4
+aspire_version="$(DOTNET_NOLOGO=true dotnet msbuild samples/Wholesale/AppHost/Wholesale.AppHost.csproj -getProperty:AspireHostingSDKVersion -nologo)"
+dotnet tool install --global Aspire.Cli --version "$aspire_version"
 # On Linux, configure trust before running dev-certs, retaining OpenSSL's system roots.
 export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:${SSL_CERT_DIR:-/etc/ssl/certs}"
 dotnet dev-certs https --trust

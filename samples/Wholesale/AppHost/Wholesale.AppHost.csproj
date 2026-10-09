@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>ModulithFoundry.Samples.Wholesale.AppHost</RootNamespace>
@@ -9,5 +9,7 @@
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.Keycloak" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 </Project>
