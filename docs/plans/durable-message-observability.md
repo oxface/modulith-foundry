@@ -2,7 +2,10 @@
 
 Status: proposed for owner review, 2026-10-09. This extends the monitoring discussion
 around [E9](e9-explicit-transactional-audit.md); it is not an implemented guarantee.
-The existing E9 implementation remains unstaged. No runtime changes accompany this proposal.
+E9 is complete at checkpoint `18a76f8`, present in `origin/main`. No runtime changes accompany
+this proposal. The [remaining roadmap](remaining-capability-roadmap.md) identifies it as OBS1,
+alongside W1's separate worker-host proof; reuse that topology rather than create a second
+competing host-composition abstraction.
 
 ## Actual code and native support
 

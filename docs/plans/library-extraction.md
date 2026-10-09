@@ -20,31 +20,26 @@ forward from E10; that rehearsal is now complete and owner-approved.
 | Rootbolt library naming | Owner selected and authorized the rename and checkpoint. All nine reusable projects use `Rootbolt.*`; [scope and verification](../reports/rootbolt-library-renaming.md). No runtime capability added. |
 | Transactional outbox O1 | Owner-reviewed and checkpointed as `2d7a865`; merged through PR #1 as `beafa4e`. [Implementation and executable adoption](../../src/Rootbolt.Messaging/README.md); [fresh proofs and remaining gaps](../reports/outbox1-transactional-dispatch.md). |
 | Durable inbox I1 | Owner-reviewed implementation checkpoint `ecab884`, followed by CI refinement `863456b`; merged through PR #2 as `0f4d8bf`. [Reviewed scope](inbox1-durable-intake-processing.md); [implementation evidence and remaining gaps](../reports/inbox1-durable-intake-processing.md). |
-| Explicit transactional audit E9 | [Public interface and bounded scope](e9-explicit-transactional-audit.md) owner-approved on `feat/explicit-transactional-audit`, based on `0f4d8bf`. Implemented for line-by-line review, unstaged. [Library contract](../../src/Rootbolt.Auditing/README.md); [verification and remaining gaps](../reports/e9-explicit-transactional-audit.md). |
+| Explicit transactional audit E9 | Owner considers the slice complete; checkpoint `18a76f8` is present in `origin/main`. [Reviewed scope](e9-explicit-transactional-audit.md); [library contract](../../src/Rootbolt.Auditing/README.md); [verification and remaining gaps](../reports/e9-explicit-transactional-audit.md). |
 
-The active slice is [E9 explicit transactional accepted-change audit](e9-explicit-transactional-audit.md).
-The owner approved implementation of its public surface and bounded scope; changes remain
-unstaged for implementation review, with no commit approval. Owner feedback is implemented for review: optional PostgreSQL audit
-mapping, nullable item identity and sample wrappers obtaining established operation context.
-The owner subsequently removed correlation, causation and trace IDs from the audit API,
-storage and consumers under YAGNI. Item identity supports the business activity timeline.
-The EF mapping includes its subject timeline index by default; sample V1 payload records keep versions
-next to fields, and TenantKey is the final optional audit constructor argument.
-The subsequent monitoring discussion has a [durable message observability proposal](durable-message-observability.md)
-covering separate processes, retained W3C context, native RabbitMQ/OTel wiring and fault proofs.
-Its messaging interface/schema extensions are proposed for review, not implemented or verified.
-[Primary-source findings](../reports/e9-audit-context-research.md) support the tracing/equality
-and audit-guidance choices. The latest merged
-capability is [I1 durable inbox intake and transactional local processing](inbox1-durable-intake-processing.md).
-It follows the completed [O1 transactional enqueue and callable recoverable dispatch](outbox1-transactional-dispatch.md),
-with independent inbox opt-in, an Inventory command receiver and an ordinary EF Rendering
-receiver. Consumer transport code commits retained intake before acknowledgement/HTTP acceptance.
-Separate callable processing owns one local native transaction covering handler effects,
-completion and optional outgoing replies. Processing uses a row lock through local processing,
-not an expiring inbox lease; the outbox publication protocol remains unchanged. The concrete
-public types, errors, consumer ownership and file/behavior map received owner review before
-implementation. Both messaging capabilities are now merged; their recorded executions are
-historical evidence for E9, whose audit participation needs new proofs.
+The completed [E9 audit slice](e9-explicit-transactional-audit.md) deliberately excludes
+correlation, causation and trace IDs under the owner's YAGNI decision; these remain messaging
+and telemetry concerns. Its optional PostgreSQL mapping and item timeline belong to the
+current [audit contract](../../src/Rootbolt.Auditing/README.md).
+
+The [remaining capability roadmap](remaining-capability-roadmap.md) is the current starting
+point for selecting another slice. It explicitly includes DDD/CQRS assessments and template
+patterns, separate worker hosts, observability, durable module workflows, snapshot/feed
+repopulation, aggregate maintenance and a late cross-family isolation review. Its scope/order
+is proposed; no new runtime interface is approved by that list.
+
+The existing [durable message observability proposal](durable-message-observability.md)
+covers separate processes, retained W3C context, native RabbitMQ/OTel wiring and fault proofs.
+Its messaging interface/schema extensions remain proposed, not implemented or verified.
+[Audit context findings](../reports/e9-audit-context-research.md) and the new
+[capability reference review](../reports/remaining-capability-reference-review.md) distinguish
+source evidence from future extraction candidates. Both messaging capabilities and audit are
+completed; their dated reports remain historical evidence, not proof of these follow-ups.
 
 O1 narrowed E7 below to outbox mechanics, with a state-stored standalone adopter and an
 event-sourced Inventory consumer. It includes a simple opt-in hosted outbox worker and
