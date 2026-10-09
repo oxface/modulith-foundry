@@ -38,8 +38,12 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      - name: Install pinned Aspire CLI bundle
-        run: dotnet tool install --global Aspire.Cli --version 13.5.4
+      - name: Install Aspire CLI matching the AppHost SDK
+        env:
+          DOTNET_NOLOGO: "true"
+        run: |
+          aspire_version="$(dotnet msbuild samples/Wholesale/AppHost/Wholesale.AppHost.csproj -getProperty:AspireHostingSDKVersion -nologo)"
+          dotnet tool install --global Aspire.Cli --version "$aspire_version"
       - name: Install Linux certificate trust tools
         run: |
           sudo apt-get update
