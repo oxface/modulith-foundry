@@ -1,0 +1,130 @@
+# Release age controls update proposals, not developer installs. Security updates
+# bypass cooldowns and remain separate from these routine version-update groups.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    # The template has its own solution and central package/tool manifests.
+    directories:
+      - /
+      - /templates/state-stored
+    exclude-paths:
+      - archive/**
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      ef-core:
+        patterns:
+          - Microsoft.EntityFrameworkCore.*
+          - Npgsql.EntityFrameworkCore.*
+          - dotnet-ef
+        update-types: [minor, patch]
+      dotnet-platform:
+        patterns:
+          - Microsoft.AspNetCore.*
+          - Microsoft.Extensions.*
+        update-types: [minor, patch]
+      aspire:
+        patterns: [Aspire.*]
+        update-types: [minor, patch]
+      opentelemetry:
+        patterns:
+          - OpenTelemetry.*
+          - Npgsql.OpenTelemetry
+        update-types: [minor, patch]
+      testcontainers:
+        patterns: [Testcontainers.*]
+        update-types: [minor, patch]
+      # One dependency per PR, including majors, across root/template manifests.
+      # This does not combine unrelated packages into a catch-all update batch.
+      individual-packages:
+        patterns: ["*"]
+        group-by: dependency-name
+
+  - package-ecosystem: npm
+    directory: /tools/repository
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      repository-tools:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /tools/template
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      template-tools:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Etc/UTC
+    # Actions supports a single release-age delay, without per-SemVer cooldowns.
+    cooldown:
+      default-days: 30
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: dotnet-sdk
+    directories:
+      - /
+      - /templates/state-stored
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    # The same SDK upgrade belongs in both global.json files, in its own PR.
+    groups:
+      dotnet-sdk:
+        patterns: ["*"]
+        group-by: dependency-name

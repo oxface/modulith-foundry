@@ -92,6 +92,47 @@ filter verification and the
 [family-lane verification report](reports/ci-family-lanes.md) for coverage accounting,
 fresh executions and remaining hosted/performance limits.
 
+## Dependency updates
+
+[Dependabot configuration](../.github/dependabot.yml) checks every Monday at 09:00 UTC.
+It covers the active solution and local .NET tools, the independent state-stored template,
+both npm tooling directories, SHA-pinned GitHub Actions and both pinned .NET SDK manifests.
+The frozen archive is excluded from update scans. Add a separate frontend npm entry when
+a frontend exists; repository/template tooling is not a frontend dependency group.
+
+Routine NuGet, npm and SDK releases wait seven days after publication; major releases wait
+30 days. Actions uses 30 days for every release because its ecosystem supports only a
+single cooldown. These delays govern bot proposals, not all package installs or transitive
+dependencies, and do not certify release safety. Security updates bypass cooldowns.
+See [GitHub's options reference](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
+
+Minor/patch EF/provider/tool updates, .NET platform packages, Aspire, OpenTelemetry and
+Testcontainers each have their own group. Other NuGet dependencies and all NuGet majors
+use one dependency per PR across the root/template manifests. Each npm tool directory has
+its own minor/patch group; Actions minor/patch updates share a CI group. Their major updates
+remain individual. An SDK upgrade is separate from package updates and updates both SDK
+manifests together. Groups express review boundaries, not compatibility guarantees; check
+release notes, provider/framework compatibility and transitive lockfile changes. Existing
+preview dependencies, such as the sample's Keycloak integration, still need explicit review.
+
+Each update configuration permits three open routine PRs, not three across the repository.
+Security fixes remain individual and separate from routine batches. Do not enable broad
+repository-level grouped security updates if that separation is to be preserved. If a routine
+group fails and the cause is unclear, split the group so healthy updates can proceed.
+Require normal owner review and CI; this setup adds no automatic merging or ruleset bypass.
+Use conventional `chore(deps)` / `chore(deps-dev)` bot commit messages.
+
+After merging the configuration into the default branch, confirm dependency graph,
+Dependabot alerts and Dependabot security updates are enabled under GitHub repository
+Settings → Advanced Security. The YAML configures version updates; it does not turn on
+those repository security settings. See
+[security-update setup](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configure-security-updates).
+Confirm the first hosted run discovers both solutions/tools and both SDK manifests, opens
+the intended groups and passes the existing PR checks. Central packages, root SDK/tools
+and Actions updates select broad CI coverage; template-only tooling changes select template
+checks. Versions pinned inside scripts or container image strings are not covered by this
+initial configuration and need explicit review when their corresponding dependency changes.
+
 ## Template creation and external-consumer proof
 
 T1 was owner-approved and checkpointed as `8ccf4c8`. On the supported Linux/glibc environment
