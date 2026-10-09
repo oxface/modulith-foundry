@@ -141,11 +141,11 @@ Run the active sample with:
 dotnet run --project samples/Wholesale/ContextDemo/ContextDemo.csproj
 ```
 
-Every push to main and PR runs five Rootbolt family lanes, including their independent
-consumers and real PostgreSQL proofs, plus Wholesale consumer composition, repository
-integrity and external generated-template adoption. The
+Every push to main and PR selects relevant checks from changed paths and their native
+project dependencies. Documentation-only changes run lightweight repository checks; code
+changes select affected Rootbolt families, consumers and generated-template adoption. The
 [CI lane map](docs/development.md#ci-lanes) lists their responsibilities. The
 [sample runtime workflow](.github/workflows/sample-runtime.yml) tests Aspire startup and real
-browser login on PRs changing Wholesale or shared build inputs, or by manual request.
+browser login on PRs changing Wholesale implementation or shared build/CI inputs, or by manual request.
 Archived builds/tests are excluded from CI and commit hooks; their files remain available
 as historical reference material, with frozen-source checksums verified by CI.
