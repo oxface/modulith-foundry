@@ -56,10 +56,10 @@ jobs:
           echo "SSL_CERT_DIR=$SSL_CERT_DIR" >> "$GITHUB_ENV"
       - name: Verify development HTTPS certificate trust
         run: dotnet dev-certs https --check --trust
-      - name: Restore active projects
-        run: dotnet restore ModulithFoundry.slnx
-      - name: Build active projects
-        run: dotnet build ModulithFoundry.slnx --no-restore
+      - name: Restore runtime consumer and its dependencies
+        run: dotnet restore samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj
+      - name: Build runtime consumer and its dependencies
+        run: dotnet build samples/Wholesale/RuntimeComposition.Tests/RuntimeComposition.Tests.csproj --no-restore
       - name: Install matching Chromium and browser system dependencies
         run: pwsh samples/Wholesale/RuntimeComposition.Tests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
       - name: Test runtime setup, database outage and real OIDC browser journeys

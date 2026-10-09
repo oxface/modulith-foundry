@@ -7,7 +7,6 @@ using static Rootbolt.Messaging.InboxTests.InboxProof;
 
 namespace Rootbolt.Messaging.InboxTests;
 
-[Collection("Inbox PostgreSQL")]
 public sealed class ProcessingTests(PostgreSqlFixture fixture)
 {
     [Fact]

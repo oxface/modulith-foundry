@@ -11,9 +11,6 @@ using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
 namespace Rootbolt.Messaging.InboxTests;
 
-[CollectionDefinition("Inbox PostgreSQL")]
-public sealed class InboxPostgresProofs : ICollectionFixture<PostgreSqlFixture>;
-
 public sealed class InboxConsumer(DbContextOptions<InboxConsumer> options) : DbContext(options)
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
