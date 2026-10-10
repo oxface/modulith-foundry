@@ -29,7 +29,9 @@ Dispatch commits a lease before transport work and fences completion/retry with 
 and expiry. Expiry may allow a successor to publish while the old publisher is still running;
 fencing protects database completion, not external exactly-once effects. Best-effort ordering
 does not imply FIFO or a global backlog-empty assertion. Recovery tests use real PostgreSQL;
-they do not certify arbitrary providers or abrupt process-kill behavior.
+they do not certify arbitrary providers. O1's original execution report supplies no abrupt
+process-kill claim; the W1 consumer process proofs described below cover the selected
+PostgreSQL/RabbitMQ host topology.
 
 JSONB round trips preserve JSON values rather than original lexical form. The immutable
 envelope owns a JsonElement clone. Consumers may use direct native JSON or independently
@@ -129,12 +131,29 @@ modes automatically. No generic acknowledgement facade is selected: ack is trans
 and belongs after the applicable database commit. Broker tags/channels and native failure
 semantics remain visible in the sample. Additional helpers must earn their interface.
 
+## Separate worker composition
+
+[W1's native host](../../../samples/MessagingWorkerDemo/README.md) composes the existing library
+workers outside an [API-only producer](../../../samples/MessagingProducerDemo/README.md).
+Explicit setup applies the existing module migrations and declares the durable queue; worker
+startup only checks its required tables/queue. Dispatch, broker intake and local processing
+are separate roles. Processing needs only its receiving module's connection. The host owns
+native connection/channel lifetime and each operation keeps the library's fresh DI scope.
+
+Real child-process proofs cover API exit before delivery, acknowledged retained work before
+independent processing, competing processor transactions, graceful SIGTERM/restart, processing
+death/rollback and publication death/lease expiry/redelivery/deduplication. This establishes
+the selected composition, not external exactly-once effects, a throughput benchmark or a
+deployment supervisor. Native intake remains sample code. No new reusable mechanism or
+library interface is introduced; existing typed composition, leases and row locks suffice.
+[The W1 report](../../../docs/reports/w1-separate-worker-hosts.md) distinguishes these executions
+from historical O1/I1 results.
+
 ## Deferred capabilities
 
-Separate worker hosts are possible with the existing Hosting abstractions; current API
-placement is sample composition. Multi-process deployment/recovery proofs and richer durable
-tracing are planned in the [remaining roadmap](../../../docs/plans/remaining-capability-roadmap.md)
-and [observability proposal](../../../docs/plans/durable-message-observability.md).
+Host placement is consumer composition. Richer durable tracing is planned in the
+[remaining roadmap](../../../docs/plans/remaining-capability-roadmap.md) and
+[observability proposal](../../../docs/plans/durable-message-observability.md).
 No W3C trace context is currently retained by the envelope/rows.
 
 New-service snapshot/feed repopulation is a distinct planned capability. Current dispatch

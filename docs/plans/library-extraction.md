@@ -21,6 +21,7 @@ forward from E10; that rehearsal is now complete and owner-approved.
 | Transactional outbox O1 | Owner-reviewed and checkpointed as `2d7a865`; merged through PR #1 as `beafa4e`. [Implementation and executable adoption](../../src/Rootbolt.Messaging/README.md); [fresh proofs and remaining gaps](../reports/outbox1-transactional-dispatch.md). |
 | Durable inbox I1 | Owner-reviewed implementation checkpoint `ecab884`, followed by CI refinement `863456b`; merged through PR #2 as `0f4d8bf`. [Reviewed scope](inbox1-durable-intake-processing.md); [implementation evidence and remaining gaps](../reports/inbox1-durable-intake-processing.md). |
 | Explicit transactional audit E9 | Owner considers the slice complete; checkpoint `18a76f8` is present in `origin/main`. [Reviewed scope](e9-explicit-transactional-audit.md); [library contract](../../src/Rootbolt.Auditing/README.md); [verification and remaining gaps](../reports/e9-explicit-transactional-audit.md). |
+| Separate worker hosts W1 | Implemented for owner review, uncommitted on `feat/separate-worker-hosts`. Existing inbox/outbox APIs compose separate native roles with explicit setup; [scope](w1-separate-worker-hosts.md), [usage](../../samples/MessagingWorkerDemo/README.md) and [process proofs](../reports/w1-separate-worker-hosts.md). No new library interface or mechanism. |
 
 The completed [E9 audit slice](e9-explicit-transactional-audit.md) deliberately excludes
 correlation, causation and trace IDs under the owner's YAGNI decision; these remain messaging

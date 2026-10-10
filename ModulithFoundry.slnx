@@ -59,6 +59,9 @@
     <Project Path="samples/InboxDemo/InboxDemo.csproj" />
     <Project Path="samples/InboxDemo.Tests/InboxDemo.Tests.csproj" />
     <Project Path="samples/MessagingDemo/MessagingDemo.csproj" />
+    <Project Path="samples/MessagingProducerDemo/MessagingProducerDemo.csproj" />
+    <Project Path="samples/MessagingWorkerDemo/MessagingWorkerDemo.csproj" />
+    <Project Path="samples/MessagingWorkerDemo.Tests/MessagingWorkerDemo.Tests.csproj" />
     <Project Path="samples/OutboxDemo/OutboxDemo.csproj" />
     <Project Path="samples/OutboxDemo.Tests/OutboxDemo.Tests.csproj" />
     <Project Path="samples/EventStorageDemo/EventStorageDemo.csproj" />
