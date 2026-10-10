@@ -7,7 +7,7 @@ consumer-owned sample/template projects, not reusable technical libraries.
 | Module | Ownership | Persistence |
 | --- | --- | --- |
 | Access | Global application users, exact external identities, canonical Organizations and current-membership admission. | Schema `access`, native AccessDbContext, separate migration history; queries run before tenancy exists. |
-| Sales | Versioned customer profile edits and one demonstration address per customer. | Schema `sales`, native SalesDbContext, separate history; explicit tenant ownership and native transactions. |
+| Sales | Versioned customer profile edits, one demonstration address per customer and durable stock-issue request progress. | Schema `sales`, native SalesDbContext, separate history and owned inbox/outbox; explicit tenant ownership and native transactions. |
 | Inventory | Availability reads, stock-position history and inline state, opening and receipt commands within the selected Organization. | Schema `inventory`, native InventoryDbContext, separate history; ordinary queries use the registered E2 ownership filter. |
 | Purchasing | Purchase-order history, inline aggregate state and query-derived summary, drafting and line replacement. | Schema `purchasing`, native PurchasingDbContext, separate history; explicit tenant ownership. |
 
@@ -50,6 +50,25 @@ host obligations; trusted non-HTTP callers own admission. Discard the context af
 there is no automatic retry/rebase or shared ambient-transaction contract.
 
 Materialized template/CLI output remains E10.
+
+## Durable stock-issue progress
+
+[WF1 executable usage](../WorkflowDemo/README.md) adds a Sales-owned request that sends the
+existing Inventory `IssueStockV1` command and resolves its success/refusal reply. Sales owns
+request identity, deadline, outcome matching and semantic idempotency; Inventory owns the stock
+decision. Sales references Inventory.Contracts and never Inventory's implementation or private
+state. Each module commits independently through its own typed context and inbox/outbox.
+
+The [business Contract](Sales/Sales.Contracts/IStockIssueRequests.cs) exposes explicit start
+and persisted reads. Starting commits the request and command together; reply processing
+commits progress with inbox completion. A separate bounded deadline operation flags
+NeedsAttention without declaring remote failure. Late replies can still resolve it. Native EF
+request version predicates arbitrate replies/deadline scans in different local transactions.
+
+The sample host establishes trusted contexts, owns broker admission/routing/acknowledgement,
+and explicitly runs setup. The current finite receivers admit known Organizations; that is
+not production sender authentication or a replacement for business authorization. Compensation,
+cancellation and poison recovery require separate consumer policies/proofs.
 
 ## Event-history reads
 

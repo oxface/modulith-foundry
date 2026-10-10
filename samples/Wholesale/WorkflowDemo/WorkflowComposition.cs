@@ -1,0 +1,36 @@
+using Microsoft.Extensions.DependencyInjection;
+using ModulithFoundry.Samples.Wholesale.Inventory;
+using ModulithFoundry.Samples.Wholesale.Sales;
+using Rootbolt.Tenancy;
+
+namespace ModulithFoundry.Samples.Wholesale.WorkflowDemo;
+
+/// <summary>Editable composition; module contexts remain distinct even when hosted together.</summary>
+public static class WorkflowComposition
+{
+    public static IServiceCollection AddWorkflowDemo(
+        this IServiceCollection services,
+        string salesConnection,
+        string inventoryConnection
+    )
+    {
+        services.AddScoped<TenantContextAccessor>();
+        services.AddScoped<ITenantContextAccessor>(provider =>
+            provider.GetRequiredService<TenantContextAccessor>()
+        );
+        services.AddScoped<ITenantContextInitializer>(provider =>
+            provider.GetRequiredService<TenantContextAccessor>()
+        );
+        services.AddDbContext<SalesDbContext>(options =>
+            SalesDatabase.Configure(options, salesConnection)
+        );
+        services.AddDbContext<InventoryDbContext>(options =>
+            InventoryDatabase.Configure(options, inventoryConnection)
+        );
+        services.AddStockIssueRequests();
+        services.AddStockPositionCommands();
+        services.AddStockPositionQueries();
+        services.AddStockIssueInbox();
+        return services;
+    }
+}

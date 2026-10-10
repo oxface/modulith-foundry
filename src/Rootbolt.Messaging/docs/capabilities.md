@@ -158,14 +158,18 @@ Backlog observation, alert thresholds and dashboard UX remain deferred.
 New-service snapshot/feed repopulation is a distinct planned capability. Current dispatch
 ordering and retained delivery rows do not provide a safe replay cursor or snapshot boundary.
 A producer-owned replay/export contract, retention rules and transactional receiver progress
-need separate proof; no bootstrap runtime is supplied. Durable workflows likewise begin with
-module-owned state and the existing messaging contracts, not an implemented saga engine.
+need separate proof; no bootstrap runtime is supplied. Durable workflows begin with
+module-owned state and the existing messaging contracts. The
+[WF1 stock-issue consumer](../../../samples/Wholesale/WorkflowDemo/README.md) demonstrates
+persisted request/reply progress, native EF request concurrency, semantic idempotency and
+overdue-state recovery. These are consumer policies composed with inbox/outbox, not a supplied
+saga engine or scheduler; see its separate dated report for the proven behavior.
 
 Receipt-only mode if an adopter needs it;
 queued-message compatibility/upcasting rollout proofs; retention/deduplication windows;
 identity-preserving redrive; poison/attempt-cap policy; lease renewal; parallel/batch dispatch;
 per-stream ordering; other DBMS providers; additional transports and local module handoff;
-encryption/secrets; baggage/initiator propagation; durable workflows; cross-module
+encryption/secrets; baggage/initiator propagation; generic workflow/timeout orchestration; cross-module
 transactions; template messaging presets. Event-sourcing maintenance/async projections remain
 in their owning family. These capabilities need specific failure/consumer evidence, not only
 more interfaces. There is no required Rootbolt root runtime.

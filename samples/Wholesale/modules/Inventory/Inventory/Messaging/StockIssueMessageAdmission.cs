@@ -10,6 +10,7 @@ public static class StockIssueMessageAdmission
 {
     public const string Subscription = "inventory.issue-stock";
     public const string Producer = "demo.stock-commands";
+    public const string SalesProducer = "sales";
     private static readonly JsonEventCodec<IssueStockV1> Codec = new(
         new JsonSerializerOptions(JsonSerializerDefaults.Web),
         [EventRegistration<IssueStockV1>.For<IssueStockV1>(Subscription, 1)]
@@ -20,7 +21,7 @@ public static class StockIssueMessageAdmission
         // The host owns broker permissions and binds the producer identity. This finite sample
         // allows two known Organizations; production replaces this with trusted admission.
         if (
-            message.ProducerKey != Producer
+            message.ProducerKey is not (Producer or SalesProducer)
             || message.TenantKey is not ("wholesale-alpha" or "wholesale-beta")
         )
             throw new InvalidDataException(
