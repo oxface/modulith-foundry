@@ -72,6 +72,8 @@ Messaging:
   - 'samples/{OutboxDemo,OutboxDemo.Tests,InboxDemo,InboxDemo.Tests,MessagingDemo,MessagingProducerDemo,MessagingWorkerDemo,MessagingWorkerDemo.Tests}/**'
   - 'samples/Wholesale/{modules,EventPersistenceDemo,EventPersistenceDemo.Tests}/**'
   - 'samples/Wholesale/ServiceDefaults/**'
+  - 'samples/Wholesale/WorkflowDemo{,.Tests}/**'
+  - 'samples/MessagingWorkerDemo.Tests/ChildHost.cs'
   - 'tests/Support/{PostgreSqlFixture,RabbitMqFixture}.cs'
   - '!**/*.md'
 
@@ -79,6 +81,7 @@ wholesale:
   - 'src/Rootbolt.*/Rootbolt.*/**'
   - 'samples/Wholesale/{ContextDemo,ContextDemo.Tests,PersistenceDemo,PersistenceDemo.Tests,HttpIdentityDemo,HttpIdentityDemo.Tests,modules,ServiceDefaults}/**'
   - 'tests/Support/PostgreSqlFixture.cs'
+  - 'samples/Wholesale/WorkflowDemo{,.Tests}/**'
   - '!**/*.md'
 
 template:

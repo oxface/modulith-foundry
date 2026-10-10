@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../samples/Wholesale/WorkflowDemo/WorkflowDemo.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore.Postgres/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore/Rootbolt.Auditing.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging/Rootbolt.Messaging.csproj" />

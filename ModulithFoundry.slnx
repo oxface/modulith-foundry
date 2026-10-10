@@ -57,6 +57,8 @@
     <Project Path="src/Rootbolt.EventSourcing/tests/EventSourcingTests/EventSourcingTests.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/Wholesale/WorkflowDemo/WorkflowDemo.csproj" />
+    <Project Path="samples/Wholesale/WorkflowDemo.Tests/WorkflowDemo.Tests.csproj" />
     <Project Path="samples/InboxDemo/InboxDemo.csproj" />
     <Project Path="samples/InboxDemo.Tests/InboxDemo.Tests.csproj" />
     <Project Path="samples/MessagingDemo/MessagingDemo.csproj" />

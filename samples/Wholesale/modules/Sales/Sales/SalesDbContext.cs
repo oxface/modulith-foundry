@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Rootbolt.Auditing.EntityFrameworkCore;
 using Rootbolt.Auditing.EntityFrameworkCore.Postgres;
+using Rootbolt.Messaging.EntityFrameworkCore;
+using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 using Rootbolt.Persistence.EntityFrameworkCore;
 using Rootbolt.Tenancy;
 
@@ -18,6 +20,24 @@ public sealed class SalesDbContext(
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("sales");
+        StockIssues.StockIssueRequestMapping.Configure(
+            modelBuilder.Entity<StockIssues.StockIssueRequestRow>(),
+            () => RequiredOrganizationKey
+        );
+        modelBuilder
+            .ConfigurePostgresInbox("sales", "inbox_messages")
+            .HasTenantOwnership(
+                row => row.TenantKey!,
+                () => RequiredOrganizationKey,
+                "OrganizationScope"
+            );
+        modelBuilder
+            .ConfigurePostgresOutbox("sales", "outbox_messages")
+            .HasTenantOwnership(
+                row => row.TenantKey!,
+                () => RequiredOrganizationKey,
+                "OrganizationScope"
+            );
         var audit = modelBuilder.ConfigurePostgresAudit("sales", "audit_entries");
         audit.HasTenantOwnership(
             row => row.TenantKey!,
@@ -79,6 +99,8 @@ public sealed class SalesDbContext(
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
         this.ValidateAuditChanges();
+        this.ValidateInboxChanges();
+        this.ValidateOutboxChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -89,6 +111,8 @@ public sealed class SalesDbContext(
     {
         this.ValidateTenantChanges(() => RequiredOrganizationKey);
         this.ValidateAuditChanges();
+        this.ValidateInboxChanges();
+        this.ValidateOutboxChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 }

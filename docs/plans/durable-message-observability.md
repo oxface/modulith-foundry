@@ -1,6 +1,7 @@
 # OBS1: durable message observability
 
-Status: interface/scope owner-approved and implemented, 2026-10-10; final code review pending.
+Status: owner-approved and checkpointed as `b44b5d5`, 2026-10-10;
+merged into `origin/main` at `4c0e0c5`.
 Base: merged W1 at `94ca57a`, on `feat/durable-message-observability` without an upstream.
 Fresh implementation evidence is in [the OBS1 report](../reports/obs1-durable-message-observability.md).
 The approved proposal below records the boundary reviewed before implementation.

@@ -62,6 +62,7 @@ public sealed class SampleModuleBoundaryTests
             .. Modules,
             .. Contracts,
             .. Libraries,
+            typeof(Samples.Wholesale.WorkflowDemo.WorkflowComposition).Assembly,
             typeof(DemoComposition).Assembly,
             typeof(DbContext).Assembly,
             typeof(HttpContext).Assembly,
@@ -113,6 +114,14 @@ public sealed class SampleModuleBoundaryTests
         foreach (ReflectionAssembly library in Libraries)
         foreach (ReflectionAssembly forbidden in Modules.Concat(Contracts))
             NoDependency(library, forbidden);
+    }
+
+    [Fact]
+    public void WorkflowCompositionIsNotADependencyOfModulesContractsOrLibraries()
+    {
+        var host = typeof(Samples.Wholesale.WorkflowDemo.WorkflowComposition).Assembly;
+        foreach (var source in Modules.Concat(Contracts).Concat(Libraries))
+            NoDependency(source, host);
     }
 
     [Fact]

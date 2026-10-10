@@ -1,10 +1,9 @@
 # OBS1: durable message observability
 
-Date: 2026-10-10. Interface/scope owner-approved; implementation complete for final owner
-review on `feat/durable-message-observability`, based on merged W1 `94ca57a`.
-Changes remain uncommitted. The owner's staged review snapshot is preserved; subsequent
-adjustments remain unstaged. No push or pull request was
-created by this slice.
+Date: 2026-10-10. Interface/scope and implementation owner-approved;
+checkpoint `b44b5d5` on `feat/durable-message-observability`, based on merged W1 `94ca57a`.
+The owner subsequently pushed and merged the branch into `origin/main` at `4c0e0c5`.
+Verification below records this slice's evidence; the status update adds no new runtime proof.
 
 ## Outcome
 

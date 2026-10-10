@@ -1,6 +1,7 @@
 # ADR 0012: durable diagnostic context and native telemetry
 
-Status: accepted interface/scope decision, 2026-10-10; implementation awaits final owner review.
+Status: accepted, 2026-10-10; implementation owner-approved at `b44b5d5`,
+merged into `origin/main` at `4c0e0c5`.
 
 ## Context
 
