@@ -5,9 +5,10 @@ selected sequential workers. Transport configuration and business contracts belo
 
 | Package | Responsibility |
 | --- | --- |
-| [Rootbolt.Messaging](Rootbolt.Messaging/README.md) | Provider-free incoming/outgoing envelopes and publication interface. BCL JSON only. |
+| [Rootbolt.Messaging](Rootbolt.Messaging/README.md) | Provider-free incoming/outgoing envelopes, publication interface and internal native trace/metric instrumentation. BCL only. |
 | [Rootbolt.Messaging.EntityFrameworkCore](Rootbolt.Messaging.EntityFrameworkCore/README.md) | Provided records, mapping/save guards, typed roles, keyed handlers and opt-in workers. |
 | [Rootbolt.Messaging.EntityFrameworkCore.Postgres](Rootbolt.Messaging.EntityFrameworkCore.Postgres/README.md) | JSONB/database-time mapping, outbox leases, inbox deduplication and locked transactional processing. |
+| [Rootbolt.Messaging.OpenTelemetry](Rootbolt.Messaging.OpenTelemetry/README.md) | Optional AddRootboltMessaging extensions on native trace/metric builders; API-only dependency. |
 
 Each module owns its context, schema/table, publisher and registrations. The family does
 not supply a global bus, shared DbContext or cross-module transaction. Core publisher code
@@ -41,3 +42,6 @@ collection fixture; its measured parallel candidates did not show a reliable spe
 Architecture tests remain repository-owned. [The O1 report](../../docs/reports/outbox1-transactional-dispatch.md)
 separates its results from archived evidence; [I1's report](../../docs/reports/inbox1-durable-intake-processing.md)
 records the new inbox/adoption proofs separately.
+
+See [durable message observability](docs/observability.md) for optional W3C context, schema upgrades, native
+activity/meter names, failure logs and host-owned exporter configuration.

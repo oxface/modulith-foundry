@@ -80,6 +80,7 @@ public sealed class AdoptionDependencyTests
     [InlineData("Rootbolt.Events.Serialization", null)]
     [InlineData("Rootbolt.Events.History", null)]
     [InlineData("Rootbolt.Messaging", null)]
+    [InlineData("Rootbolt.Messaging.OpenTelemetry", "OpenTelemetry.Api")]
     [InlineData(
         "Rootbolt.Persistence.EntityFrameworkCore",
         "Microsoft.EntityFrameworkCore.Relational"
@@ -148,7 +149,7 @@ public sealed class AdoptionDependencyTests
         Check(
             "Rootbolt.Messaging.EntityFrameworkCore.Postgres",
             ["Rootbolt.Messaging.EntityFrameworkCore"],
-            ["Npgsql.EntityFrameworkCore.PostgreSQL"]
+            ["Microsoft.Extensions.Logging.Abstractions", "Npgsql.EntityFrameworkCore.PostgreSQL"]
         );
         Check(
             "OutboxDemo",

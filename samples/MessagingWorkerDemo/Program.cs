@@ -6,6 +6,10 @@ using Microsoft.Extensions.Logging;
 using ModulithFoundry.Samples.InboxDemo;
 using ModulithFoundry.Samples.MessagingWorkerDemo;
 using ModulithFoundry.Samples.OutboxDemo;
+using ModulithFoundry.Samples.Wholesale.ServiceDefaults;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Rootbolt.Messaging.EntityFrameworkCore;
 using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
@@ -19,6 +23,22 @@ if (role == "setup")
     await WorkerSetup.RunAsync(builder.Configuration, startup.Token);
     return;
 }
+
+builder.AddServiceDefaults();
+builder
+    .Services.AddOpenTelemetry()
+    .ConfigureResource(resource =>
+        resource.AddService(
+            builder.Configuration["OTEL_SERVICE_NAME"] ?? "messaging-" + role,
+            serviceInstanceId: Guid.NewGuid().ToString()
+        )
+    )
+    .WithTracing(tracing =>
+        tracing
+            .AddRootboltMessaging()
+            .AddSource("RabbitMQ.Client.Publisher", "RabbitMQ.Client.Subscriber")
+    )
+    .WithMetrics(metrics => metrics.AddRootboltMessaging());
 
 // Each long-lived transport belongs to this process. Scoped dispatch/intake operations
 // reuse its channel sequentially; they do not create a broker connection per message.

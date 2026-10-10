@@ -71,6 +71,7 @@ Messaging:
   - 'src/Rootbolt.Persistence/Rootbolt.Persistence.EntityFrameworkCore/**'
   - 'samples/{OutboxDemo,OutboxDemo.Tests,InboxDemo,InboxDemo.Tests,MessagingDemo,MessagingProducerDemo,MessagingWorkerDemo,MessagingWorkerDemo.Tests}/**'
   - 'samples/Wholesale/{modules,EventPersistenceDemo,EventPersistenceDemo.Tests}/**'
+  - 'samples/Wholesale/ServiceDefaults/**'
   - 'tests/Support/{PostgreSqlFixture,RabbitMqFixture}.cs'
   - '!**/*.md'
 

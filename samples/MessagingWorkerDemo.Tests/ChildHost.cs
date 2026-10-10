@@ -44,6 +44,7 @@ internal sealed class ChildHost : IAsyncDisposable
                 .Environment.Keys.Where(key =>
                     key.StartsWith("ConnectionStrings__", StringComparison.OrdinalIgnoreCase)
                     || key.StartsWith("RabbitMQ__", StringComparison.OrdinalIgnoreCase)
+                    || key.StartsWith("OTEL_", StringComparison.OrdinalIgnoreCase)
                 )
                 .ToArray()
         )

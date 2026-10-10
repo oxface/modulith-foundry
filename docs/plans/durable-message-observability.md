@@ -1,132 +1,314 @@
-# Durable message observability sample and proofs
+# OBS1: durable message observability
 
-Status: proposed for owner review, 2026-10-09. This extends the monitoring discussion
-around [E9](e9-explicit-transactional-audit.md); it is not an implemented guarantee.
-E9 is complete at checkpoint `18a76f8`, present in `origin/main`. No runtime changes accompany
-this proposal. The [remaining roadmap](remaining-capability-roadmap.md) identifies it as OBS1,
-alongside W1's separate worker-host proof; reuse that topology rather than create a second
-competing host-composition abstraction.
+Status: interface/scope owner-approved and implemented, 2026-10-10; final code review pending.
+Base: merged W1 at `94ca57a`, on `feat/durable-message-observability` without an upstream.
+Fresh implementation evidence is in [the OBS1 report](../reports/obs1-durable-message-observability.md).
+The approved proposal below records the boundary reviewed before implementation.
 
-## Actual code and native support
+## Bounded outcome and callers inspected before implementation
 
-The HTTP host calls the editable Wholesale ServiceDefaults. Its native OTel setup subscribes
-to ASP.NET Core, HttpClient and Npgsql tracing, host logs and request/runtime/database metrics.
-OTLP export is enabled when an endpoint is configured. Existing TelemetryTests exercise
-native in-memory exporters for request/database spans, failure logs and metrics. The AppHost
-currently orchestrates PostgreSQL, the HTTP API, explicit demo setup and optional Keycloak.
+Instrument the existing Exports → Rendering journey across separate producer, dispatch,
+intake and processing processes. Follow work after the earlier process has exited,
+including publication retries and processing failures. Reuse W1's executable topology.
 
-EventPersistenceDemo is a finite console application without ServiceDefaults or an exporter.
-The prior draft's local ActivityListener demonstrated an audit TraceId, not distributed
-export; both were removed when the owner simplified audit under YAGNI. ServiceDefaults does not subscribe to that journey's source or RabbitMQ sources.
-IncomingMessage, OutgoingMessage and their durable rows retain business correlation and
-causation, but no W3C trace context. Fresh workers cannot recover the earlier producer span.
+- `ExportRequestCommands.SubmitAsync` loads tracked state, checks version/eligibility,
+  changes the request and calls `OutgoingMessage.FromPayload`. The HTTP caller saves and
+  commits. The envelope currently has no trace context.
+- `PostgresOutboxDispatcher.DispatchNextAsync` claims in its own transaction, publishes
+  outside that transaction and fences completion in another. A fresh worker retains
+  business IDs but cannot reconstruct a relationship to the producer span.
+- `RabbitMqRenderReceiver` commits durable intake before acknowledgement. Later,
+  `PostgresInboxProcessor.ProcessNextAsync` owns a separate local transaction through
+  handling, SaveChanges, completion and commit.
+- `StockIssueMessages` and the Inventory RabbitMQ adapters are a materially different,
+  tenant-admitted event-sourced adopter. Its active mapped inbox/outbox also need migration
+  when the provided row shape changes.
+- Existing hosted workers log exceptions after the callable operation unwinds. Such a log
+  does not automatically retain an activity that ended inside that operation.
 
-The pinned RabbitMQ.Client 7.2.1 already provides Publisher/Subscriber ActivitySources,
-native context injection/extraction and linked receive spans. Enabling those sources supplies
-transport instrumentation; durable queue processing still needs explicit retained context.
-Its publisher injects the current send activity, so simply prepopulating trace headers does
-not establish a stable message creation context across retries.
+The prior draft also proposed a new stock-issue audit/reply demonstration, dashboard
+backlog queries and alerts. Those are independent follow-ups. This slice uses the existing
+business journey; audit interfaces/records acquire no diagnostic fields.
 
-## One bounded outcome
+## Owner-reviewed public interface
 
-Run the existing stock-issue command, accepted-change audit and durable reply with real
-PostgreSQL/RabbitMQ and separate producer/worker processes. Export their telemetry to the
-Aspire dashboard through host-owned OTLP configuration. Demonstrate delayed processing,
-one retry and a restart using the same executable path. Retain the separate existing human
-Sales profile business audit demonstration without tracing fields; it is not a producer for the unrelated Inventory command.
+The approved additions append optional parameters to the existing constructors and factory:
 
-Use explicit setup for migrations and stock fixtures. Long-running workers must not seed,
-migrate or clear tables on startup. Publish confirms, database commit and broker acknowledgement
-remain visible native operations. This establishes a production-oriented local topology and
-fault proofs, not a deployed production system or a Purchasing/Sales process manager.
+```csharp
+public IncomingMessage(
+    Guid messageId, string producerKey, string messageName, int schemaVersion,
+    JsonElement payload, string? tenantKey = null, string? correlationId = null,
+    string? causationId = null, string? traceParent = null, string? traceState = null);
 
-## Proposed public interface delta
+public OutgoingMessage(
+    Guid messageId, string routeKey, string messageName, int schemaVersion,
+    JsonElement payload, string? tenantKey = null, string? correlationId = null,
+    string? causationId = null, string? traceParent = null, string? traceState = null);
 
-Append optional `string? traceParent = null, string? traceState = null` parameters to
-IncomingMessage and OutgoingMessage constructors and OutgoingMessage.FromPayload. Add matching
-read-only `string? TraceParent` and `string? TraceState` properties. Retain them in nullable
-`trace_parent` / `trace_state` columns in the existing native inbox/outbox mappings.
+public static OutgoingMessage FromPayload<TPayload>(
+    Guid messageId, string routeKey, string messageName, int schemaVersion,
+    TPayload payload, JsonSerializerOptions serializerOptions,
+    string? tenantKey = null, string? correlationId = null,
+    string? causationId = null, string? traceParent = null, string? traceState = null);
 
-These are explicitly supplied diagnostic metadata. The library does not read Activity.Current,
-infer an actor/tenant, initialize a workflow correlation ID or require an OTel SDK/exporter.
-The adapter supplies valid W3C values; absent/malformed received diagnostic context is ignored
-without rejecting a valid business delivery. Transport size limits remain adapter-owned.
-Existing callers and historical rows work without tracing. Native System.Diagnostics supplies
-context parsing, ActivitySource and ActivityLink; avoid a new tracing abstraction package.
+// Both envelopes; also readable on both provided durable records.
+public string? TraceParent { get; }
+public string? TraceState { get; }
+```
 
-Outgoing pending-envelope validation must include captured context, since it is part of the
-immutable staged proposal. Inbox duplicate comparison must continue to compare delivery
-identity and business envelope, **excluding diagnostic context**: publication retries can
-carry different send spans. Keep the first committed intake's context. Changed payload,
-contract, tenant, correlation or cause remains a conflicting delivery under the existing rules.
-New additive sample migrations upgrade populated databases; merged migrations stay unchanged.
+Outgoing context identifies the producer activity selected when staging. Incoming context
+identifies the received upstream activity selected by the transport adapter. Both are
+diagnostic relationships, separate from delivery/conversation/cause identity and admission.
+The library does not implicitly capture Activity.Current or initialize business IDs.
+Raw W3C strings match transport/persistence without a new Rootbolt context type or generic
+argument flowing through dispatch/handlers.
 
-## Concrete usage and span relationships
+Add an optional native logger to the existing callable dispatch constructor:
 
-1. A producer starts a native creation activity, captures its W3C ID/state when available,
-   supplies these to the outgoing envelope and commits the existing native transaction.
-   The activity can end before dispatch. The durable row retains its creation context.
-2. A fresh outbox dispatch attempt links to that retained creation context. Its RabbitMQ
-   publication uses the client's native span and header propagation. A subsequent attempt
-   gets its own span while retaining the same message ID, conversation, cause and payload.
-3. The receiver retains the received W3C context with durable intake before acknowledgement.
-   A fresh inbox process activity links to the retained context and covers handler execution,
-   SaveChanges, completion and commit. Failures record an error, not a committed success.
-4. Accepted processing stages its business audit and reply in the owning transaction. Audit
-   records no correlation, causation or trace IDs. The reply retains its messaging conversation
-   and immediate cause, captures processing context when staged, then crosses its own outbox
-   publication boundary.
+```csharp
+public PostgresOutboxDispatcher(
+    TDbContext database, IMessagePublisher publisher, OutboxDispatchOptions options,
+    ILogger<PostgresOutboxDispatcher<TDbContext>>? logger = null);
+```
 
-Use links across asynchronous boundaries rather than force every retry and delayed job into
-one trace. OTel messaging conventions recommend links by default; a single-message parent is
-an allowed alternative. The sample chooses one documented policy and verifies actual links.
-The existing native callable inbox/outbox paths are the proposed instrumentation locations,
-using the source name `Rootbolt.Messaging`; no new public dispatcher or processor interface
-is needed. Source subscriptions and exporters belong in editable host ServiceDefaults.
+DI supplies a logger when configured; direct three-argument construction still works.
+The internal inbox processor likewise receives an optional native logger. Message-attempt
+failure logs are emitted before the operation activity ends, including failures after the
+publisher/handler returns. Existing hosted-worker supervision logs still cover failures
+before selection. No logging service becomes mandatory.
 
-## Monitoring experience
+Existing callers remain source-compatible, but compiled consumers must rebuild; this is
+not a binary-compatibility promise for unreleased assemblies. No public dispatcher,
+processor, worker, publisher or handler interface changes beyond these additions.
 
-Register Rootbolt.Messaging plus RabbitMQ.Client.Publisher and RabbitMQ.Client.Subscriber
-sources in the participating hosts. Give producer and worker distinct service names and
-instances. Show how to follow producer/consumer span relationships and inspect message/conversation
-IDs, failures and retries separately from the business audit timeline. Span/log attributes carry opaque message/correlation/
-causation IDs; business payloads, names and addresses are not telemetry attributes.
+## Concrete consumer usage
 
-Add sample-owned metrics for processing/publication outcomes and duration, pending work and
-oldest pending age. Use bounded labels such as operation/subscription/result; never individual
-message, item, tenant, actor or trace IDs as metric dimensions. Sample-owned native read queries
-observe inbox/outbox backlog. Polling intervals and thresholds remain consumer configuration.
-Document the dashboard views for backlog, repeated failures and last successful processing;
-process liveness alone does not prove that queued work is advancing.
+Inside the existing accepted command, with the caller's native transaction already open:
 
-## Required executable proofs
+```csharp
+outbox.Enqueue(OutgoingMessage.FromPayload(
+    Guid.NewGuid(), "exports.render", "exports.render", 1,
+    new RenderExportV1(request.Id, request.Pages), WireJson,
+    traceParent: Activity.Current?.Id,
+    traceState: Activity.Current?.TraceStateString));
 
-- Native exporter assertions for span context/links, successful commit and errors, correlated
-  logs and metric values. Assert structural relationships rather than merely nonempty IDs.
-- Real broker/database round trip in separate processes, with the producer exited before
-  dispatch and the intake process exited before processing. No AsyncLocal state can bridge it.
-- Restart and duplicate/redelivery: one accepted mutation/audit/reply; stable business IDs;
-  changed retry trace context accepted as the same delivery; first retained intake context wins.
-- Broker publication failure and inbox processing failure: retry/error telemetry, retained
-  pending work and observable recovery, with existing transaction/lease guarantees preserved.
-- Tracing absent, unrecorded sampling context and malformed incoming tracing metadata:
-  correct business processing/audit independent of whether a span is exported.
-- Populated pre-change migration upgrade and nullable historical diagnostic metadata.
-- Aspire OTLP observation using actual exported spans/logs/metrics, separately reported from
-  automated in-memory exporter tests. Exporter unavailability must not decide business commit;
-  measure shutdown before making a bounded-shutdown guarantee.
+// The consumer still performs these operations.
+await database.SaveChangesAsync(cancellationToken);
+await transaction.CommitAsync(cancellationToken);
+```
 
-No new tests were run for this proposal and no new reusable mechanism was proven. Retained
-diagnostic envelope fields and native callable-path instrumentation are extraction candidates.
-Topology, adapters, monitoring queries, dashboard instructions and alert thresholds remain
-editable sample/template concerns. Authorization, attribution, audit classification and
-retention remain consumer-owned. Template promotion follows exercised setup, not this plan.
+The consumer chooses its HTTP/command activity. Optional native creation spans can refine
+that choice without changing the library interface. Existing callers supplying neither
+value remain valid. Incoming adapters decode diagnostic headers tolerantly; business
+admission stays strict. Inventory still establishes tenant/actor scopes itself.
 
-## Primary evidence
+Editable native host configuration subscribes to the sources and meter:
 
-- [Pinned RabbitMQ activity sources and native propagator](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/v7.2.1/projects/RabbitMQ.Client/Impl/RabbitMQActivitySource.cs).
-- [Pinned RabbitMQ publishing/header injection](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/v7.2.1/projects/RabbitMQ.Client/Impl/Channel.BasicPublish.cs).
-- [OTel messaging context and span relationships](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/)
-  (messaging conventions are currently marked Development; document the adopted conventions).
-- [.NET native distributed tracing and HTTP propagation](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-concepts).
-- [Editable Aspire ServiceDefaults and host observability wiring](https://aspire.dev/get-started/csharp-service-defaults/).
+```csharp
+builder.AddServiceDefaults(); // Editable native host wiring.
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddRootboltMessaging()
+        .AddSource("RabbitMQ.Client.Publisher", "RabbitMQ.Client.Subscriber"))
+    .WithMetrics(metrics => metrics.AddRootboltMessaging());
+```
+
+The hosts reuse the existing editable sample ServiceDefaults for logging, HTTP/runtime/DB
+instrumentation and configured OTLP export. Program files add messaging subscriptions and
+resources. API, dispatch, receive and process roles have distinct
+service names/instances. The producer gains no broker/receiver/worker-project reference.
+No template preset or Rootbolt host configuration framework is added.
+
+## Follow-up: optional native OTel subscriptions
+
+Owner requested convenience extensions after reviewing native ServiceDefaults adoption,
+then explicitly approved this optional package and both overloads before implementation.
+They are implemented for final owner code review:
+
+```csharp
+// Namespace OpenTelemetry.Trace
+public static class RootboltMessagingTracerProviderBuilderExtensions
+{
+    public static TracerProviderBuilder AddRootboltMessaging(this TracerProviderBuilder builder);
+}
+
+// Namespace OpenTelemetry.Metrics
+public static class RootboltMessagingMeterProviderBuilderExtensions
+{
+    public static MeterProviderBuilder AddRootboltMessaging(this MeterProviderBuilder builder);
+}
+```
+
+Both return the supplied native builder for normal chaining. They respectively subscribe
+to the existing `Rootbolt.Messaging` activity source and meter. Null builders throw
+ArgumentNullException. They do not construct a provider, alter resources/sampling, enable
+export, select transport instrumentation or change logging. Each can be used independently.
+Scopes, transactions, retries, process shutdown and delivery guarantees are unchanged.
+
+They reside in independently optional `Rootbolt.Messaging.OpenTelemetry`, with the sole direct
+package dependency `OpenTelemetry.Api` 1.19.1 (already present transitively in the pinned host
+stack; now explicitly centrally pinned). Native TracerProviderBuilder.AddSource and
+MeterProviderBuilder.AddMeter are declared in that API assembly, so no SDK, EF, PostgreSQL,
+RabbitMQ, hosting or other Rootbolt project dependency is needed. Existing technical
+packages retain their dependency boundaries. This package hides repeated instrumentation
+names in the two actual hosts without becoming a host configuration facade.
+
+Consumer usage:
+
+```csharp
+builder.AddServiceDefaults();
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddRootboltMessaging()
+        .AddSource("RabbitMQ.Client.Publisher", "RabbitMQ.Client.Subscriber"))
+    .WithMetrics(metrics => metrics.AddRootboltMessaging());
+```
+
+Exact additional scope: new project/README and two XML-documented extension files under
+`src/Rootbolt.Messaging/Rootbolt.Messaging.OpenTelemetry/`; explicit central API pin;
+solution library entry; project references and registration replacements in both messaging
+hosts; an independent-dependency assertion in ArchitectureTests; native helper usage in the
+family docs/READMEs, ADR 0012 and this slice report. The existing Messaging CI lane already
+covers the family path and executable worker suite; no additional test project or CI job.
+Rerun the real process/OTLP tests to prove collection through these extensions, architecture
+checks to prove optional dependency isolation, and relevant build/format/analyzer checks.
+No archival evidence establishes this new helper; its proof comes from current adopters.
+
+## Retention, errors and guarantees
+
+- Add nullable `trace_parent` / `trace_state` columns. Enqueue captures them; native claim
+  and read reconstruct them. Immutable pending-envelope validation includes both values.
+- Inbox deduplication compares the existing key and business envelope, **excluding trace
+  context**. Equivalent retries can carry different send spans. Preserve the first
+  committed intake's context; changed business content remains a conflict.
+- Envelopes accept diagnostic strings without making them business validation. Native
+  `ActivityContext.TryParse` supplies links; absent/invalid parents produce no link.
+  Tracestate is opaque to that API, not fully W3C-validated by Rootbolt. Wrong diagnostic
+  header types are ignored. Transport size limits and collection policy are adapter-owned.
+- Create an activity per selected attempt, with a link to retained context supplied **at
+  creation**. Preserve a local ambient parent when applicable rather than force every
+  delayed retry under the old producer.
+- `rootbolt.outbox.dispatch` is an Internal operation covering publication and fenced
+  completion after claim. `rootbolt.inbox.process` is a Consumer operation covering
+  handling and observed commit after selection. Claim acquisition/selection remain native
+  DB operations outside these activities. NoWork polls produce no message activity.
+- Published/Processed are recorded only after existing completion/commit returns.
+  ClaimLost means external acceptance may have occurred without recorded completion.
+  Exceptions remain exceptions; requested cancellation is distinct from failure.
+  No transaction, lock/lease, retry or disposal ownership changes.
+- Native meter `Rootbolt.Messaging` provides `rootbolt.messaging.attempts` and
+  `rootbolt.messaging.attempt.duration` (seconds). Count selected attempts by bounded
+  `operation` and `result`, including failure/cancellation; exclude NoWork polls. Duration
+  covers the same attempt boundary. IDs, routes, tenants, payloads and arbitrary exception
+  text are not metric dimensions.
+- Activities/logs can carry opaque message/correlation/causation IDs and outcome; exclude
+  payloads/credentials. Hosts decide sampling, filtering and retention. No-listener and
+  unsampled execution remain functional; metrics do not depend on trace sampling.
+
+Publication remains at least once. Tracing does not establish exactly-once delivery,
+business idempotency, commit in an ambiguous outcome or broker acknowledgement.
+Collector unavailability must not decide business commit. A new shutdown deadline is
+not guaranteed by this slice.
+
+## Dependencies and ownership
+
+Core remains BCL-only. EF retains model/guard responsibilities. PostgreSQL uses native
+core System.Diagnostics/Metrics attempt tracking through internal friend access, and an explicit already-pinned
+`Microsoft.Extensions.Logging.Abstractions` reference for its logger contract, without
+an OTel SDK or RabbitMQ dependency. The operation classes own generated failure logs;
+the core instrumentation has no ILogger dependency or new public API.
+
+The two executable hosts reference the existing sample ServiceDefaults project, which owns
+already-pinned OTel hosting/OTLP packages, and the independently optional API-only
+Rootbolt.Messaging.OpenTelemetry subscription adapter. Messaging-specific resource and
+transport-source configuration stays in Program.cs. Tests use native listeners and
+the pinned in-memory exporter. A test-owned official Collector container accepts actual
+OTLP from child processes and writes signals for structural assertions. Pin its release
+image in the harness (`0.162.0`, release reference below). It is proof infrastructure,
+not a production runtime requirement or a new repository script.
+
+Producer scope/context/transaction/staging/save/commit remain consumer-owned. Dispatch
+owns its existing claim/completion transactions; the consumer publisher owns transport
+acceptance. The receiver owns admission, intake transaction and acknowledgement. Processing
+owns its existing local transaction and invokes the consumer handler. Hosts own connections,
+DI scopes, worker lifetime, export and external restart policy. No ownership transfers.
+
+## Exact file/behavior change map
+
+Paths are repository-relative. New migration filenames acquire their generated timestamp;
+the reviewed operation is explicitly adding nullable columns to populated databases.
+
+| Files | Planned change |
+| --- | --- |
+| `src/Rootbolt.Messaging/Rootbolt.Messaging/{IncomingMessage,OutgoingMessage}.cs` | Optional parameters/properties, factory forwarding and XML docs. |
+| `src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/{InboxMessageRecord,OutboxMessageRecord}.cs` | Readable retained fields and outgoing capture. |
+| `src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore/{InboxModelExtensions,OutboxModelExtensions}.cs` | Nullable mappings and outgoing immutable-envelope validation. |
+| `src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/{PostgresInbox,PostgresInboxStorage,PostgresOutboxDispatcher}.cs` | Insert/select/hydrate context, validate mapped columns; preserve duplicate business comparison. |
+| `src/Rootbolt.Messaging/Rootbolt.Messaging.EntityFrameworkCore.Postgres/{PostgresInboxProcessor,PostgresInboxServiceCollectionExtensions,PostgresOutboxServiceCollectionExtensions}.cs` | Callable instrumentation and optional logger resolution. |
+| New core `MessagingTelemetry.cs`; core `.csproj`; provider operation classes and `.csproj` | BCL-only internal activity/meter tracking, explicit friend access for the PostgreSQL assembly, and operation-owned generated failure logs with an explicit logging-abstractions reference. |
+| New `src/Rootbolt.Messaging/Rootbolt.Messaging.OpenTelemetry/` project, README and two extension files; `Directory.Packages.props`; `ModulithFoundry.slnx` | Owner-approved optional trace/meter subscription helpers, sole OpenTelemetry.Api dependency and explicit version pin; add one library solution entry. |
+| `samples/OutboxDemo/ExportRequestCommands.cs`; `samples/Wholesale/modules/Inventory/Inventory/Messaging/StockIssueMessages.cs` | Explicit consumer context capture; no business or audit changes. |
+| `samples/MessagingDemo/{RabbitMqExportPublisher,RabbitMqRenderReceiver}.cs`; `samples/Wholesale/EventPersistenceDemo/{InventoryRabbitMqPublisher,InventoryRabbitMqReceiver}.cs` | Pass diagnostic headers, tolerant diagnostic parsing. Native send instrumentation may replace context on each publication. |
+| `samples/MessagingProducerDemo/{Program.cs,MessagingProducerDemo.csproj}`; `samples/MessagingWorkerDemo/{Program.cs,MessagingWorkerDemo.csproj}`; `samples/Wholesale/ServiceDefaults/README.md` | Reuse existing editable native ServiceDefaults; add messaging subscriptions and distinct role resources in Program.cs. Remove the proposed AddTelemetry helpers; no lifecycle changes. |
+| `.github/ci-paths.yml` | Include shared ServiceDefaults source in the Messaging lane's dependent input paths. |
+| `samples/OutboxDemo/Migrations/`, `samples/InboxDemo/Migrations/`, `samples/Wholesale/modules/Inventory/Inventory/Migrations/` | Add one migration/designer and update snapshot per context; preserve merged migrations. |
+| `src/Rootbolt.Messaging/tests/MessagingTests/MessageTests.cs`; new `TelemetryTests.cs` in each PostgreSQL suite | Envelope forwarding, retention/dedup and native activity/link/log/meter proofs on real PostgreSQL. |
+| New `samples/MessagingWorkerDemo.Tests/{ObservabilityTests,OtlpCollector}.cs`; existing `{ChildHost,WorkerTopology}.cs` and test `.csproj` | Real process/export proofs and narrowly scoped telemetry configuration; keep existing W1 proofs. |
+| `samples/OutboxDemo.Tests/`, `samples/InboxDemo.Tests/`, `samples/Wholesale/EventPersistenceDemo.Tests/` | Populated migration upgrades and native diagnostic/duplicate coverage in existing suites. |
+| Messaging family/package READMEs, new `src/Rootbolt.Messaging/docs/observability.md`, sample READMEs | Self-sufficient supported setup, limits and troubleshooting after implementation. |
+| `tests/ArchitectureTests/{AdoptionDependencyTests.cs,ArchitectureTests.csproj}` | Admit the explicitly used, owner-reviewed logging-abstractions dependency; assert the optional subscription adapter depends only on OpenTelemetry.Api using its copied project declaration. Retain other package boundaries. |
+| This plan, `docs/plans/{library-extraction,remaining-capability-roadmap}.md`, new `docs/reports/obs1-durable-message-observability.md` and `docs/adr/0012-durable-diagnostic-context-and-native-telemetry.md` | Reviewed status/decision and fresh evidence separated from W1/archive evidence. |
+
+No relocation, archive edit, fixture reset, business-contract change or template runtime is
+planned. Owner follow-up replaces the two proposed AddTelemetry files with existing
+ServiceDefaults adoption and adds the reviewed optional subscription adapter. CI Messaging already runs the worker suite and now
+also responds to ServiceDefaults source changes; existing consumer/EventSourcing and
+repository lanes cover the other adopters. No workflow/job addition is required.
+
+## Verification contract
+
+1. Explicit context/factory forwarding and independent no-tracing adoption.
+2. Real PostgreSQL fresh-context retention and outgoing mutation guards. Equivalent duplicate
+   intake with changed context remains AlreadyReceived and preserves first intake; changed
+   business content still conflicts, including competing intake.
+3. Native listener/exporter assertions for links and outcomes: dispatch success/failure/
+   ClaimLost, processing commit/failure/cancellation, correlated failure logs and measured
+   counters/duration. Structural relationships, not merely nonempty IDs.
+4. Real PostgreSQL/RabbitMQ child processes exporting OTLP to the test Collector. Producer
+   exits before dispatch and intake before processing. Prove service identity, actual links/
+   transport spans, stable business IDs and one accepted job through retry and restart.
+   Changed send contexts must not conflict at intake.
+5. Absent listeners, propagation-only/unsampled context, malformed tracing and unreachable
+   collector leave business processing functional; no inferred shutdown-duration guarantee.
+6. Upgrade populated Exports, Rendering and Inventory schemas. Historical pending rows have
+   null context and still dispatch/process; merged migration history survives.
+7. Relevant existing messaging/adopter/architecture checks, build/analyzers/formatting and
+   unchanged owner index. Do not rerun frozen archive suites.
+
+Archived native metrics/TraceId logging are comparison evidence, not fresh proofs. W1's
+tests prove prior locks/leases/recovery, not new trace relationships. Pre-implementation research ran no runtime tests. The report records fresh verification
+separately, including the final native listeners, in-memory exporter and real OTLP proofs.
+
+## Explicitly deferred
+
+Backlog/oldest-age observation, alerts, durable telemetry, dashboard UX proof, additional
+audit/reply scenarios, baggage, automatic tenant/actor propagation, business workflow
+engines and Rootbolt-wide telemetry wrappers. Existing OTLP configuration can target an
+Aspire dashboard, but Collector export tests do not prove a dashboard inspection. Planned
+messaging operations, worker scaling and repopulation remain separate slices.
+
+## Primary evidence checked for this proposal
+
+- [RabbitMQ.Client 7.2.1 activity sources](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/v7.2.1/projects/RabbitMQ.Client/Impl/RabbitMQActivitySource.cs)
+  and [publishing/header injection](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/v7.2.1/projects/RabbitMQ.Client/Impl/Channel.BasicPublish.cs).
+  Matching SourceLink inspection verified source at commit
+  `76a88bd02f099f24966c188d0cff6cb8b2f0bc70`. Injection writes the send activity's
+  context; it does not provide stable retry diagnostic identity.
+- [OTel messaging relationships](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/):
+  links are recommended generally; messaging conventions remain Development. This is a
+  documented adoption policy, not complete semantic-convention compliance.
+- [.NET ActivitySource instrumentation](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs):
+  no interested listener can mean no activity. Matching .NET 10 inspection confirms native
+  ActivityContext parsing; no required SDK or home-grown parser is needed.
+- [Collector configuration](https://opentelemetry.io/docs/collector/configuration/),
+  [file exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.162.0/exporter/fileexporter)
+  and [pinned release](https://github.com/open-telemetry/opentelemetry-collector-contrib/releases/tag/v0.162.0)
+  support the actual OTLP proof; fresh results are recorded in the report.

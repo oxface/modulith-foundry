@@ -6,36 +6,44 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 using IsolationLevel = System.Data.IsolationLevel;
 
 namespace Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
 /// <summary>One-message PostgreSQL dispatch. No transaction is held across transport publication.</summary>
 /// <typeparam name="TDbContext">The owning module's Npgsql context, independent of producer operations.</typeparam>
-public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDbContext>
+public sealed partial class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDbContext>
     where TDbContext : DbContext
 {
     private readonly TDbContext database;
     private readonly IMessagePublisher publisher;
     private readonly OutboxDispatchOptions options;
     private readonly string table;
+    private readonly ILogger<PostgresOutboxDispatcher<TDbContext>>? logger;
 
     /// <summary>Validates options and native EF model metadata without opening a database connection.</summary>
-    /// <remarks>The context must have its provider/model configured; table existence is checked by actual dispatch SQL.</remarks>
+    /// <remarks>
+    /// The context must have its provider/model configured; table existence is checked by actual dispatch SQL.
+    /// An optional native logger records selected-attempt failures while the attempt activity remains current.
+    /// </remarks>
     public PostgresOutboxDispatcher(
         TDbContext database,
         IMessagePublisher publisher,
-        OutboxDispatchOptions options
+        OutboxDispatchOptions options,
+        ILogger<PostgresOutboxDispatcher<TDbContext>>? logger = null
     )
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(publisher);
         ArgumentNullException.ThrowIfNull(options);
+
         ValidateOptions(options);
         ValidateModel(database);
         this.database = database;
         this.publisher = publisher;
         this.options = options;
+        this.logger = logger;
         var entity = database.Model.FindEntityType(typeof(OutboxMessageRecord))!;
         table = database
             .GetService<ISqlGenerationHelper>()
@@ -53,36 +61,72 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
         if (claim is null)
             return OutboxDispatchResult.NoWork;
 
+        using var attempt = new MessagingTelemetry.Attempt(
+            "dispatch",
+            claim.Message.MessageId,
+            claim.Message.CorrelationId,
+            claim.Message.CausationId,
+            claim.Message.TraceParent,
+            claim.Message.TraceState
+        );
         try
-        {
-            await publisher.PublishAsync(claim.Message, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Acceptance can be ambiguous. Retain the claim for expiry rather than rewriting it.
-            throw;
-        }
-        catch (Exception publicationFailure)
         {
             try
             {
-                await FinishAsync(claim, completed: false, cancellationToken);
+                await publisher.PublishAsync(claim.Message, cancellationToken);
             }
-            catch (Exception storageFailure)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                throw new AggregateException(
-                    "Publication and retry scheduling both failed.",
-                    publicationFailure,
-                    storageFailure
-                );
+                // Acceptance can be ambiguous. Retain the claim for expiry rather than rewriting it.
+                throw;
             }
+            catch (Exception publicationFailure)
+            {
+                try
+                {
+                    await FinishAsync(claim, completed: false, cancellationToken);
+                }
+                catch (Exception storageFailure)
+                {
+                    throw new AggregateException(
+                        "Publication and retry scheduling both failed.",
+                        publicationFailure,
+                        storageFailure
+                    );
+                }
+
+                throw;
+            }
+
+            bool completed = await FinishAsync(claim, completed: true, cancellationToken);
+            attempt.Complete(completed ? "published" : "claim_lost");
+            return completed ? OutboxDispatchResult.Published : OutboxDispatchResult.ClaimLost;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            attempt.Cancel();
             throw;
         }
+        catch (Exception failure)
+        {
+            attempt.Fail(failure);
+            if (logger is not null)
+                AttemptFailed(logger, "dispatch", claim.Message.MessageId, failure);
 
-        return await FinishAsync(claim, completed: true, cancellationToken)
-            ? OutboxDispatchResult.Published
-            : OutboxDispatchResult.ClaimLost;
+            throw;
+        }
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Message {MessageId} {Operation} attempt failed."
+    )]
+    private static partial void AttemptFailed(
+        ILogger logger,
+        string operation,
+        Guid messageId,
+        Exception failure
+    );
 
     internal static void ValidateOptions(OutboxDispatchOptions options)
     {
@@ -119,6 +163,8 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
             [nameof(OutboxMessageRecord.TenantKey)] = "owner_key",
             [nameof(OutboxMessageRecord.CorrelationId)] = "correlation_id",
             [nameof(OutboxMessageRecord.CausationId)] = "causation_id",
+            [nameof(OutboxMessageRecord.TraceParent)] = "trace_parent",
+            [nameof(OutboxMessageRecord.TraceState)] = "trace_state",
             [nameof(OutboxMessageRecord.QueuedAt)] = "queued_at",
             [nameof(OutboxMessageRecord.AvailableAt)] = "available_at",
             [nameof(OutboxMessageRecord.DispatchedAt)] = "dispatched_at",
@@ -175,7 +221,7 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
                 attempts = outgoing.attempts + 1
             FROM candidate WHERE outgoing.message_id = candidate.message_id
             RETURNING outgoing.message_id, destination, message_name, schema_version, payload, owner_key,
-                      correlation_id, causation_id
+                      correlation_id, causation_id, trace_parent, trace_state
             """
         );
         Guid token = Guid.NewGuid();
@@ -196,7 +242,9 @@ public sealed class PostgresOutboxDispatcher<TDbContext> : IOutboxDispatcher<TDb
                         payload.RootElement,
                         reader.IsDBNull(5) ? null : reader.GetString(5),
                         reader.IsDBNull(6) ? null : reader.GetString(6),
-                        reader.IsDBNull(7) ? null : reader.GetString(7)
+                        reader.IsDBNull(7) ? null : reader.GetString(7),
+                        reader.IsDBNull(8) ? null : reader.GetString(8),
+                        reader.IsDBNull(9) ? null : reader.GetString(9)
                     ),
                     token
                 );

@@ -39,3 +39,6 @@ repeating a completed job. Tests terminate no production infrastructure.
 For a long-running API plus separate dispatch/intake/processing processes using these same
 adapters, see [the worker host](../MessagingWorkerDemo/README.md). The finite journey remains
 available; it is not the new worker startup path.
+
+Optional message diagnostic context and native telemetry setup are documented in the
+[Messaging observability contract](../../src/Rootbolt.Messaging/docs/observability.md).

@@ -468,6 +468,13 @@ Libraries use native `ILogger`, `ActivitySource`, and `Meter`. The host's Servic
 configures collection, export, and health. Aspire is local orchestration and topology-test
 infrastructure, not a required library runtime.
 
+[ADR 0012](adr/0012-durable-diagnostic-context-and-native-telemetry.md) records optional retained
+W3C messaging context, links at native attempt creation and diagnostic-independent inbox
+deduplication. [Local observability setup](../src/Rootbolt.Messaging/docs/observability.md)
+keeps SDK/exporter, sampling and transport decisions in consumers; transaction ownership is unchanged.
+The optional `Rootbolt.Messaging.OpenTelemetry` adapter supplies native trace/meter builder
+subscription helpers, with an API-only dependency and no host/provider/exporter policy.
+
 [E3.6](plans/e3-6-runtime-composition.md), checkpointed as `28ee797`, adds sample-owned AppHost
 and ServiceDefaults source,
 with native database references, manual finite setup, distinct readiness/liveness and OTLP

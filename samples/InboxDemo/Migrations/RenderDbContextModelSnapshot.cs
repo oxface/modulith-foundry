@@ -99,6 +99,14 @@ namespace InboxDemo.Migrations
                         .HasColumnType("text")
                         .HasColumnName("tenant_key");
 
+                    b.Property<string>("TraceParent")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_parent");
+
+                    b.Property<string>("TraceState")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_state");
+
                     b.HasKey("SubscriptionKey", "ProducerKey", "MessageId");
 
                     b.HasIndex("SubscriptionKey", "AvailableAt", "ReceivedAt")

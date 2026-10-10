@@ -1,6 +1,6 @@
 # Library and sample extraction plan
 
-## Current delivery status and next slice — 2026-10-09
+## Current delivery status and next slice — 2026-10-10
 
 The three outputs remain reusable libraries, configurable repository population, and samples.
 [The strategy review](../reports/strategy-review.md) brought a bounded template rehearsal
@@ -21,7 +21,8 @@ forward from E10; that rehearsal is now complete and owner-approved.
 | Transactional outbox O1 | Owner-reviewed and checkpointed as `2d7a865`; merged through PR #1 as `beafa4e`. [Implementation and executable adoption](../../src/Rootbolt.Messaging/README.md); [fresh proofs and remaining gaps](../reports/outbox1-transactional-dispatch.md). |
 | Durable inbox I1 | Owner-reviewed implementation checkpoint `ecab884`, followed by CI refinement `863456b`; merged through PR #2 as `0f4d8bf`. [Reviewed scope](inbox1-durable-intake-processing.md); [implementation evidence and remaining gaps](../reports/inbox1-durable-intake-processing.md). |
 | Explicit transactional audit E9 | Owner considers the slice complete; checkpoint `18a76f8` is present in `origin/main`. [Reviewed scope](e9-explicit-transactional-audit.md); [library contract](../../src/Rootbolt.Auditing/README.md); [verification and remaining gaps](../reports/e9-explicit-transactional-audit.md). |
-| Separate worker hosts W1 | Implemented for owner review, uncommitted on `feat/separate-worker-hosts`. Existing inbox/outbox APIs compose separate native roles with explicit setup; [scope](w1-separate-worker-hosts.md), [usage](../../samples/MessagingWorkerDemo/README.md) and [process proofs](../reports/w1-separate-worker-hosts.md). No new library interface or mechanism. |
+| Separate worker hosts W1 | Owner-approved checkpoint `7b43201`, merged into `origin/main` as `94ca57a`. Existing inbox/outbox APIs compose separate native roles with explicit setup; [scope](w1-separate-worker-hosts.md), [usage](../../samples/MessagingWorkerDemo/README.md) and [process proofs](../reports/w1-separate-worker-hosts.md). No new library interface or mechanism. |
+| Durable message observability OBS1 | Owner-reviewed interface/scope implemented on `feat/durable-message-observability`, based on merged W1, including the approved optional native OTel subscription adapter; final code review pending. [Local contract](../../src/Rootbolt.Messaging/docs/observability.md), [scope/file map](durable-message-observability.md) and [fresh proofs](../reports/obs1-durable-message-observability.md). Uncommitted; staged review snapshot preserved and subsequent adjustments unstaged. |
 
 The completed [E9 audit slice](e9-explicit-transactional-audit.md) deliberately excludes
 correlation, causation and trace IDs under the owner's YAGNI decision; these remain messaging
@@ -36,7 +37,8 @@ is proposed; no new runtime interface is approved by that list.
 
 The existing [durable message observability proposal](durable-message-observability.md)
 covers separate processes, retained W3C context, native RabbitMQ/OTel wiring and fault proofs.
-Its messaging interface/schema extensions remain proposed, not implemented or verified.
+Its owner-reviewed interface/schema extensions and native instrumentation are implemented;
+the OBS1 report records fresh process, export, PostgreSQL and compatibility proofs.
 [Audit context findings](../reports/e9-audit-context-research.md) and the new
 [capability reference review](../reports/remaining-capability-reference-review.md) distinguish
 source evidence from future extraction candidates. Both messaging capabilities and audit are

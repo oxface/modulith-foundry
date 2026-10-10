@@ -2,4 +2,7 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rootbolt.Messaging.EntityFrameworkCore.Postgres" />
+  </ItemGroup>
 </Project>

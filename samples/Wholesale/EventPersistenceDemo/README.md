@@ -326,3 +326,6 @@ admission, populated pre-audit migration preservation and this executable. Read 
 [Inbox contract](../../../src/Rootbolt.Messaging/docs/inbox.md) for native row-lock processing
 and remaining operational limits, and the [audit contract](../../../src/Rootbolt.Auditing/docs/transactional-audit.md)
 for explicit participation and its consumer obligations.
+
+Optional message diagnostic context and native telemetry setup are documented in the
+[Messaging observability contract](../../../src/Rootbolt.Messaging/docs/observability.md).

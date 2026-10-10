@@ -1,7 +1,7 @@
 # Messaging capabilities and remaining work
 
 O1 supplies one bounded transactional-outbox capability. [Family setup](../README.md)
-and the three package READMEs define the public surface; [the O1 proposal](../../../docs/plans/outbox1-transactional-dispatch.md)
+and package READMEs define the public surface; [the O1 proposal](../../../docs/plans/outbox1-transactional-dispatch.md)
 records owner review and [the report](../../../docs/reports/outbox1-transactional-dispatch.md)
 records dated executions. O1 is owner-approved at checkpoint `2d7a865` and merged as
 `beafa4e`. I1 adds independently selected durable intake and separate transactional processing.
@@ -53,7 +53,7 @@ Neither sample implies successful downstream business completion.
 
 ## Contract terminology and integration obligations
 
-The three packages generate XML documentation alongside their assemblies, including envelope
+The packages generate XML documentation alongside their assemblies, including envelope
 fields, operation outcomes, timing options and registration responsibilities.
 
 - RouteKey is a logical routing key chosen by the producer. IMessagePublisher maps it to
@@ -151,10 +151,9 @@ from historical O1/I1 results.
 
 ## Deferred capabilities
 
-Host placement is consumer composition. Richer durable tracing is planned in the
-[remaining roadmap](../../../docs/plans/remaining-capability-roadmap.md) and
-[observability proposal](../../../docs/plans/durable-message-observability.md).
-No W3C trace context is currently retained by the envelope/rows.
+Host placement is consumer composition. Optional retained W3C context, native attempt
+activities, correlated failure logs and metrics are supported; see [observability](observability.md).
+Backlog observation, alert thresholds and dashboard UX remain deferred.
 
 New-service snapshot/feed repopulation is a distinct planned capability. Current dispatch
 ordering and retained delivery rows do not provide a safe replay cursor or snapshot boundary.
@@ -166,7 +165,7 @@ Receipt-only mode if an adopter needs it;
 queued-message compatibility/upcasting rollout proofs; retention/deduplication windows;
 identity-preserving redrive; poison/attempt-cap policy; lease renewal; parallel/batch dispatch;
 per-stream ordering; other DBMS providers; additional transports and local module handoff;
-encryption/secrets; richer tracing/initiator propagation; durable workflows; cross-module
+encryption/secrets; baggage/initiator propagation; durable workflows; cross-module
 transactions; template messaging presets. Event-sourcing maintenance/async projections remain
 in their owning family. These capabilities need specific failure/consumer evidence, not only
 more interfaces. There is no required Rootbolt root runtime.

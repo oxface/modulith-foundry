@@ -2,13 +2,15 @@ using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
-internal sealed class PostgresInboxProcessor<TDbContext>(
+internal sealed partial class PostgresInboxProcessor<TDbContext>(
     TDbContext database,
     IServiceProvider services,
-    InboxProcessingOptions options
+    InboxProcessingOptions options,
+    ILogger<PostgresInboxProcessor<TDbContext>>? logger = null
 ) : IInboxProcessor<TDbContext>
     where TDbContext : DbContext
 {
@@ -34,6 +36,7 @@ internal sealed class PostgresInboxProcessor<TDbContext>(
 
         var handler = services.GetRequiredKeyedService<IInboxHandler<TDbContext>>(subscriptionKey);
         IncomingMessage? delivery = null;
+        MessagingTelemetry.Attempt? attempt = null;
         try
         {
             await using var transaction = await database.Database.BeginTransactionAsync(
@@ -43,6 +46,15 @@ internal sealed class PostgresInboxProcessor<TDbContext>(
             delivery = await storage.LockNextAsync(transaction, subscriptionKey, cancellationToken);
             if (delivery is null)
                 return InboxProcessingResult.NoWork;
+
+            attempt = new MessagingTelemetry.Attempt(
+                "process",
+                delivery.MessageId,
+                delivery.CorrelationId,
+                delivery.CausationId,
+                delivery.TraceParent,
+                delivery.TraceState
+            );
 
             // Local effects and outgoing work remain inside the row lock's transaction.
             await handler.HandleAsync(delivery, cancellationToken);
@@ -54,10 +66,12 @@ internal sealed class PostgresInboxProcessor<TDbContext>(
             await database.SaveChangesAsync(cancellationToken);
             await storage.CompleteAsync(transaction, subscriptionKey, delivery, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            attempt.Complete("processed");
             return InboxProcessingResult.Processed;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            attempt?.Cancel();
             // Disposal rolls back pending local work. A commit response can still be ambiguous.
             throw;
         }
@@ -76,14 +90,38 @@ internal sealed class PostgresInboxProcessor<TDbContext>(
             }
             catch (Exception schedulingFailure)
             {
-                throw new AggregateException(
+                var combined = new AggregateException(
                     "Inbox processing and retry scheduling both failed.",
                     processingFailure,
                     schedulingFailure
                 );
+                attempt?.Fail(combined);
+                if (logger is not null)
+                    AttemptFailed(logger, "process", delivery.MessageId, combined);
+
+                throw combined;
             }
+
+            attempt?.Fail(processingFailure);
+            if (logger is not null)
+                AttemptFailed(logger, "process", delivery.MessageId, processingFailure);
 
             throw;
         }
+        finally
+        {
+            attempt?.Dispose();
+        }
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Message {MessageId} {Operation} attempt failed."
+    )]
+    private static partial void AttemptFailed(
+        ILogger logger,
+        string operation,
+        Guid messageId,
+        Exception failure
+    );
 }

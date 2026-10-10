@@ -16,6 +16,7 @@ public static class InboxModelExtensions
         ArgumentNullException.ThrowIfNull(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(schema);
         ArgumentException.ThrowIfNullOrWhiteSpace(table);
+
         var row = model.Entity<InboxMessageRecord>();
         row.ToTable(table, schema);
         row.HasAnnotation("Rootbolt:Inbox", true);
@@ -34,6 +35,8 @@ public static class InboxModelExtensions
         row.Property(item => item.TenantKey).HasColumnName("tenant_key");
         row.Property(item => item.CorrelationId).HasColumnName("correlation_id");
         row.Property(item => item.CausationId).HasColumnName("causation_id");
+        row.Property(item => item.TraceParent).HasColumnName("trace_parent");
+        row.Property(item => item.TraceState).HasColumnName("trace_state");
         row.Property(item => item.ReceivedAt).HasColumnName("received_at").ValueGeneratedOnAdd();
         row.Property(item => item.AvailableAt).HasColumnName("available_at").ValueGeneratedOnAdd();
         row.Property(item => item.ProcessedAt).HasColumnName("processed_at");

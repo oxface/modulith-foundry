@@ -10,6 +10,7 @@
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <Compile Include="../../../../tests/Support/PostgreSqlFixture.cs" Link="PostgreSqlFixture.cs" />
+    <Compile Include="../MessagingTelemetryProbe.cs" Link="MessagingTelemetryProbe.cs" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

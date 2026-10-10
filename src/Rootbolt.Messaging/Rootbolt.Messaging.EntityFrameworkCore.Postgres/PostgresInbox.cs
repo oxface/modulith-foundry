@@ -37,9 +37,9 @@ internal sealed class PostgresInbox<TDbContext>(TDbContext database) : IInbox<TD
             $"""
             INSERT INTO {storage.Table}
               (subscription_key, producer_key, message_id, message_name, schema_version, payload,
-               tenant_key, correlation_id, causation_id)
+               tenant_key, correlation_id, causation_id, trace_parent, trace_state)
             VALUES (@subscription, @producer, @id, @name, @schema, CAST(@payload AS jsonb),
-                    @tenant, @correlation, @causation)
+                    @tenant, @correlation, @causation, @traceParent, @traceState)
             ON CONFLICT (subscription_key, producer_key, message_id) DO NOTHING
             RETURNING message_id
             """
@@ -48,7 +48,8 @@ internal sealed class PostgresInbox<TDbContext>(TDbContext database) : IInbox<TD
         if (await insert.ExecuteScalarAsync(cancellationToken) is not null)
             return InboxReceiveResult.Queued;
 
-        // Only duplicates reach this query. Check that the retained envelope is identical.
+        // Compare business content only: a retry may carry a different transport span.
+        // The first committed intake retains its diagnostic context.
         // INSERT can wait for another writer to commit, then do nothing even though that row
         // was not visible when INSERT started. A separate ReadCommitted statement sees the
         // committed winner; a SELECT inside the same statement could still miss it.

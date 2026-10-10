@@ -17,6 +17,7 @@ public static class OutboxModelExtensions
         ArgumentNullException.ThrowIfNull(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(schema);
         ArgumentException.ThrowIfNullOrWhiteSpace(table);
+
         var row = model.Entity<OutboxMessageRecord>();
         row.ToTable(table, schema);
         row.HasAnnotation("Rootbolt:Outbox", true);
@@ -29,6 +30,8 @@ public static class OutboxModelExtensions
         row.Property(item => item.TenantKey).HasColumnName("owner_key");
         row.Property(item => item.CorrelationId).HasColumnName("correlation_id");
         row.Property(item => item.CausationId).HasColumnName("causation_id");
+        row.Property(item => item.TraceParent).HasColumnName("trace_parent");
+        row.Property(item => item.TraceState).HasColumnName("trace_state");
         row.Property(item => item.QueuedAt).HasColumnName("queued_at").ValueGeneratedOnAdd();
         row.Property(item => item.AvailableAt).HasColumnName("available_at").ValueGeneratedOnAdd();
         row.Property(item => item.DispatchedAt).HasColumnName("dispatched_at");
@@ -52,6 +55,7 @@ public static class OutboxModelExtensions
     public static void ValidateOutboxChanges(this DbContext database)
     {
         ArgumentNullException.ThrowIfNull(database);
+
         database.ChangeTracker.DetectChanges();
         foreach (var entry in database.ChangeTracker.Entries<OutboxMessageRecord>())
         {
@@ -79,6 +83,8 @@ public static class OutboxModelExtensions
                 || row.TenantKey != message.TenantKey
                 || row.CorrelationId != message.CorrelationId
                 || row.CausationId != message.CausationId
+                || row.TraceParent != message.TraceParent
+                || row.TraceState != message.TraceState
                 || row.Payload.ValueKind == System.Text.Json.JsonValueKind.Undefined
                 || row.Payload.GetRawText() != message.Payload.GetRawText()
                 || row.QueuedAt != default

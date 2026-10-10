@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -20,6 +21,94 @@ public sealed class BrokerTests(PostgreSqlFixture postgres, RabbitMqFixture rabb
     : IClassFixture<RabbitMqFixture>
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task NativeSendUsesTheLocalContextWithoutOldRetainedVendorState()
+    {
+        await using var connection = await ConnectAsync();
+        await using var channel = await ChannelAsync(connection);
+        string queue = await QueueAsync(channel);
+        Activity? sent = null;
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "RabbitMQ.Client.Publisher",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) =>
+                ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity => sent = activity,
+        };
+        ActivitySource.AddActivityListener(listener);
+        using var local = new Activity("publication").SetIdFormat(ActivityIdFormat.W3C).Start();
+        var outgoing = OutgoingMessage.FromPayload(
+            Guid.NewGuid(),
+            "exports.render",
+            "exports.render",
+            1,
+            new RenderExportV1(Guid.NewGuid(), 3),
+            new(),
+            traceParent: "00-12345678901234567890123456789012-1234567890123456-01",
+            traceState: "proof=old"
+        );
+        await new RabbitMqExportPublisher(channel, queue).PublishAsync(outgoing, Token);
+        var parsed = RabbitMqRenderReceiver.Parse(await DeliveryAsync(channel, queue));
+        Assert.NotNull(sent);
+        Assert.Equal(local.TraceId, sent.TraceId);
+        Assert.Equal(local.SpanId, sent.ParentSpanId);
+        Assert.True(
+            ActivityContext.TryParse(parsed.TraceParent, parsed.TraceState, out var received)
+        );
+        Assert.Equal(sent.TraceId, received.TraceId);
+        Assert.Equal(sent.SpanId, received.SpanId);
+        Assert.Null(parsed.TraceState);
+        Assert.Equal("proof=old", outgoing.TraceState);
+        Assert.Equal(outgoing.MessageId, parsed.MessageId);
+    }
+
+    [Fact]
+    public async Task MalformedDiagnosticHeadersDoNotRejectValidNativeDelivery()
+    {
+        string receiver = await ReceiverAsync();
+        await using var connection = await ConnectAsync();
+        await using var channel = await ChannelAsync(connection);
+        string queue = await QueueAsync(channel);
+        Guid export = Guid.NewGuid();
+        var properties = new BasicProperties
+        {
+            MessageId = Guid.NewGuid().ToString(),
+            Type = "exports.render",
+            Headers = new Dictionary<string, object?>
+            {
+                ["producer-module"] = "exports",
+                ["schema-version"] = 1,
+                ["traceparent"] = 42,
+                ["tracestate"] = false,
+            },
+        };
+        await channel.BasicPublishAsync(
+            "",
+            queue,
+            true,
+            properties,
+            JsonSerializer.SerializeToUtf8Bytes(new RenderExportV1(export, 3)),
+            Token
+        );
+        var delivery = await DeliveryAsync(channel, queue);
+        var parsed = RabbitMqRenderReceiver.Parse(delivery);
+        Assert.Null(parsed.TraceParent);
+        Assert.Null(parsed.TraceState);
+        var services = new ServiceCollection();
+        InboxDemoHost.Register(services, receiver);
+        await using var provider = services.BuildServiceProvider();
+        Assert.Equal(
+            InboxReceiveResult.Queued,
+            await new RabbitMqRenderReceiver(
+                channel,
+                provider.GetRequiredService<IServiceScopeFactory>()
+            ).ReceiveAsync(delivery, Token)
+        );
+        Assert.Equal(InboxProcessingResult.Processed, await ProcessAsync(provider));
+        await using var read = RenderDbContext.Create(receiver);
+        Assert.Equal(export, (await read.Set<RenderJob>().SingleAsync(Token)).ExportRequestId);
+    }
 
     [Fact]
     public async Task ExecutableRoundTripUsesIndependentDatabasesAndNoReceiverOutbox()

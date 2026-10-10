@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
@@ -35,7 +36,8 @@ public static class PostgresInboxServiceCollectionExtensions
             provider => new PostgresInboxProcessor<TDbContext>(
                 provider.GetRequiredService<TDbContext>(),
                 provider,
-                options
+                options,
+                provider.GetService<ILogger<PostgresInboxProcessor<TDbContext>>>()
             )
         );
         return services;

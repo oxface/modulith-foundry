@@ -78,3 +78,6 @@ a retry write. Connection loss releases the lock; a commit response may be ambig
 This protocol does not make another module/context or external side effect atomic. Native
 business concurrency predicates remain necessary for different deliveries touching shared state.
 See [full inbox setup/errors/limits](../docs/inbox.md).
+
+See [durable message observability](../docs/observability.md) for optional W3C context, schema upgrades, native
+activity/meter names, failure logs and host-owned exporter configuration.

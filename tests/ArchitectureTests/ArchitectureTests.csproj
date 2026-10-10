@@ -37,6 +37,11 @@
   </ItemGroup>
   <ItemGroup>
     <None
+      Include="../../src/Rootbolt.Messaging/Rootbolt.Messaging.OpenTelemetry/Rootbolt.Messaging.OpenTelemetry.csproj"
+      Link="ProjectDeclarations/Rootbolt.Messaging.OpenTelemetry.csproj"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+    <None
       Include="../../src/Rootbolt.Auditing/Rootbolt.Auditing.EntityFrameworkCore.Postgres/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj"
       Link="ProjectDeclarations/Rootbolt.Auditing.EntityFrameworkCore.Postgres.csproj"
       CopyToOutputDirectory="PreserveNewest"

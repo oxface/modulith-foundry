@@ -34,3 +34,6 @@ They also prove eligibility, competing submissions, rollback and fresh-context r
 
 See [the family contract](../../src/Rootbolt.Messaging/docs/capabilities.md) for setup/errors
 and independent inbox composition, workers and deferred ordering policy. PostgreSQL is currently the supported provider.
+
+Optional message diagnostic context and native telemetry setup are documented in the
+[Messaging observability contract](../../src/Rootbolt.Messaging/docs/observability.md).

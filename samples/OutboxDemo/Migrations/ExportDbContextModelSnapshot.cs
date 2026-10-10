@@ -103,6 +103,14 @@ namespace OutboxDemo.Migrations
                         .HasColumnType("text")
                         .HasColumnName("owner_key");
 
+                    b.Property<string>("TraceParent")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_parent");
+
+                    b.Property<string>("TraceState")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_state");
+
                     b.HasKey("MessageId");
 
                     b.HasIndex("AvailableAt", "LeaseUntil", "MessageId")

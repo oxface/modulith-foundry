@@ -43,6 +43,8 @@ internal sealed class PostgresInboxStorage
             [nameof(InboxMessageRecord.TenantKey)] = "tenant_key",
             [nameof(InboxMessageRecord.CorrelationId)] = "correlation_id",
             [nameof(InboxMessageRecord.CausationId)] = "causation_id",
+            [nameof(InboxMessageRecord.TraceParent)] = "trace_parent",
+            [nameof(InboxMessageRecord.TraceState)] = "trace_state",
             [nameof(InboxMessageRecord.ReceivedAt)] = "received_at",
             [nameof(InboxMessageRecord.AvailableAt)] = "available_at",
             [nameof(InboxMessageRecord.ProcessedAt)] = "processed_at",
@@ -89,7 +91,7 @@ internal sealed class PostgresInboxStorage
         await using var command = Command(
             transaction,
             $"""
-            SELECT message_id, producer_key, message_name, schema_version, payload, tenant_key, correlation_id, causation_id
+            SELECT message_id, producer_key, message_name, schema_version, payload, tenant_key, correlation_id, causation_id, trace_parent, trace_state
             FROM {Table}
             WHERE subscription_key = @subscription AND processed_at IS NULL AND available_at <= clock_timestamp()
             ORDER BY available_at, received_at, producer_key, message_id
@@ -110,7 +112,9 @@ internal sealed class PostgresInboxStorage
             payload.RootElement,
             reader.IsDBNull(5) ? null : reader.GetString(5),
             reader.IsDBNull(6) ? null : reader.GetString(6),
-            reader.IsDBNull(7) ? null : reader.GetString(7)
+            reader.IsDBNull(7) ? null : reader.GetString(7),
+            reader.IsDBNull(8) ? null : reader.GetString(8),
+            reader.IsDBNull(9) ? null : reader.GetString(9)
         );
     }
 
@@ -172,6 +176,8 @@ internal sealed class PostgresInboxStorage
         Parameter(command, "tenant", message.TenantKey);
         Parameter(command, "correlation", message.CorrelationId);
         Parameter(command, "causation", message.CausationId);
+        Parameter(command, "traceParent", message.TraceParent);
+        Parameter(command, "traceState", message.TraceState);
     }
 
     private static void IdentityParameters(

@@ -1,8 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using ModulithFoundry.Samples.OutboxDemo;
+using ModulithFoundry.Samples.Wholesale.ServiceDefaults;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
+builder
+    .Services.AddOpenTelemetry()
+    .ConfigureResource(resource =>
+        resource.AddService(
+            builder.Configuration["OTEL_SERVICE_NAME"] ?? "messaging-producer",
+            serviceInstanceId: Guid.NewGuid().ToString()
+        )
+    )
+    .WithTracing(tracing => tracing.AddRootboltMessaging())
+    .WithMetrics(metrics => metrics.AddRootboltMessaging());
+
 string connection =
     builder.Configuration.GetConnectionString("Exports")
     ?? throw new InvalidOperationException("Configure ConnectionStrings:Exports.");

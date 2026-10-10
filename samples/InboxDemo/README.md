@@ -37,3 +37,6 @@ Tests run real PostgreSQL/Kestrel and native RabbitMQ through the composition sa
 prove commit-before-response, conflict handling, SQL-failure recovery, metadata preservation,
 semantic job deduplication, worker opt-in and the separate broker acknowledgement windows.
 [Family contract](../../src/Rootbolt.Messaging/docs/inbox.md) documents ownership and limitations.
+
+Optional message diagnostic context and native telemetry setup are documented in the
+[Messaging observability contract](../../src/Rootbolt.Messaging/docs/observability.md).
