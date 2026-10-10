@@ -261,6 +261,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                     b.Property<int>("ActorKind")
                         .HasColumnType("integer")
                         .HasColumnName("actor_kind");
+
                     b.Property<JsonElement>("Details")
                         .HasColumnType("jsonb")
                         .HasColumnName("details");
@@ -309,6 +310,7 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("tenant_key");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TenantKey", "SubjectType", "SubjectKey", "OccurredAt", "Id")
@@ -382,6 +384,14 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("tenant_key");
+
+                    b.Property<string>("TraceParent")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_parent");
+
+                    b.Property<string>("TraceState")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_state");
 
                     b.HasKey("SubscriptionKey", "ProducerKey", "MessageId");
 
@@ -471,6 +481,14 @@ namespace ModulithFoundry.Samples.Wholesale.Inventory.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("owner_key");
+
+                    b.Property<string>("TraceParent")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_parent");
+
+                    b.Property<string>("TraceState")
+                        .HasColumnType("text")
+                        .HasColumnName("trace_state");
 
                     b.HasKey("MessageId");
 

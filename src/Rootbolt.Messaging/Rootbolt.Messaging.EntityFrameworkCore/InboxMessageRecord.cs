@@ -34,6 +34,12 @@ public sealed class InboxMessageRecord
     /// <summary>Optional immediate cause identity.</summary>
     public string? CausationId { get; private set; }
 
+    /// <summary>Retained diagnostic upstream context, independent of delivery deduplication.</summary>
+    public string? TraceParent { get; private set; }
+
+    /// <summary>Retained opaque vendor state accompanying TraceParent.</summary>
+    public string? TraceState { get; private set; }
+
     /// <summary>Database insertion time, independent of business occurrence time.</summary>
     public DateTimeOffset ReceivedAt { get; private set; }
 

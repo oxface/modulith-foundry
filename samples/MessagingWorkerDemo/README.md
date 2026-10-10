@@ -77,8 +77,8 @@ subscriptions/prefetch/backpressure, reconnect, poison handling/dead-letter/redr
 renewal, leader election, batching, deployment manifests and resource limits are not supplied.
 Permissions/TLS and trusted producer mapping remain deployment/consumer obligations. A
 malformed head delivery can require operator intervention; this sample does not silently discard it.
-Retained W3C context and durable spans remain the separately scoped OBS1 work. Module tracing
-does not require a root Rootbolt runtime.
+Optional retained W3C context, native attempt spans/logs/metrics and RabbitMQ transport
+tracing are supported by OBS1. No root Rootbolt runtime is required.
 
 ## Executable proofs
 
@@ -97,3 +97,35 @@ on arbitrary sleeps or sample-only fault settings. Proof deadlines and child-pro
 are bounded. The API can exit before any worker starts, and the processor is run without
 sender/broker configuration. See [the W1 report](../../docs/reports/w1-separate-worker-hosts.md)
 for dated results and the exact supported boundary.
+
+## Native telemetry export
+
+The producer and each worker role call the existing editable
+[ServiceDefaults](../Wholesale/ServiceDefaults/README.md), then add role resources and
+Rootbolt subscriptions through optional AddRootboltMessaging extensions on native trace
+and metric builders in Program.cs. RabbitMQ sources remain explicitly selected there. There
+is no separate AddTelemetry helper or Rootbolt host package. Set these for processes that
+should export to an existing Collector or Aspire dashboard OTLP endpoint:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT='http://localhost:4318'
+export OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf'
+```
+
+Defaults are service names messaging-producer, messaging-dispatch, messaging-receive and
+messaging-process, with a new instance ID per process. OTEL_SERVICE_NAME can override the
+name per deployment. Setup remains finite and configures no exporter. Hosts own sampling,
+filtering, collection endpoints and retention. There is no required dashboard or Collector.
+
+Follow the producer activity linked by each rootbolt.outbox.dispatch attempt, its native
+RabbitMQ send child, then the send context linked by rootbolt.inbox.process. Different retry
+spans preserve the same MessageId. Inspect error logs by trace/span ID and native attempt
+counters/duration by operation/result. Metrics do not provide pending-work gauges or alerts.
+The [family contract](../../src/Rootbolt.Messaging/docs/observability.md) describes schema
+upgrades and exact span/measurement boundaries.
+
+The process suite now also uses a test-owned official OTel Collector 0.162.0 to assert actual
+exported spans, logs and metrics. It forces post-publication completion and transactional
+handler failures, restarts in fresh processes, and verifies duplicate intake preserves its
+first context. An unreachable-collector case verifies business progress independently.
+This is OTLP export evidence, not an Aspire dashboard inspection or throughput benchmark.

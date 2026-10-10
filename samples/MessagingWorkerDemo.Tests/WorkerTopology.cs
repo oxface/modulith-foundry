@@ -11,8 +11,12 @@ using Rootbolt.Messaging.EntityFrameworkCore;
 
 namespace ModulithFoundry.Samples.MessagingWorkerDemo.Tests;
 
-internal sealed class WorkerTopology(string exports, string rendering, string broker)
-    : IAsyncDisposable
+internal sealed class WorkerTopology(
+    string exports,
+    string rendering,
+    string broker,
+    Dictionary<string, string>? telemetry = null
+) : IAsyncDisposable
 {
     private readonly List<ChildHost> children = [];
     private readonly string queue = "worker-proof-" + Guid.NewGuid().ToString("N");
@@ -23,17 +27,22 @@ internal sealed class WorkerTopology(string exports, string rendering, string br
     internal static async Task<WorkerTopology> CreateAsync(
         PostgreSqlFixture postgres,
         RabbitMqFixture rabbit,
-        CancellationToken cancellation
+        CancellationToken cancellation,
+        Dictionary<string, string>? telemetry = null
     ) =>
         new(
             await postgres.CreateDatabaseAsync(cancellation),
             await postgres.CreateDatabaseAsync(cancellation),
-            rabbit.ConnectionString
+            rabbit.ConnectionString,
+            telemetry
         );
 
     internal ChildHost Worker(string role, string name, int leaseSeconds = 30)
     {
-        var environment = new Dictionary<string, string>(StringComparer.Ordinal);
+        var environment = telemetry is null
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            : new(telemetry, StringComparer.Ordinal);
+        environment["OTEL_SERVICE_NAME"] = name;
         if (role is "setup" or "dispatch")
             environment["ConnectionStrings__Exports"] = WithName(exports, name);
         if (role is "setup" or "receive" or "process")
@@ -75,8 +84,9 @@ internal sealed class WorkerTopology(string exports, string rendering, string br
         var api = Track(
             new(
                 typeof(ProducerAssemblyMarker).Assembly,
-                new(StringComparer.Ordinal)
+                new(telemetry ?? [], StringComparer.Ordinal)
                 {
+                    ["OTEL_SERVICE_NAME"] = "proof-api",
                     ["ConnectionStrings__Exports"] = exports,
                     ["ASPNETCORE_URLS"] = "http://127.0.0.1:0",
                 }

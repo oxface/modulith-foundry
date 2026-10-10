@@ -14,6 +14,8 @@ public sealed class OutgoingMessage
     /// <param name="tenantKey">Optional opaque tenant metadata. This neither admits a tenant nor grants authority.</param>
     /// <param name="correlationId">Optional conversation identity; does not deduplicate delivery.</param>
     /// <param name="causationId">Optional identity of the immediate cause of this message.</param>
+    /// <param name="traceParent">Optional explicitly supplied W3C upstream context; invalid values do not reject business work.</param>
+    /// <param name="traceState">Optional opaque W3C vendor state; not an identity or admission credential.</param>
     public OutgoingMessage(
         Guid messageId,
         string routeKey,
@@ -22,7 +24,9 @@ public sealed class OutgoingMessage
         JsonElement payload,
         string? tenantKey = null,
         string? correlationId = null,
-        string? causationId = null
+        string? causationId = null,
+        string? traceParent = null,
+        string? traceState = null
     )
     {
         ArgumentOutOfRangeException.ThrowIfEqual(messageId, Guid.Empty);
@@ -50,6 +54,8 @@ public sealed class OutgoingMessage
         TenantKey = tenantKey;
         CorrelationId = correlationId;
         CausationId = causationId;
+        TraceParent = traceParent;
+        TraceState = traceState;
     }
 
     /// <summary>Serializes a typed payload using explicit consumer options and returns a non-generic envelope.</summary>
@@ -63,6 +69,8 @@ public sealed class OutgoingMessage
     /// <param name="tenantKey">Optional opaque tenant metadata; grants no authority.</param>
     /// <param name="correlationId">Optional conversation identity.</param>
     /// <param name="causationId">Optional identity of the immediate cause.</param>
+    /// <param name="traceParent">Optional explicitly supplied context of the selected producer activity.</param>
+    /// <param name="traceState">Optional opaque vendor state accompanying that context.</param>
     public static OutgoingMessage FromPayload<TPayload>(
         Guid messageId,
         string routeKey,
@@ -72,10 +80,13 @@ public sealed class OutgoingMessage
         JsonSerializerOptions serializerOptions,
         string? tenantKey = null,
         string? correlationId = null,
-        string? causationId = null
+        string? causationId = null,
+        string? traceParent = null,
+        string? traceState = null
     )
     {
         ArgumentNullException.ThrowIfNull(serializerOptions);
+
         return new(
             messageId,
             routeKey,
@@ -84,7 +95,9 @@ public sealed class OutgoingMessage
             JsonSerializer.SerializeToElement(payload, serializerOptions),
             tenantKey,
             correlationId,
-            causationId
+            causationId,
+            traceParent,
+            traceState
         );
     }
 
@@ -111,4 +124,10 @@ public sealed class OutgoingMessage
 
     /// <summary>Optional identity of the immediate cause, usually the preceding MessageId.</summary>
     public string? CausationId { get; }
+
+    /// <summary>Explicitly supplied W3C upstream context; diagnostic only and independent of business identity.</summary>
+    public string? TraceParent { get; }
+
+    /// <summary>Opaque vendor state accompanying TraceParent; interpreted by native diagnostics.</summary>
+    public string? TraceState { get; }
 }

@@ -1,16 +1,19 @@
 # Remaining capability roadmap
 
-Status: proposed scope and order, 2026-10-09. No new public interfaces are approved here.
+Status: proposed scope and order, 2026-10-10. This roadmap does not approve interfaces; OBS1 has separate owner-reviewed scope.
 The owner considers transactional audit complete; checkpoint `18a76f8` is present in
 `origin/main`. Existing implementations and dated slice reports remain the evidence for
 supported capabilities. The original E0–E10 extraction sequence is historical context,
 not the current work queue.
 
-W1 now has an implementation for owner review on `feat/separate-worker-hosts`:
+W1 is owner-approved at checkpoint `7b43201`, merged into `origin/main` as `94ca57a`:
 [native host and setup](../../samples/MessagingWorkerDemo/README.md),
 [bounded scope](w1-separate-worker-hosts.md) and
 [fresh process evidence](../reports/w1-separate-worker-hosts.md). No library interface changes
-were needed. It is not checkpointed or merged by this status update; remaining rows are candidates.
+were needed. OBS1 now has an owner-reviewed interface/scope implementation on
+`feat/durable-message-observability`, based on that merged commit, awaiting final code review.
+[Fresh evidence](../reports/obs1-durable-message-observability.md) is separate from this roadmap;
+remaining rows are candidates.
 
 Read the actual consumers and owning family documentation before starting a slice. Resolve
 stale descriptions against current code and owner decisions; do not carry an earlier
@@ -28,8 +31,8 @@ references, not selected runtime dependencies or a feature-parity target.
 | --- | --- | --- |
 | D1: DDD building blocks and template patterns | Compare a state-stored aggregate and an event-sourced aggregate; demonstrate creation, invariants, domain values and accepted/rejected decisions. | Domain rules stay in modules. Assess reusable identity/value/bookkeeping helpers against actual duplication; no mandatory aggregate hierarchy or generic repository. Useful editable patterns are a valid result even if no library is extracted. |
 | C1: CQRS patterns and optional helpers | Explicit command/query contracts, handlers and native `{Aggregate}Queries` / `{Aggregate}Filters` in real consumers, including filtering a joined EF read view. | Separate read/write logic can share storage. Preserve direct calls, typed DI and caller-owned save/commit. A mediator, pipeline or handler registry needs demonstrated value rather than CQRS naming alone. |
-| W1: separately hosted workers | Implemented for owner review: separate API, dispatch/intake/processing roles and finite setup. | Real PostgreSQL/RabbitMQ process proofs cover API independence, competing processors, shutdown, death and recovery using existing locks/leases. See the W1 report; no new library mechanism. |
-| OBS1: durable message observability | Implement the reviewed scope of the existing [observability proposal](durable-message-observability.md), after interface review. | Retained W3C context, native spans, logs/metrics and transport propagation across producer/receiver/worker processes. Prove retry/restart relationships and tracing-disabled behavior. Keep message/business identities distinct from diagnostic identity. |
+| W1: separately hosted workers | Complete and merged: separate API, dispatch/intake/processing roles and finite setup. | Real PostgreSQL/RabbitMQ process proofs cover API independence, competing processors, shutdown, death and recovery using existing locks/leases. See the W1 report; no new library mechanism. |
+| OBS1: durable message observability | Implemented after owner interface review: [observability scope](durable-message-observability.md) instruments the existing Exports → Rendering process journey; final code review pending. | Retained W3C context, native spans, correlated failure logs and attempt metrics, with real OTLP export across processes. Prove retry/restart relationships and tracing-disabled behavior. Backlog alerts, dashboard inspection and new audit/reply workflows are deferred. |
 | WF1: durable inter-module workflow / saga assessment | One named module-owned process manager using existing inbox/outbox, persisted transitions and outgoing replies/actions. | Prove restart, duplicate/reordered messages, concurrent transitions and timeout/success races. Business compensation and semantic idempotency stay consumer-owned. Extract repeated mechanics only after a materially different comparison. |
 | B1: replayable source contract | One source module exposes retained integration changes with a provable progress cursor, ordering, retention floor and expired-cursor outcome. | Prove late commits, gaps, duplicates and restart. Outbox dispatch order and timestamps are not an established replay protocol. Public export contracts must preserve module ownership. |
 | B2: new-service repopulation | Populate a new receiver from a consistent initial snapshot, then apply retained changes without losing or incorrectly repeating effects. | Builds on a proven boundary/feed such as B1. Prove concurrent writes during export, interrupted copy/pages, deletes and transactional receiver checkpoints. Start with one source; state-stored modules must also be supported by the chosen scenario. |
@@ -47,9 +50,9 @@ before v1. This roadmap does not discard them or promote them into library commi
 ## Recommended order
 
 W1 demonstrates that the existing Hosting abstractions, fresh DI scopes and callable
-processing/dispatch can run outside an API. Host placement is consumer composition. OBS1 is
-the proposed next runtime slice: add diagnostic propagation to that proven path after reviewing
-its exact interfaces/schema and file map. W1 adds no retained trace fields or OTel runtime.
+processing/dispatch can run outside an API. Host placement is consumer composition. OBS1 adds diagnostic propagation to that path after owner interface/scope review; its
+implementation and fresh evidence now await final code review. W1 itself added no retained
+trace fields or OTel runtime. WF1 is the next runtime candidate, subject to concrete scope review.
 
 D1 and C1 can be explored independently before adding template choices. They are explicit
 roadmap items, with a library extraction decision at the end of each assessment. Reuse the
@@ -94,7 +97,7 @@ reads without automatic repair or snapshot catch-up.
 Separate hosts allow independent deployment, resource limits and replica counts. Existing
 inbox processing holds a row lock through its local transaction; outbox publication uses a
 committed lease and fences completion. Those protocols already address different competing
-worker obligations. W1 must demonstrate them in separate processes, rather than introduce
+worker obligations. W1 demonstrated them in separate processes without introducing
 leader election solely because multiple workers exist.
 
 Bounded concurrency, batching, backpressure, lease renewal, partition assignment and exclusive
@@ -110,8 +113,8 @@ not selected by WF1.
 
 ## Current boundaries and completion criteria
 
-Messaging already retains MessageId, CorrelationId and CausationId. Diagnostic context and
-spans require the separately reviewed OBS1 work; the current audit API deliberately excludes
+Messaging already retains MessageId, CorrelationId and CausationId. Optional diagnostic context and native
+spans are implemented by the separately reviewed OBS1 work; the current audit API deliberately excludes
 these identifiers. Host OTel setup/exporters and native transport configuration remain editable
 sample/template composition. No Rootbolt root runtime or universal transaction context is
 planned simply to connect these families.

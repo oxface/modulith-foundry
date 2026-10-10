@@ -18,6 +18,8 @@ public sealed class OutboxMessageRecord
             TenantKey = message.TenantKey,
             CorrelationId = message.CorrelationId,
             CausationId = message.CausationId,
+            TraceParent = message.TraceParent,
+            TraceState = message.TraceState,
         };
 
     /// <summary>Retained delivery identity and primary key within this module's outbox.</summary>
@@ -43,6 +45,12 @@ public sealed class OutboxMessageRecord
 
     /// <summary>Optional retained identity of the immediate cause.</summary>
     public string? CausationId { get; private set; }
+
+    /// <summary>Retained diagnostic upstream context, independent of delivery deduplication.</summary>
+    public string? TraceParent { get; private set; }
+
+    /// <summary>Retained opaque vendor state accompanying TraceParent.</summary>
+    public string? TraceState { get; private set; }
 
     /// <summary>Database-assigned insertion time, not the business event's occurrence time.</summary>
     public DateTimeOffset QueuedAt { get; private set; }

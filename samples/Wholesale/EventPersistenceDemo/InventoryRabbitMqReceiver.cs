@@ -33,7 +33,9 @@ public sealed class InventoryRabbitMqReceiver(IChannel channel, IServiceScopeFac
             document.RootElement,
             Header(properties, "owner-key"),
             properties.CorrelationId,
-            Header(properties, "causation-id")
+            Header(properties, "causation-id"),
+            DiagnosticHeader(properties, "traceparent"),
+            DiagnosticHeader(properties, "tracestate")
         );
         StockIssueMessageAdmission.Validate(message);
         return message;
@@ -62,6 +64,20 @@ public sealed class InventoryRabbitMqReceiver(IChannel channel, IServiceScopeFac
             cancellationToken: cancellationToken
         );
         return result;
+    }
+
+    // Diagnostic metadata must not reject an otherwise valid business delivery.
+    private static string? DiagnosticHeader(IReadOnlyBasicProperties properties, string key)
+    {
+        if (properties.Headers is null || !properties.Headers.TryGetValue(key, out var value))
+            return null;
+
+        return value switch
+        {
+            byte[] bytes => Encoding.UTF8.GetString(bytes),
+            string text => text,
+            _ => null,
+        };
     }
 
     private static string? Header(IReadOnlyBasicProperties properties, string key)

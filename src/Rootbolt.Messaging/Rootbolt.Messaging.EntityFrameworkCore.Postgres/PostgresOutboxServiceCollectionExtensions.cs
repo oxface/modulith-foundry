@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Rootbolt.Messaging.EntityFrameworkCore.Postgres;
 
@@ -41,7 +42,8 @@ public static class PostgresOutboxServiceCollectionExtensions
             provider => new PostgresOutboxDispatcher<TDbContext>(
                 provider.GetRequiredService<TDbContext>(),
                 provider.GetRequiredService<TPublisher>(),
-                options
+                options,
+                provider.GetService<ILogger<PostgresOutboxDispatcher<TDbContext>>>()
             )
         );
         return services;

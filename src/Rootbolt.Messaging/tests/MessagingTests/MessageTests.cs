@@ -160,5 +160,43 @@ public sealed class MessageTests
         );
     }
 
+    [Fact]
+    public void DiagnosticMetadataIsExplicitOptionalAndIndependentOfBusinessValidation()
+    {
+        using var ambient = new System.Diagnostics.Activity("ambient").Start();
+        var omitted = OutgoingMessage.FromPayload(
+            Guid.NewGuid(),
+            "r",
+            "m",
+            1,
+            new { value = 1 },
+            new()
+        );
+        Assert.Null(omitted.TraceParent);
+        Assert.Null(omitted.TraceState);
+
+        var supplied = OutgoingMessage.FromPayload(
+            Guid.NewGuid(),
+            "r",
+            "m",
+            1,
+            new { value = 1 },
+            new(),
+            traceParent: "invalid-parent",
+            traceState: "opaque-state"
+        );
+        var incoming = new IncomingMessage(
+            supplied.MessageId,
+            "p",
+            "m",
+            1,
+            supplied.Payload,
+            traceParent: supplied.TraceParent,
+            traceState: supplied.TraceState
+        );
+        Assert.Equal("invalid-parent", incoming.TraceParent);
+        Assert.Equal("opaque-state", incoming.TraceState);
+    }
+
     private sealed record WireItem(string DisplayName);
 }

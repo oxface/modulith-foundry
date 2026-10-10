@@ -1,6 +1,7 @@
 # Transport-independent message envelopes
 
-Package-free .NET 10 incoming/outgoing envelopes and `IMessagePublisher`. No EF, hosting, transport,
+Package-free .NET 10 incoming/outgoing envelopes, `IMessagePublisher` and internal native
+messaging trace/metric instrumentation. No EF, hosting, transport,
 tenancy, actor identity or event-sourcing dependency.
 
 ```csharp
@@ -40,3 +41,8 @@ constructing an envelope authenticates a producer or admits a tenant.
 InboxMessageConflictException identifies delivery identity reused with incompatible retained
 content, with SubscriptionKey/ProducerKey/MessageId properties and no payload/tenant details
 in its error text. See [the complete contract](../docs/capabilities.md).
+
+See [durable message observability](../docs/observability.md) for optional W3C context, schema upgrades, native
+activity/meter names, failure logs and host-owned exporter configuration.
+The PostgreSQL operations use core instrumentation through internal friend access and
+emit their own optional ILogger failure logs. The core has no logging or OTel dependency.

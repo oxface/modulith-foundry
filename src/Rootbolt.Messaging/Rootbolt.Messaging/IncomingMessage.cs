@@ -14,6 +14,8 @@ public sealed class IncomingMessage
     /// <param name="tenantKey">Optional opaque tenant metadata; grants no authority.</param>
     /// <param name="correlationId">Optional conversation identity; not a delivery identity.</param>
     /// <param name="causationId">Optional identity of the immediate cause.</param>
+    /// <param name="traceParent">Optional explicitly supplied W3C upstream context; invalid values do not reject business work.</param>
+    /// <param name="traceState">Optional opaque W3C vendor state; not an identity or admission credential.</param>
     public IncomingMessage(
         Guid messageId,
         string producerKey,
@@ -22,7 +24,9 @@ public sealed class IncomingMessage
         JsonElement payload,
         string? tenantKey = null,
         string? correlationId = null,
-        string? causationId = null
+        string? causationId = null,
+        string? traceParent = null,
+        string? traceState = null
     )
     {
         ArgumentOutOfRangeException.ThrowIfEqual(messageId, Guid.Empty);
@@ -49,6 +53,8 @@ public sealed class IncomingMessage
         TenantKey = tenantKey;
         CorrelationId = correlationId;
         CausationId = causationId;
+        TraceParent = traceParent;
+        TraceState = traceState;
     }
 
     /// <summary>Delivery identity within its producer namespace.</summary>
@@ -74,4 +80,10 @@ public sealed class IncomingMessage
 
     /// <summary>Optional immediate cause identity.</summary>
     public string? CausationId { get; }
+
+    /// <summary>Explicitly supplied W3C upstream context; diagnostic only and independent of business identity.</summary>
+    public string? TraceParent { get; }
+
+    /// <summary>Opaque vendor state accompanying TraceParent; interpreted by native diagnostics.</summary>
+    public string? TraceState { get; }
 }

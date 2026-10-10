@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Samples.Wholesale.Inventory.StockPositions;
@@ -53,7 +54,9 @@ internal sealed class StockIssueMessages(
             encoded.Payload,
             owner,
             metadata.Message is { } incoming ? incoming.CorrelationId : operationCorrelationId,
-            metadata.Message?.MessageId.ToString()
+            metadata.Message?.MessageId.ToString(),
+            Activity.Current?.Id,
+            Activity.Current?.TraceStateString
         );
     }
 
@@ -83,7 +86,9 @@ internal sealed class StockIssueMessages(
             WireJson,
             owner,
             metadata.Message is { } incoming ? incoming.CorrelationId : operationCorrelationId,
-            metadata.Message?.MessageId.ToString()
+            metadata.Message?.MessageId.ToString(),
+            Activity.Current?.Id,
+            Activity.Current?.TraceStateString
         );
     }
 }

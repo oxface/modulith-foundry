@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Rootbolt.Messaging;
@@ -75,7 +76,9 @@ public sealed class ExportRequestCommands(ExportDbContext database, IOutbox<Expo
                 "exports.render",
                 1,
                 new RenderExportV1(request.Id, request.Pages),
-                WireJson
+                WireJson,
+                traceParent: Activity.Current?.Id,
+                traceState: Activity.Current?.TraceStateString
             )
         );
         return ExportSubmissionResult.Accepted;

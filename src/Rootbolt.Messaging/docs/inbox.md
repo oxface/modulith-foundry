@@ -147,3 +147,7 @@ Executable references: [HTTP inbox-only receiver](../../../samples/InboxDemo/REA
 [Inventory integration handler](../../../samples/Wholesale/modules/Inventory/Inventory/Messaging/StockIssueInboxHandler.cs).
 [New proof report](../../../docs/reports/inbox1-durable-intake-processing.md) distinguishes
 fresh results from O1 and archived receipt-only evidence.
+
+TraceParent/TraceState are optional diagnostic fields, excluded from duplicate comparison.
+The first committed intake retains its context even when equivalent retries carry different
+send spans. See [observability](observability.md) for processing links, metrics and collection.

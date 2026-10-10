@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using RabbitMQ.Client;
 using Rootbolt.Messaging;
@@ -32,6 +33,18 @@ public sealed class RabbitMqExportPublisher(IChannel channel, string queue) : IM
             properties.Headers["tenant-key"] = message.TenantKey;
         if (message.CausationId is not null)
             properties.Headers["causation-id"] = message.CausationId;
+
+        // Prefer the active publication context as one coherent parent/state pair. The
+        // native client can replace the parent with its child send span, which inherits
+        // the same state. Without an activity, fall back to explicitly retained context.
+        var current = Activity.Current;
+        string? traceParent = current?.Id ?? message.TraceParent;
+        string? traceState = current is null ? message.TraceState : current.TraceStateString;
+        if (traceParent is not null)
+            properties.Headers["traceparent"] = traceParent;
+        if (traceState is not null)
+            properties.Headers["tracestate"] = traceState;
+
         using var bounded = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         bounded.CancelAfter(TimeSpan.FromSeconds(5));
         await channel.BasicPublishAsync(

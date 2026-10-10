@@ -48,3 +48,6 @@ Keep domain eligibility, whole-operation retry, tenant admission and deployment 
 the consumer. Producer/intake final save/commit remain explicit; the processor owns its bounded
 local processing transaction. See [inbox setup](../docs/inbox.md) and
 [complete obligations](../docs/capabilities.md).
+
+See [durable message observability](../docs/observability.md) for optional W3C context, schema upgrades, native
+activity/meter names, failure logs and host-owned exporter configuration.

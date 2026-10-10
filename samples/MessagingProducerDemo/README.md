@@ -34,3 +34,10 @@ concurrency and transactional behavior.
 After the submission commits, this API may stop. The [independent worker roles](../MessagingWorkerDemo/README.md)
 deliver and process its retained command. The receiver knows the integration envelope and
 wire alias/version, rather than accessing Exports' DbContext or business DTOs.
+
+Optional message diagnostic context and native telemetry setup are documented in the
+[Messaging observability contract](../../src/Rootbolt.Messaging/docs/observability.md).
+Program.cs calls the existing editable [ServiceDefaults](../Wholesale/ServiceDefaults/README.md)
+and adds its messaging source/meter through the optional AddRootboltMessaging extensions,
+along with its producer resource. No broker/worker dependencies
+are introduced by sharing that host configuration.

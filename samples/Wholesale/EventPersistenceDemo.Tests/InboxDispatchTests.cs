@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -7,6 +8,8 @@ using ModulithFoundry.Samples.Wholesale.Inventory;
 using ModulithFoundry.Samples.Wholesale.Inventory.Contracts;
 using ModulithFoundry.Tests.Infrastructure;
 using Npgsql;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Rootbolt.ActorIdentity;
 using Rootbolt.Auditing.EntityFrameworkCore;
 using Rootbolt.Messaging;
@@ -25,7 +28,7 @@ public sealed class InboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixtu
     private static readonly JsonSerializerOptions WireJson = new(JsonSerializerDefaults.Web);
 
     [Fact]
-    public async Task AuditMigrationPreservesExistingFactsStateOutgoingReplyAndPendingIntake()
+    public async Task ForwardMigrationsPreserveStockStateAndLegacyPendingMessages()
     {
         string connection = await postgres.CreateDatabaseAsync(Token);
         await using var provider = Provider(connection);
@@ -36,7 +39,14 @@ public sealed class InboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixtu
                 .MigrateAsync("20261008213945_AddDurableInboxAndMessageMetadata", Token);
 
         Guid stock = await SeedAsync(provider, Alpha);
-        await using (var direct = Scope(provider, Alpha))
+        // Run the real historical stock decision, but capture its outgoing envelope for
+        // native insertion into the old schema. Today's EF outbox model needs new columns.
+        var captured = new HistoricalOutbox();
+        var legacyServices = DemoComposition.CreateServices(connection);
+        legacyServices.AddStockIssueInbox();
+        legacyServices.AddSingleton<IOutbox<InventoryDbContext>>(captured);
+        await using (var legacyProvider = legacyServices.BuildServiceProvider())
+        await using (var direct = Scope(legacyProvider, Alpha))
         {
             var database = direct.ServiceProvider.GetRequiredService<InventoryDbContext>();
             await using var transaction = await database.Database.BeginTransactionAsync(Token);
@@ -45,12 +55,36 @@ public sealed class InboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixtu
                     .ServiceProvider.GetRequiredService<IStockPositionCommands>()
                     .IssueAsync(new(stock, 2, [new StockIssue(1)]), Token)
             );
+            var reply = Assert.Single(captured.Messages);
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO inventory.outbox_messages (message_id, destination, message_name, schema_version, payload,
+                    owner_key, correlation_id, causation_id, attempts)
+                VALUES ({reply.MessageId}, {reply.RouteKey}, {reply.MessageName}, {reply.SchemaVersion},
+                    CAST({reply.Payload.GetRawText()} AS jsonb), {reply.TenantKey}, {reply.CorrelationId}, {reply.CausationId}, 0)
+                """,
+                Token
+            );
             await database.SaveChangesAsync(Token);
             await transaction.CommitAsync(Token);
         }
 
         var request = Message(stock, 3, 2);
-        await IntakeAsync(provider, request);
+        await using (var historical = Scope(provider, Alpha))
+        {
+            var database = historical.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO inventory.inbox_messages (subscription_key, producer_key, message_id, message_name, schema_version, payload,
+                    tenant_key, correlation_id, causation_id)
+                VALUES ({StockIssueMessageAdmission.Subscription}, {request.ProducerKey}, {request.MessageId},
+                    {request.MessageName}, {request.SchemaVersion}, CAST({request.Payload.GetRawText()} AS jsonb),
+                    {request.TenantKey}, {request.CorrelationId}, {request.CausationId})
+                """,
+                Token
+            );
+        }
+
         await using var upgraded = Scope(provider, Alpha);
         var current = upgraded.ServiceProvider.GetRequiredService<InventoryDbContext>();
         await current.Database.MigrateAsync(Token);
@@ -70,6 +104,14 @@ public sealed class InboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixtu
         var retained = await current.Set<InboxMessageRecord>().AsNoTracking().SingleAsync(Token);
         Assert.Equal(request.MessageId, retained.MessageId);
         Assert.Null(retained.ProcessedAt);
+        Assert.Null(retained.TraceParent);
+        Assert.Null(retained.TraceState);
+        var legacyOutgoing = await current
+            .Set<OutboxMessageRecord>()
+            .AsNoTracking()
+            .SingleAsync(Token);
+        Assert.Null(legacyOutgoing.TraceParent);
+        Assert.Null(legacyOutgoing.TraceState);
         var before = await upgraded
             .ServiceProvider.GetRequiredService<IStockPositionQueries>()
             .ReadCurrentAsync(stock, Token);
@@ -87,6 +129,59 @@ public sealed class InboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixtu
         Assert.NotNull(
             (await current.Set<InboxMessageRecord>().AsNoTracking().SingleAsync(Token)).ProcessedAt
         );
+    }
+
+    [Fact]
+    public async Task AdmittedIssueLinksRetainedContextAndExplicitReplyCaptureUsesProcessingActivity()
+    {
+        string connection = await DatabaseAsync();
+        await using var provider = Provider(connection);
+        Guid stock = await SeedAsync(provider, Alpha);
+        var original = Message(stock, 2, 1);
+        const string upstream = "00-12345678901234567890123456789012-1234567890123456-01";
+        var request = new IncomingMessage(
+            original.MessageId,
+            original.ProducerKey,
+            original.MessageName,
+            original.SchemaVersion,
+            original.Payload,
+            original.TenantKey,
+            original.CorrelationId,
+            original.CausationId,
+            upstream,
+            "proof=inventory"
+        );
+        await IntakeAsync(provider, request);
+        var spans = new List<Activity>();
+        using var telemetry = Sdk.CreateTracerProviderBuilder()
+            .AddSource("Rootbolt.Messaging")
+            .AddInMemoryExporter(spans)
+            .Build();
+        Assert.Equal(InboxProcessingResult.Processed, await ProcessAsync(provider));
+        telemetry.ForceFlush();
+        var processed = Assert.Single(
+            spans,
+            span => Equals(span.GetTagItem("messaging.message.id"), request.MessageId.ToString())
+        );
+        Assert.Equal(ActivityKind.Consumer, processed.Kind);
+        Assert.Equal(
+            ActivitySpanId.CreateFromString(upstream.AsSpan(36, 16)),
+            Assert.Single(processed.Links).Context.SpanId
+        );
+        Assert.Equal("proof=inventory", Assert.Single(processed.Links).Context.TraceState);
+        await using var read = Scope(provider, Alpha);
+        var database = read.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        var reply = await database.Set<OutboxMessageRecord>().SingleAsync(Token);
+        Assert.Equal(processed.Id, reply.TraceParent);
+        Assert.Equal(request.CorrelationId, reply.CorrelationId);
+        Assert.Equal(request.MessageId.ToString(), reply.CausationId);
+        Assert.Equal(Alpha, reply.TenantKey);
+        Assert.Single(await database.Set<AuditRecord>().ToArrayAsync(Token));
+        var state = await read
+            .ServiceProvider.GetRequiredService<IStockPositionQueries>()
+            .ReadCurrentAsync(stock, Token);
+        Assert.Equal(3, state!.Version);
+        Assert.Equal(4m, state.OnHand);
     }
 
     [Theory]
@@ -372,6 +467,13 @@ public sealed class InboxDispatchTests(PostgreSqlFixture postgres, RabbitMqFixtu
         var database = read.ServiceProvider.GetRequiredService<InventoryDbContext>();
         Assert.Single(await database.Set<AuditRecord>().ToArrayAsync(Token));
         Assert.NotNull((await database.Set<InboxMessageRecord>().SingleAsync(Token)).ProcessedAt);
+    }
+
+    private sealed class HistoricalOutbox : IOutbox<InventoryDbContext>
+    {
+        internal List<OutgoingMessage> Messages { get; } = [];
+
+        public void Enqueue(OutgoingMessage message) => Messages.Add(message);
     }
 
     private async Task<string> DatabaseAsync()
