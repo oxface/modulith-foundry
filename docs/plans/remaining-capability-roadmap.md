@@ -6,6 +6,12 @@ The owner considers transactional audit complete; checkpoint `18a76f8` is presen
 supported capabilities. The original E0–E10 extraction sequence is historical context,
 not the current work queue.
 
+W1 now has an implementation for owner review on `feat/separate-worker-hosts`:
+[native host and setup](../../samples/MessagingWorkerDemo/README.md),
+[bounded scope](w1-separate-worker-hosts.md) and
+[fresh process evidence](../reports/w1-separate-worker-hosts.md). No library interface changes
+were needed. It is not checkpointed or merged by this status update; remaining rows are candidates.
+
 Read the actual consumers and owning family documentation before starting a slice. Resolve
 stale descriptions against current code and owner decisions; do not carry an earlier
 proposal into implementation merely because it appears in a plan. Each row below is a
@@ -22,7 +28,7 @@ references, not selected runtime dependencies or a feature-parity target.
 | --- | --- | --- |
 | D1: DDD building blocks and template patterns | Compare a state-stored aggregate and an event-sourced aggregate; demonstrate creation, invariants, domain values and accepted/rejected decisions. | Domain rules stay in modules. Assess reusable identity/value/bookkeeping helpers against actual duplication; no mandatory aggregate hierarchy or generic repository. Useful editable patterns are a valid result even if no library is extracted. |
 | C1: CQRS patterns and optional helpers | Explicit command/query contracts, handlers and native `{Aggregate}Queries` / `{Aggregate}Filters` in real consumers, including filtering a joined EF read view. | Separate read/write logic can share storage. Preserve direct calls, typed DI and caller-owned save/commit. A mediator, pipeline or handler registry needs demonstrated value rather than CQRS naming alone. |
-| W1: separately hosted workers | Run existing inbox/outbox workers outside the API in a native .NET host, with explicit module composition and setup. | Prove API independence, competing instances, shutdown and fresh-process recovery with PostgreSQL/RabbitMQ. Reuse existing row locks and leases before inventing coordination. |
+| W1: separately hosted workers | Implemented for owner review: separate API, dispatch/intake/processing roles and finite setup. | Real PostgreSQL/RabbitMQ process proofs cover API independence, competing processors, shutdown, death and recovery using existing locks/leases. See the W1 report; no new library mechanism. |
 | OBS1: durable message observability | Implement the reviewed scope of the existing [observability proposal](durable-message-observability.md), after interface review. | Retained W3C context, native spans, logs/metrics and transport propagation across producer/receiver/worker processes. Prove retry/restart relationships and tracing-disabled behavior. Keep message/business identities distinct from diagnostic identity. |
 | WF1: durable inter-module workflow / saga assessment | One named module-owned process manager using existing inbox/outbox, persisted transitions and outgoing replies/actions. | Prove restart, duplicate/reordered messages, concurrent transitions and timeout/success races. Business compensation and semantic idempotency stay consumer-owned. Extract repeated mechanics only after a materially different comparison. |
 | B1: replayable source contract | One source module exposes retained integration changes with a provable progress cursor, ordering, retention floor and expired-cursor outcome. | Prove late commits, gaps, duplicates and restart. Outbox dispatch order and timestamps are not an established replay protocol. Public export contracts must preserve module ownership. |
@@ -40,11 +46,10 @@ before v1. This roadmap does not discard them or promote them into library commi
 
 ## Recommended order
 
-W1 is the next small executable runtime slice: the workers already use Hosting abstractions,
-fresh DI scopes and callable processing/dispatch. Their placement inside an API is a sample
-composition choice, not a library restriction. A dedicated host first proves deployment and
-failure boundaries; OBS1 then adds diagnostic propagation to that real path. If implemented
-together, keep the combined outcome bounded and review its exact interfaces and file map.
+W1 demonstrates that the existing Hosting abstractions, fresh DI scopes and callable
+processing/dispatch can run outside an API. Host placement is consumer composition. OBS1 is
+the proposed next runtime slice: add diagnostic propagation to that proven path after reviewing
+its exact interfaces/schema and file map. W1 adds no retained trace fields or OTel runtime.
 
 D1 and C1 can be explored independently before adding template choices. They are explicit
 roadmap items, with a library extraction decision at the end of each assessment. Reuse the

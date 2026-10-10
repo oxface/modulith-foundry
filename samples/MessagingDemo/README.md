@@ -35,3 +35,7 @@ before commit, fail sender completion after confirmed publication, and fail loca
 after acknowledged intake. Redelivery retains identity; fresh processing recovers without
 repeating a completed job. Tests terminate no production infrastructure.
 [Supported protocol](../../src/Rootbolt.Messaging/docs/inbox.md).
+
+For a long-running API plus separate dispatch/intake/processing processes using these same
+adapters, see [the worker host](../MessagingWorkerDemo/README.md). The finite journey remains
+available; it is not the new worker startup path.

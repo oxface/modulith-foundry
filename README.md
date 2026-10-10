@@ -19,13 +19,18 @@ independently selectable; a family folder does not add an umbrella dependency.
 | [Persistence](src/Rootbolt.Persistence/README.md) | EF Core ownership utilities |
 | [Events](src/Rootbolt.Events/README.md) | Independent serialization and history utilities |
 | [EventSourcing](src/Rootbolt.EventSourcing/README.md) | Aggregate core and optional EF Core write store |
-| [Messaging](src/Rootbolt.Messaging/README.md) | Outgoing contracts, EF outbox/optional worker and PostgreSQL dispatch |
+| [Messaging](src/Rootbolt.Messaging/README.md) | Incoming/outgoing envelopes, EF inbox/outbox and optional workers, PostgreSQL delivery |
 
 The [state-stored template rehearsal](docs/plans/t1-template-rehearsal.md) is owner-approved
 and checkpointed as `8ccf4c8`. Its [creator](tools/template/README.md) generates an independent
 Catalog/console repository with configurable naming and three existing library source
 snapshots, without event or messaging dependencies. [The report](docs/reports/t1-template-rehearsal.md)
 records the supported creation behavior and limits.
+
+[The separate worker host](samples/MessagingWorkerDemo/README.md) demonstrates API-independent
+dispatch, broker intake and local processing using existing Messaging APIs. Explicit finite
+setup applies module migrations and declares the queue; real process proofs cover competing
+workers, graceful stopping, abrupt death and fresh-process recovery.
 
 [ES1 bounded event append](docs/plans/es1-library-write-store.md), checkpointed as `ab85ec9`, adds reviewed aggregate bookkeeping
 and a provided IEventStore write coordinator to the optional native EF event segment.

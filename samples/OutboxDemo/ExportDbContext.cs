@@ -7,15 +7,18 @@ namespace ModulithFoundry.Samples.OutboxDemo;
 
 public sealed class ExportDbContext(DbContextOptions<ExportDbContext> options) : DbContext(options)
 {
-    public static ExportDbContext Create(string connection) =>
-        new(
-            new DbContextOptionsBuilder<ExportDbContext>()
-                .UseNpgsql(
-                    connection,
-                    postgres => postgres.MigrationsHistoryTable("__EFMigrationsHistory", "exports")
-                )
-                .Options
+    public static void Configure(DbContextOptionsBuilder options, string connection) =>
+        options.UseNpgsql(
+            connection,
+            postgres => postgres.MigrationsHistoryTable("__EFMigrationsHistory", "exports")
         );
+
+    public static ExportDbContext Create(string connection)
+    {
+        var options = new DbContextOptionsBuilder<ExportDbContext>();
+        Configure(options, connection);
+        return new(options.Options);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

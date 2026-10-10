@@ -47,6 +47,8 @@ public sealed class AssemblyDependencyTests
             typeof(Samples.OutboxDemo.DemoJourneys).Assembly,
             typeof(Samples.InboxDemo.InboxDemoHost).Assembly,
             typeof(Samples.MessagingDemo.MessagingJourney).Assembly,
+            typeof(Samples.MessagingProducerDemo.ProducerAssemblyMarker).Assembly,
+            typeof(Samples.MessagingWorkerDemo.WorkerAssemblyMarker).Assembly,
             typeof(ActorContextMiddleware).Assembly,
             typeof(TenantId).Assembly,
             typeof(TenantContextMiddleware).Assembly,
@@ -203,6 +205,8 @@ public sealed class AssemblyDependencyTests
                     "OutboxDemo",
                     "InboxDemo",
                     "MessagingDemo",
+                    "MessagingProducerDemo",
+                    "MessagingWorkerDemo",
                 }
             )
                 NoDependency(layer, forbidden).Check(Architecture);
@@ -233,6 +237,30 @@ public sealed class AssemblyDependencyTests
             NoDependency("InboxDemo", forbidden).Check(Architecture);
         }
         NoDependency("InboxDemo", "OutboxDemo").Check(Architecture);
+    }
+
+    [Fact]
+    public void ProducerDoesNotHostMessagingWorkersAndModulesDoNotDependOnTheirHosts()
+    {
+        foreach (
+            string forbidden in new[]
+            {
+                "InboxDemo",
+                "MessagingDemo",
+                "MessagingWorkerDemo",
+                "RabbitMQ.Client",
+            }
+        )
+            Assert.DoesNotContain(
+                typeof(Samples.MessagingProducerDemo.ProducerAssemblyMarker).Assembly.GetReferencedAssemblies(),
+                reference => reference.Name == forbidden
+            );
+
+        foreach (string module in new[] { "OutboxDemo", "InboxDemo", "MessagingDemo" })
+        {
+            NoDependency(module, "MessagingProducerDemo").Check(Architecture);
+            NoDependency(module, "MessagingWorkerDemo").Check(Architecture);
+        }
     }
 
     [Fact]

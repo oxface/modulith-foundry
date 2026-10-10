@@ -1,0 +1,99 @@
+# Separately hosted messaging workers
+
+A native .NET Generic Host composing the existing Exports outbox and Rendering inbox.
+Each invocation selects one explicit role. The producer API, dispatcher, broker intake and
+inbox processor can have separate deployment lifetimes and replica counts. These are editable
+consumer entry points, using existing Rootbolt APIs; there is no new worker runtime package.
+
+| Role | Dependencies and behavior |
+| --- | --- |
+| `setup` | Exports + Rendering connections and RabbitMQ. Applies existing migrations and declares the configured durable queue, then exits. No business rows are seeded. |
+| `dispatch` | Exports connection and RabbitMQ. Existing outbox worker claims leased work, publishes persistent messages with native confirmations, then records acceptance. |
+| `receive` | Rendering connection and RabbitMQ. Sequential native intake commits retained work before acknowledging the delivery. No business handler executes here. |
+| `process` | Rendering connection only. Existing inbox worker invokes the registered Rendering handler and atomically saves a job and delivery completion. No broker or Exports settings are required. |
+
+The host alone composes the modules. It reuses the [finite journey's native broker adapters](../MessagingDemo/README.md)
+and the modules' typed contexts. The receiver's own wire decoder/admission rules remain in
+Rendering. No shared DbContext, peer business-table query or cross-module transaction appears.
+
+## Setup and execution
+
+Use existing PostgreSQL and RabbitMQ instances with two already-created databases and
+appropriate credentials. The two modules may also use separate schemas in one database.
+Native .NET configuration uses environment variables here; do not commit
+credentials. From the repository root:
+
+```bash
+export ConnectionStrings__Exports='Host=localhost;Database=exports_demo;Username=demo;Password=demo'
+export ConnectionStrings__Rendering='Host=localhost;Database=rendering_demo;Username=demo;Password=demo'
+export RabbitMQ__Uri='amqp://demo:demo@localhost:5672'
+export RabbitMQ__Queue='exports-rendering'
+dotnet run --project samples/MessagingWorkerDemo/MessagingWorkerDemo.csproj -- --role setup
+```
+
+Then start these in separate terminals or supervised processes, giving each only the settings
+listed for its role:
+
+```bash
+dotnet run --project samples/MessagingWorkerDemo/MessagingWorkerDemo.csproj -- --role dispatch
+dotnet run --project samples/MessagingWorkerDemo/MessagingWorkerDemo.csproj -- --role receive
+dotnet run --project samples/MessagingWorkerDemo/MessagingWorkerDemo.csproj -- --role process
+```
+
+Submit work through the [producer API](../MessagingProducerDemo/README.md). A RenderJob is
+local durable work; recording one does not claim that an external renderer completed.
+Queue declaration and migrations are finite setup, not worker startup. Setup can be rerun
+against the same schema/queue definition. It performs separate module migrations, not one
+atomic cross-module deployment. Workers read-check their required tables and passively check
+an existing queue. They neither migrate/seed nor delete the durable queue when stopping.
+
+`Worker__LeaseSeconds` configures the dispatch lease (default 30 seconds); native sample
+publication has a five-second deadline. A lease is not an external exactly-once promise.
+Both library workers poll idle work at 100 ms and delay operational failures for one second.
+Generic Host owns Ctrl+C/SIGTERM cancellation and its default shutdown deadline. An abrupt
+process death follows the storage protocol, rather than requiring a graceful callback.
+This console executable uses `Microsoft.AspNetCore.App` for native Hosting/DI APIs and its
+existing receiver dependency; install that shared framework even though it exposes no HTTP server.
+
+## Recovery and operational limits
+
+- Processing holds `FOR UPDATE SKIP LOCKED` through local handling and commit. Competing
+  processes take different available deliveries. Abrupt death disconnects and rolls back
+  that transaction; another process can retry its retained delivery.
+- Dispatch releases the database lock after committing a lease. Death after broker acceptance
+  but before completion leaves the lease to expire. A replacement may publish the same
+  MessageId again; retained inbox deduplication suppresses repeated local handling.
+- Graceful stopping cancels native operations and disposes this process's long-lived connection
+  and channel. Unacknowledged deliveries are recoverable on channel closure. Queues remain durable.
+- Broker connections are established once and automatic recovery is disabled. Initial connection
+  failure fails startup. Intake failure leaves work unacknowledged, logs the failure and exits
+  nonzero; a supervisor/operator must restart it. The existing dispatcher retries publication
+  failures in fresh database scopes; a permanently closed channel needs an operator/supervisor
+  restart. This sample supplies no transport health monitor or deployment supervisor.
+
+Each role performs one operation at a time. Replica counts allow independent scaling, but
+these proofs establish correctness under competition rather than a throughput target. Native
+subscriptions/prefetch/backpressure, reconnect, poison handling/dead-letter/redrive, lease
+renewal, leader election, batching, deployment manifests and resource limits are not supplied.
+Permissions/TLS and trusted producer mapping remain deployment/consumer obligations. A
+malformed head delivery can require operator intervention; this sample does not silently discard it.
+Retained W3C context and durable spans remain the separately scoped OBS1 work. Module tracing
+does not require a root Rootbolt runtime.
+
+## Executable proofs
+
+```bash
+dotnet test --project samples/MessagingWorkerDemo.Tests/MessagingWorkerDemo.Tests.csproj
+```
+
+Linux process tests use SIGTERM and hard process termination, real PostgreSQL 18.6 and
+RabbitMQ 4.3.6 containers. Docker or rootless Podman is required; for Podman set `DOCKER_HOST`
+to its user socket. Each test gets new module databases and a private queue. Tests start the
+built executables directly; no external API/broker processes or personal credentials are required.
+Database barriers hold an inserted, uncommitted job or an outbox completion after confirmed
+publication. SIGTERM is also tested during the blocked job write, without releasing its
+barrier first. These establish actual in-flight work before termination, rather than relying
+on arbitrary sleeps or sample-only fault settings. Proof deadlines and child-process cleanup
+are bounded. The API can exit before any worker starts, and the processor is run without
+sender/broker configuration. See [the W1 report](../../docs/reports/w1-separate-worker-hosts.md)
+for dated results and the exact supported boundary.

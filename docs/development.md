@@ -6,7 +6,7 @@ remain under `tests/`. The active solution, hooks and CI use the family paths be
 See [the layout scope](plans/library-family-layout.md).
 
 
-`ModulithFoundry.slnx` contains 50 active projects: independent ActorIdentity and Tenancy
+`ModulithFoundry.slnx` contains the active projects: independent ActorIdentity and Tenancy
 cores, their optional ASP.NET Core adapters, the EF ownership utility, the event codec and
 ordered-range validation, package-free aggregate core and EF event-storage utilities, five finite console
 samples, an HTTP identity/Organization host, eight populated Access/Inventory/Sales/Purchasing module projects and
@@ -91,7 +91,7 @@ fixture: measured parallel candidates did not establish a speed improvement.
 | Rootbolt.Persistence | EF model/write validation and real PostgreSQL GUID ownership consumer. |
 | Rootbolt.Events | Serialization/upcasting, ordered history integrity and independent event-codec consumer tests/executable. |
 | Rootbolt.EventSourcing | Aggregate core, PostgreSQL history/rebuilding/concurrency, independent event-storage consumer and Wholesale event-sourcing adoption. |
-| Rootbolt.Messaging | Provider-free envelopes, PostgreSQL enqueue/claims/worker, standalone HTTP adopter and focused Inventory RabbitMQ proofs. |
+| Rootbolt.Messaging | Provider-free envelopes, PostgreSQL enqueue/claims/inbox processing, HTTP/RabbitMQ adopters, real separate-worker process proofs and focused Inventory broker proofs. |
 | Wholesale consumer composition | Context tests/executable, module migrations/ownership and persisted HTTP admission/business/telemetry tests. |
 | Repository integrity | Always: commitlint and frozen archive checksums. Relevant code/build changes also run whole-solution restore/style/analyzers/build, architecture boundaries and CSharpier. |
 | Template integrity and adoption | TypeScript generator checks and two external generated consumers against PostgreSQL. |
@@ -123,6 +123,14 @@ assertions when selected. See the [path-scoping report](reports/ci-path-scoping.
 filter verification and the
 [family-lane verification report](reports/ci-family-lanes.md) for coverage accounting,
 fresh executions and remaining hosted/performance limits.
+
+## Separate worker proofs
+
+The Messaging family includes [W1's native separate-host proofs](../samples/MessagingWorkerDemo/README.md).
+They launch actual producer and worker executables against isolated PostgreSQL/RabbitMQ, with
+API-independent delivery, competing workers, process termination and recovery. They use native
+Testcontainers fixtures and do not add another Aspire deployment lane. Update the family path
+map when changing their executable dependencies or linked fixtures.
 
 ## Dependency updates
 

@@ -13,6 +13,8 @@
     <ProjectReference Include="../../samples/OutboxDemo/OutboxDemo.csproj" />
     <ProjectReference Include="../../samples/InboxDemo/InboxDemo.csproj" />
     <ProjectReference Include="../../samples/MessagingDemo/MessagingDemo.csproj" />
+    <ProjectReference Include="../../samples/MessagingProducerDemo/MessagingProducerDemo.csproj" />
+    <ProjectReference Include="../../samples/MessagingWorkerDemo/MessagingWorkerDemo.csproj" />
     <ProjectReference Include="../../src/Rootbolt.EventSourcing/Rootbolt.EventSourcing/Rootbolt.EventSourcing.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Events/Rootbolt.Events.History/Rootbolt.Events.History.csproj" />
     <ProjectReference Include="../../src/Rootbolt.Events/Rootbolt.Events.Serialization/Rootbolt.Events.Serialization.csproj" />
